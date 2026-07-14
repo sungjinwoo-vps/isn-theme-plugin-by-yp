@@ -1,0 +1,20 @@
+{
+  "name": "infosecnexus-theme-ecosystem",
+  "version": "0.1.0",
+  "private": true,
+  "license": "GPL-2.0-or-later",
+  "scripts": {
+    "lint:js": "eslint \"wp-content/**/*.js\" \"tests/**/*.js\"",
+    "lint:css": "stylelint \"wp-content/**/*.css\"",
+    "test:e2e": "playwright test",
+    "audit": "npm audit --omit=optional"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.1",
+    "@playwright/test": "^1.54.0",
+    "eslint": "^9.31.0",
+    "stylelint": "^16.20.0",
+    "stylelint-config-standard": "^38.0.0"
+  }
+}
+

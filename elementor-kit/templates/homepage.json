@@ -1,0 +1,44 @@
+{
+  "title": "InfoSecNexus Home",
+  "type": "page",
+  "content": [
+    {
+      "elType": "container",
+      "settings": {
+        "content_width": "boxed"
+      },
+      "elements": [
+        {
+          "elType": "widget",
+          "widgetType": "infosecnexus_news_ticker",
+          "settings": {
+            "posts_per_page": 6
+          }
+        },
+        {
+          "elType": "widget",
+          "widgetType": "infosecnexus_featured_story",
+          "settings": {
+            "posts_per_page": 1
+          }
+        },
+        {
+          "elType": "widget",
+          "widgetType": "infosecnexus_posts_grid",
+          "settings": {
+            "posts_per_page": 8
+          }
+        },
+        {
+          "elType": "widget",
+          "widgetType": "infosecnexus_critical_cve_list",
+          "settings": {
+            "category": "critical-cves",
+            "posts_per_page": 5
+          }
+        }
+      ]
+    }
+  ]
+}
+

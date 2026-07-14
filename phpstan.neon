@@ -1,0 +1,11 @@
+parameters:
+  level: 3
+  paths:
+    - wp-content/themes/infosecnexus
+    - wp-content/plugins/infosecnexus-toolkit
+  excludePaths:
+    - */vendor/*
+  treatPhpDocTypesAsCertain: false
+  scanFiles:
+    - vendor/php-stubs/wordpress-stubs/wordpress-stubs.php
+    - tests/stubs/integrations.php

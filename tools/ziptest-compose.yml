@@ -1,0 +1,75 @@
+name: infosecnexus_ziptest
+
+services:
+  db:
+    image: mariadb:11.4
+    environment:
+      MARIADB_DATABASE: ziptest
+      MARIADB_USER: ziptest
+      MARIADB_PASSWORD: ziptest-development-only
+      MARIADB_ROOT_PASSWORD: ziptest-root-development-only
+    healthcheck:
+      test: ["CMD-SHELL", "mariadb-admin ping -h 127.0.0.1 -uziptest -pziptest-development-only --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - ziptest_db:/var/lib/mysql
+    networks:
+      - ziptest
+
+  wordpress:
+    image: wordpress:php8.3-apache
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8890:80"
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_NAME: ziptest
+      WORDPRESS_DB_USER: ziptest
+      WORDPRESS_DB_PASSWORD: ziptest-development-only
+      WORDPRESS_TABLE_PREFIX: zt_
+      WORDPRESS_CONFIG_EXTRA: define('WP_ENVIRONMENT_TYPE', 'local'); define('DISALLOW_FILE_EDIT', true);
+    healthcheck:
+      test: ["CMD-SHELL", "php -r 'exit(@fsockopen(\"127.0.0.1\", 80) ? 0 : 1);'"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    volumes:
+      - ziptest_wordpress:/var/www/html
+      - ../dist:/dist:ro
+    networks:
+      - ziptest
+
+  wpcli:
+    image: wordpress:cli-php8.3
+    depends_on:
+      db:
+        condition: service_healthy
+      wordpress:
+        condition: service_healthy
+    user: "33:33"
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_NAME: ziptest
+      WORDPRESS_DB_USER: ziptest
+      WORDPRESS_DB_PASSWORD: ziptest-development-only
+      WORDPRESS_TABLE_PREFIX: zt_
+    volumes:
+      - ziptest_wordpress:/var/www/html
+      - ../dist:/dist:ro
+    networks:
+      - ziptest
+    profiles:
+      - cli
+
+volumes:
+  ziptest_db:
+  ziptest_wordpress:
+
+networks:
+  ziptest:
+    driver: bridge
+

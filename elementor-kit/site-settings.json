@@ -1,0 +1,47 @@
+{
+  "settings": {
+    "site_name": "InfoSecNexus",
+    "global_image_lightbox": "yes",
+    "container_width": {
+      "unit": "px",
+      "size": 1120
+    },
+    "system_colors": [
+      {
+        "_id": "primary",
+        "title": "InfoSecNexus Cyan",
+        "color": "#00a8c8"
+      },
+      {
+        "_id": "secondary",
+        "title": "Charcoal",
+        "color": "#142033"
+      },
+      {
+        "_id": "text",
+        "title": "Readable Ink",
+        "color": "#142033"
+      },
+      {
+        "_id": "accent",
+        "title": "Critical Red",
+        "color": "#d92d20"
+      }
+    ],
+    "system_typography": [
+      {
+        "_id": "primary",
+        "title": "Heading",
+        "typography_typography": "custom",
+        "typography_font_family": "system-ui"
+      },
+      {
+        "_id": "secondary",
+        "title": "Body",
+        "typography_typography": "custom",
+        "typography_font_family": "system-ui"
+      }
+    ]
+  }
+}
+

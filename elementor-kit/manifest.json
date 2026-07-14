@@ -1,0 +1,17 @@
+{
+  "name": "InfoSecNexus Elementor Kit",
+  "version": "0.1.0",
+  "text_domain": "infosecnexus",
+  "requires": {
+    "theme": "infosecnexus",
+    "plugin": "infosecnexus-toolkit",
+    "elementor_free": true,
+    "elementor_pro": false
+  },
+  "templates": [
+    "templates/homepage.json",
+    "templates/newsletter-section.json"
+  ],
+  "site_settings": "site-settings.json"
+}
+

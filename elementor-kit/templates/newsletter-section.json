@@ -1,0 +1,22 @@
+{
+  "title": "InfoSecNexus Newsletter CTA",
+  "type": "section",
+  "content": [
+    {
+      "elType": "container",
+      "settings": {
+        "content_width": "boxed"
+      },
+      "elements": [
+        {
+          "elType": "widget",
+          "widgetType": "shortcode",
+          "settings": {
+            "shortcode": "[infosecnexus_newsletter]"
+          }
+        }
+      ]
+    }
+  ]
+}
+

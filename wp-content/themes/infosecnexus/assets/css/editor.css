@@ -1,0 +1,30 @@
+:root {
+  --isnx-accent: #00a8c8;
+  --isnx-critical: #d92d20;
+  --isnx-high: #b7791f;
+  --isnx-info: #2563eb;
+  --isnx-ink: #12202f;
+  --isnx-paper: #fff;
+  --isnx-muted: #5f6b7a;
+  --isnx-body-font: system-ui, -apple-system, blinkmacsystemfont, "Segoe UI", sans-serif;
+  --isnx-heading-font: system-ui, -apple-system, blinkmacsystemfont, "Segoe UI", sans-serif;
+}
+
+.editor-styles-wrapper {
+  color: var(--isnx-ink);
+  font-family: var(--isnx-body-font);
+  font-size: 17px;
+  line-height: 1.7;
+}
+
+.editor-styles-wrapper h1,
+.editor-styles-wrapper h2,
+.editor-styles-wrapper h3 {
+  font-family: var(--isnx-heading-font);
+  line-height: 1.15;
+}
+
+.editor-styles-wrapper a {
+  color: var(--isnx-accent);
+}
+

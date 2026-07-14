@@ -1,0 +1,147 @@
+Feature,Original InfoSecNexus feature name,Component responsible,Dependencies,Security considerations,Status,Tests,Evidence,Remaining limitations
+Global color palettes,Signal Palette,Theme Customizer,None,Sanitized hex colors,Implemented,PHP syntax pending,wp-content/themes/infosecnexus/inc/customizer.php,Palette preset library deferred
+Light/dark palettes,Reader Color Mode,Theme JS/CSS,None,Local preference only,Implemented,Playwright pending,assets/js/theme.js,Admin palette variants deferred
+System and manual color mode,Adaptive Reader Mode,Theme JS,None,No server-side tracking,Implemented,Playwright pending,assets/js/theme.js,None
+Accessible persistent switch,Color Mode Toggle,Theme Header,None,Button aria state,Implemented,Playwright pending,inc/header-builder.php,None
+Typography controls,Editorial Type Tokens,Theme Customizer,None,Sanitized text,Implemented,PHPCS pending,inc/customizer.php,Advanced responsive scale UI deferred
+System fonts,System Stack,Theme CSS,None,No remote calls,Implemented,CSS lint pending,assets/css/theme.css,None
+Local custom fonts,Local Font Library,Toolkit,None,Uploads must validate MIME,Deferred,Not run,docs/ROADMAP.md,Deferred
+Variable fonts,Variable Font Tokens,Toolkit,None,Uploads must validate MIME,Deferred,Not run,docs/ROADMAP.md,Deferred
+Elementor font integration,Elementor Global Typography,Elementor Kit,Elementor Free,No remote fonts by default,Implemented,Import validation pending,elementor-kit/site-settings.json,Kit import validation pending
+Responsive font sizes,Readable Scale,Theme CSS,None,No risk,Implemented,CSS lint pending,assets/css/theme.css,Customizer scale UI deferred
+Content width,Editorial Width,Theme Customizer,None,Sanitized CSS size,Implemented,PHP syntax pending,inc/customizer.php,None
+Wide width,Wide Story Width,Theme Customizer,None,Sanitized CSS size,Implemented,PHP syntax pending,inc/customizer.php,None
+Container layouts,Story Layout Controls,Theme and Toolkit,None,Post meta capability checks,Implemented,PHP syntax pending,class-admin-meta.php,No visual preview panel
+Responsive spacing,Spacing Tokens,Theme CSS,None,No risk,Implemented,CSS lint pending,assets/css/theme.css,Customizer spacing controls deferred
+Global buttons,Action Button Style,Theme CSS,None,No risk,Implemented,CSS lint pending,assets/css/theme.css,None
+Form styling,Input Surface System,Theme CSS,None,No risk,Implemented,CSS lint pending,assets/css/theme.css,None
+Borders,Interface Borders,Theme CSS,None,No risk,Implemented,CSS lint pending,assets/css/theme.css,None
+Shadows,Interface Elevation,Theme CSS,None,No risk,Implemented,CSS lint pending,assets/css/theme.css,None
+Backgrounds,Reader Surfaces,Theme CSS,None,No risk,Implemented,CSS lint pending,assets/css/theme.css,None
+Link styling,Accessible Links,Theme CSS,None,No risk,Implemented,CSS lint pending,assets/css/theme.css,None
+Entry content spacing,Longform Rhythm,Theme CSS,None,No risk,Implemented,CSS lint pending,assets/css/theme.css,None
+Scroll-to-top,Return to Top,Theme JS,None,Button label,Implemented,Playwright pending,footer.php,None
+Social profiles,Profile Links,Theme Customizer,None,Escaped URLs,Implemented,PHP syntax pending,inc/header-builder.php,None
+Breadcrumbs,Breadcrumb Router,Theme,None,Third-party output trusted to plugin,Implemented,PHP syntax pending,inc/breadcrumbs.php,None
+Customizer live preview,Token Live Preview,Theme Customizer,None,No privileged action,Implemented,JS lint pending,assets/js/customizer-preview.js,Limited to design tokens
+Customizer import/export,Customizer Portability,Theme Admin,edit_theme_options,Nonce and capability checks,Implemented,PHP syntax pending,inc/customizer-tools.php,None
+Safe setting reset,Customizer Reset,Theme Admin,edit_theme_options,Scoped to theme mods,Implemented,PHP syntax pending,inc/customizer-tools.php,None
+Child-theme support,Child Theme Ready,Theme,WordPress APIs,No risk,Implemented,Theme Check pending,functions.php,None
+Translation readiness,i18n Ready,Theme and Toolkit,None,Escaped strings,Implemented,PHPCS pending,theme and plugin,Language files not generated
+RTL,RTL Baseline,Theme CSS,None,Logical properties used,Implemented,CSS lint pending,assets/css/theme.css,Manual RTL review pending
+Multisite compatibility,Network Safe Options,Theme and Toolkit,WordPress multisite,No global table writes,Implemented,Manual pending,helpers.php,None
+SEO plugin compatibility,SEO Friendly Rendering,Theme,SEO plugins,No duplicate metadata emitted,Implemented,Manual pending,templates,None
+Native breadcrumbs,Native Breadcrumbs,Theme,None,Escaped output,Implemented,PHP syntax pending,inc/breadcrumbs.php,None
+Yoast breadcrumbs,Yoast Breadcrumb Bridge,Theme,Yoast SEO,Delegates to plugin,Implemented,Manual pending,inc/breadcrumbs.php,None
+Rank Math breadcrumbs,Rank Math Breadcrumb Bridge,Theme,Rank Math,Delegates to plugin,Implemented,Manual pending,inc/breadcrumbs.php,None
+SEOPress breadcrumbs,SEOPress Breadcrumb Bridge,Theme,SEOPress,Delegates to plugin,Implemented,Manual pending,inc/breadcrumbs.php,None
+Breadcrumb NavXT breadcrumbs,NavXT Breadcrumb Bridge,Theme,Breadcrumb NavXT,Delegates to plugin,Implemented,Manual pending,inc/breadcrumbs.php,None
+Top header row,Header Top Row,Theme Customizer,None,Escaped elements,Implemented,PHP syntax pending,inc/header-builder.php,Text-list UI
+Middle header row,Header Main Row,Theme Customizer,None,Escaped elements,Implemented,PHP syntax pending,inc/header-builder.php,Text-list UI
+Bottom header row,Header Bottom Row,Theme Customizer,None,Escaped elements,Implemented,PHP syntax pending,inc/header-builder.php,Text-list UI
+Desktop tablet mobile layouts,Responsive Header Rows,Theme CSS,None,Accessible off-canvas,Implemented,Playwright pending,assets/css/theme.css,Device-specific per-element UI deferred
+Element reordering,Header Element Order,Theme Customizer,None,Whitelist sanitize,Implemented,PHP syntax pending,inc/customizer.php,Text-list UI
+Multiple column zones,Header Flexible Zones,Theme CSS,None,No risk,Implemented,CSS lint pending,assets/css/theme.css,No drag/drop zones
+Per-device visibility,Header Responsive Visibility,Theme CSS,None,No risk,In Progress,Playwright pending,assets/css/theme.css,Per-element controls deferred
+Sticky header,Sticky Header,Theme CSS,None,No risk,Implemented,Playwright pending,assets/css/theme.css,None
+Shrinking header,Shrink on Scroll,Theme JS,None,No risk,Implemented,Playwright pending,assets/js/theme.js,None
+Transparent header,Transparent Context Header,Theme body class,None,No risk,Implemented,Manual pending,inc/setup.php,Styling refinement pending
+Scroll-up reveal,Reveal Header,Theme JS,None,No risk,Implemented,Playwright pending,assets/js/theme.js,None
+Conditional headers,Conditional Header Blocks,Toolkit Content Blocks,Toolkit,Condition sanitization,Implemented,PHP syntax pending,class-content-blocks.php,Visual rules UI deferred
+Multiple headers,Header Content Blocks,Toolkit Content Blocks,Toolkit,Capability checks,Implemented,Manual pending,class-content-blocks.php,No named library UI
+Mobile off-canvas,Mobile Panel,Theme JS/CSS,None,Focus restore and Escape,Implemented,Playwright pending,header-builder.php,None
+Separate mobile logo,Mobile Logo,Theme Customizer,None,Escaped output,Deferred,Not run,docs/ROADMAP.md,Deferred
+Sticky-state logo,Sticky Logo,Theme Customizer,None,Escaped output,Deferred,Not run,docs/ROADMAP.md,Deferred
+Dark-mode logo,Dark Logo,Theme Customizer,None,Escaped output,Deferred,Not run,docs/ROADMAP.md,Deferred
+Header logo,Logo Element,Theme,None,Core custom logo,Implemented,PHP syntax pending,header-builder.php,None
+Header menus,Menu Elements,Theme,Nav menus,Core escaping,Implemented,PHP syntax pending,header-builder.php,None
+Header search,Search Element,Theme,None,Escaped form,Implemented,PHP syntax pending,searchform.php,None
+Live search trigger,Live Search Trigger,Theme and Toolkit,REST API,Rate limit and publish-only query,Implemented,REST pending,class-search.php,None
+Header social links,Social Element,Theme Customizer,None,Escaped URLs,Implemented,PHP syntax pending,header-builder.php,None
+Header HTML/text,Header HTML Element,Theme Customizer,None,wp_kses_post,Implemented,PHP syntax pending,header-builder.php,None
+Header contact,Contact Element,Theme Customizer,None,Escaped text,Implemented,PHP syntax pending,header-builder.php,None
+Header widget area,Header Widget Element,Theme,None,Widget output,Implemented,Manual pending,header-builder.php,None
+Color mode switch,Header Color Switch,Theme JS,None,Accessible button,Implemented,Playwright pending,header-builder.php,None
+Woo cart,Cart Element,Theme,WooCommerce,Loads only if WooCommerce exists,Implemented,Manual pending,header-builder.php,None
+Wishlist,Wishlist Link,Toolkit WooCommerce,WooCommerce,No stored wishlist yet,Deferred,Not run,class-woocommerce.php,Storage/UI deferred
+Product comparison,Compare Link,Toolkit WooCommerce,WooCommerce,No stored comparison yet,Deferred,Not run,class-woocommerce.php,Storage/UI deferred
+Footer rows,Footer Row Builder,Theme Customizer,None,Escaped elements,Implemented,PHP syntax pending,footer-builder.php,Text-list UI
+Footer columns,Footer Widget Columns,Theme Widgets,None,Widget output,Implemented,Manual pending,footer-builder.php,None
+Conditional footers,Conditional Footer Blocks,Toolkit Content Blocks,Toolkit,Condition checks,Implemented,PHP syntax pending,class-content-blocks.php,Visual UI deferred
+Elementor footer templates,Elementor Footer Location,Theme,Elementor,Legal Elementor install only,Implemented,Manual pending,inc/elementor.php,None
+Archive list layout,List Cards,Theme,None,Escaped output,Implemented,Manual pending,archive.php,Full switcher UI deferred
+Archive grid layout,Grid Cards,Theme,None,Escaped output,Implemented,Manual pending,assets/css/theme.css,None
+Archive magazine layout,Magazine Layout,Theme,None,Escaped output,Deferred,Not run,docs/ROADMAP.md,Deferred
+Archive mixed layout,Mixed Layout,Theme,None,Escaped output,Deferred,Not run,docs/ROADMAP.md,Deferred
+Featured-first archive,Featured First Archive,Theme,None,Escaped output,In Progress,Manual pending,front-page.php,Archive-specific control deferred
+Configurable columns,Responsive Columns,Theme CSS,None,No risk,Implemented,CSS lint pending,assets/css/theme.css,Customizer columns deferred
+Card element reorder,Card Composer,Theme,None,Escaped output,Deferred,Not run,docs/ROADMAP.md,Deferred
+Featured image controls,Media Controls,Theme/Core,None,Core image escaping,Implemented,Manual pending,template files,Customizer controls deferred
+Excerpt controls,Excerpt Controls,Theme/Core,None,Core escaping,Implemented,Manual pending,template-tags.php,Length UI deferred
+Category badges,Severity/Category Badges,Theme,None,Escaped terms,Implemented,PHP syntax pending,template-tags.php,None
+Metadata controls,Metadata Row,Theme,None,Escaped output,Implemented,PHP syntax pending,template-tags.php,Reorder UI deferred
+Reading time,Reading Time,Theme,None,No risk,Implemented,PHP syntax pending,template-tags.php,None
+Numeric pagination,Numeric Pagination,Theme,None,Core output,Implemented,Manual pending,template-tags.php,None
+Previous next pagination,Previous Next Navigation,Theme,None,Core output,Implemented,Manual pending,single.php,None
+Accessible load more,Load More Button,Toolkit,None,Nonce and rate limit needed,Deferred,Not run,docs/ROADMAP.md,Deferred
+Infinite scroll,Progressive Infinite Scroll,Toolkit,None,Non-JS fallback required,Deferred,Not run,docs/ROADMAP.md,Deferred
+Single hero layouts,Single Story Hero,Theme,None,Escaped output,Implemented,Manual pending,single.php,Multiple hero control deferred
+Featured video,Featured Video,Toolkit meta and Theme,None,oEmbed sanitized,Implemented,PHP syntax pending,class-admin-meta.php,None
+Reorderable metadata,Metadata Composer,Theme,None,Escaped output,Deferred,Not run,docs/ROADMAP.md,Deferred
+Reading progress,Reading Progress,Theme JS,None,No risk,Implemented,Playwright pending,assets/js/theme.js,None
+Table of contents,Article TOC,Theme/Elementor,None,Escaped headings,Implemented,Manual pending,template-tags.php,Server-side anchor injection deferred
+Privacy-friendly share,Static Share Links,Theme,None,No remote scripts,Implemented,PHP syntax pending,template-tags.php,None
+Author box,Author Box Widget,Toolkit Elementor,None,Escaped author meta,Implemented,Elementor pending,widgets.php,None
+Related posts,Related Briefings,Toolkit,None,Bounded WP_Query,Implemented,PHP syntax pending,class-related-posts.php,None
+Comments,Comments Support,Theme,None,Core escaping,Implemented,Manual pending,comments.php,None
+Newsletter CTA,Daily Briefing CTA,Toolkit REST,None,Rate limit and honeypot,Implemented,REST pending,class-newsletter.php,None
+Sticky share controls,Share Rail,Theme CSS,None,No risk,Implemented,Manual pending,single.php,Advanced sticky variants deferred
+Responsive tables,Longform Tables,Theme CSS,None,No risk,Implemented,CSS lint pending,assets/css/theme.css,None
+Code block styles,Technical Code Blocks,Theme CSS,None,No risk,Implemented,CSS lint pending,assets/css/theme.css,None
+Print styles,Print Reading Mode,Theme CSS,None,No risk,Implemented,CSS lint pending,assets/css/theme.css,None
+Page layout options,Page Presentation Controls,Toolkit meta,None,Capability checks,Implemented,PHP syntax pending,class-admin-meta.php,None
+Elementor full width,Elementor Full Width Template,Theme,Elementor optional,No risk,Implemented,Manual pending,template-elementor-full-width.php,None
+Elementor canvas,Elementor Canvas Template,Theme,Elementor optional,No risk,Implemented,Manual pending,template-elementor-canvas.php,None
+Conditional engine,Rules Engine,Toolkit,None,Sanitized rules,Implemented,PHP syntax pending,class-conditions.php,Visual UI deferred
+Content block CPT,Content Blocks,Toolkit,Gutenberg,Capability checks,Implemented,PHP syntax pending,class-content-blocks.php,None
+Elementor editing blocks,Elementor Editable Blocks,Toolkit,Elementor optional,Legal install only,In Progress,Manual pending,class-content-blocks.php,Template linking UI deferred
+Scheduling,Block Scheduler,Toolkit,None,Date parsing,Implemented,PHP syntax pending,class-content-blocks.php,None
+Multiple sidebars,Conditional Sidebars,Toolkit,None,JSON condition validation,Implemented,Manual pending,class-sidebars.php,Visual UI deferred
+Elementor header location,Elementor Header Location,Theme,Elementor,No duplicate fallback,Implemented,Manual pending,header.php,None
+Elementor footer location,Elementor Footer Location,Theme,Elementor,No duplicate fallback,Implemented,Manual pending,footer.php,None
+Elementor single location,Elementor Single Location,Theme,Elementor,No duplicate content,Implemented,Manual pending,single.php,None
+Elementor archive location,Elementor Archive Location,Theme,Elementor,No duplicate loop,Implemented,Manual pending,archive.php,None
+Featured Story widget,Featured Story Widget,Toolkit Elementor,Elementor Free,Safe WP_Query,Implemented,Elementor pending,widgets.php,None
+Posts Grid widget,Posts Grid Widget,Toolkit Elementor,Elementor Free,Safe WP_Query,Implemented,Elementor pending,widgets.php,None
+Category Posts widget,Category Posts Widget,Toolkit Elementor,Elementor Free,Safe WP_Query,Implemented,Elementor pending,widgets.php,None
+News Ticker widget,News Ticker Widget,Toolkit Elementor,Elementor Free,Safe WP_Query,Implemented,Elementor pending,widgets.php,None
+Critical CVE List widget,Critical CVE Widget,Toolkit Elementor,Elementor Free,Safe WP_Query,Implemented,Elementor pending,widgets.php,None
+Latest Updates widget,Latest Updates Widget,Toolkit Elementor,Elementor Free,Safe WP_Query,Implemented,Elementor pending,widgets.php,None
+Author Box widget,Author Box Widget,Toolkit Elementor,Elementor Free,Escaped author meta,Implemented,Elementor pending,widgets.php,None
+Related Posts widget,Related Posts Widget,Toolkit Elementor,Elementor Free,Safe WP_Query,Implemented,Elementor pending,widgets.php,None
+TOC widget,TOC Widget,Toolkit Elementor,Elementor Free,Escaped output,Implemented,Elementor pending,widgets.php,None
+Search widget,Search Widget,Toolkit Elementor,Elementor Free,Core form,Implemented,Elementor pending,widgets.php,None
+Breadcrumbs widget,Breadcrumbs Widget,Toolkit Elementor,Elementor Free,Delegates safely,Implemented,Elementor pending,widgets.php,None
+Mega menu,Mega Menu,Toolkit,None,Focus and Escape needed,Deferred,Not run,docs/ROADMAP.md,Deferred
+Menu icons labels badges,Menu Enhancements,Toolkit,None,Sanitize menu meta,Deferred,Not run,docs/ROADMAP.md,Deferred
+Keyboard navigation,Menu Keyboard Navigation,Theme/Toolkit,None,Focus management,In Progress,Playwright pending,assets/js/theme.js,Advanced menus deferred
+Advanced search filters,Filtered Search,Toolkit REST,None,Publish-only bounded queries,In Progress,REST pending,class-search.php,Taxonomy UI deferred
+Cookie consent,Cookie Preference Banner,Toolkit,None,No legal claim,Implemented,Manual pending,class-cookie-consent.php,None
+Newsletter,Newsletter Capture,Toolkit REST,None,Rate limit and honeypot,Implemented,REST pending,class-newsletter.php,No external provider integration
+Custom snippets,Safe Snippets,Toolkit,unfiltered_html,No PHP/script tags,Implemented,Manual pending,class-snippets.php,No syntax validation
+Maintenance mode,Maintenance Page,Toolkit,None,Admins bypass,Implemented,Manual pending,class-maintenance.php,None
+Woo archive layouts,Woo Product Layouts,Theme/Woo,None,Woo APIs only,Implemented,Manual pending,woocommerce.php,Advanced controls deferred
+Off-canvas filters,Woo Filter Drawer,Toolkit,WooCommerce,No unbounded queries,Deferred,Not run,docs/ROADMAP.md,Deferred
+AJAX add to cart,Woo AJAX Cart,Theme/Woo,WooCommerce,Woo APIs,Implemented,Manual pending,Woo core support,Presentation only
+Quick view,Woo Quick View,Toolkit,WooCommerce,Nonce required,Deferred,Not run,docs/ROADMAP.md,Deferred
+Mini cart,Woo Mini Cart,Toolkit,WooCommerce,Woo APIs,Implemented,Manual pending,class-woocommerce.php,None
+Wishlist,Woo Wishlist,Toolkit,WooCommerce,User/session storage needed,Deferred,Not run,docs/ROADMAP.md,Deferred
+Comparison,Woo Compare,Toolkit,WooCommerce,User/session storage needed,Deferred,Not run,docs/ROADMAP.md,Deferred
+Variation swatches,Woo Swatches,Toolkit,WooCommerce,Sanitize attributes,Deferred,Not run,docs/ROADMAP.md,Deferred
+Product badges,Woo Product Badges,Toolkit,WooCommerce,Escaped output,Implemented,Manual pending,class-woocommerce.php,None
+Recently viewed,Woo Recently Viewed,Toolkit,WooCommerce,Bounded httponly cookie,Implemented,Manual pending,class-woocommerce.php,None
+Advanced reviews,Woo Review Enhancements,Toolkit,WooCommerce,Upload validation,Deferred,Not run,docs/ROADMAP.md,Deferred
+Security standards,Secure Coding Baseline,Theme/Toolkit,None,Nonces capabilities escaping,Implemented,PHPCS pending,source tree,Full audit pending
+Performance,Conditional Loading,Theme/Toolkit,None,No unnecessary queries,Implemented,Lighthouse pending,assets and modules,Optimization pass pending
+Accessibility,WCAG Foundation,Theme/Toolkit,None,Keyboard labels focus,Implemented,Axe pending,templates and CSS,Full audit pending
+Release packaging,Installable ZIPs,Tools,None,Excludes secrets,Tested,Clean ZIP install passed,dist/SHA256SUMS,None
