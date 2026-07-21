@@ -19,6 +19,36 @@ final class Settings {
 	public static function boot(): void {
 		add_action( 'admin_menu', array( __CLASS__, 'admin_menu' ) );
 		add_action( 'admin_init', array( __CLASS__, 'register_settings' ) );
+		add_filter( 'plugin_action_links_' . plugin_basename( INFOSECNEXUS_TOOLKIT_FILE ), array( __CLASS__, 'plugin_action_links' ) );
+	}
+
+	/**
+	 * Add quick links on the Plugins screen.
+	 *
+	 * @param string[] $links Existing plugin action links.
+	 * @return string[]
+	 */
+	public static function plugin_action_links( array $links ): array {
+		if ( current_user_can( 'manage_options' ) ) {
+			array_unshift(
+				$links,
+				sprintf(
+					'<a href="%s">%s</a>',
+					esc_url( admin_url( 'options-general.php?page=infosecnexus-toolkit' ) ),
+					esc_html__( 'Settings', 'infosecnexus-toolkit' )
+				)
+			);
+		}
+
+		if ( current_user_can( 'update_plugins' ) ) {
+			$links[] = sprintf(
+				'<a href="%s">%s</a>',
+				esc_url( Updater::check_now_url() ),
+				esc_html__( 'Check updates', 'infosecnexus-toolkit' )
+			);
+		}
+
+		return $links;
 	}
 
 	/**

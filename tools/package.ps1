@@ -104,7 +104,7 @@ $releaseManifest = @{
         last_updated = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd")
         sections = @{
             description = "Cybersecurity newsroom theme for InfoSecNexus."
-            changelog = "Points the private updater to GitHub Releases by default, adds native Update URI metadata, supports auto-update toggles, and refreshes the theme preview image."
+            changelog = "Adds clearer WordPress update metadata and keeps the refreshed theme preview image."
         }
     }
     plugin = @{
@@ -119,7 +119,7 @@ $releaseManifest = @{
         last_updated = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd")
         sections = @{
             description = "Companion functionality for the InfoSecNexus WordPress theme."
-            changelog = "Points the private updater to GitHub Releases by default, adds native Update URI metadata, and supports WordPress auto-update toggles."
+            changelog = "Adds plugin-list links for Settings and Check updates, and improves WordPress update metadata."
         }
     }
 }
