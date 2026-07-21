@@ -3,7 +3,7 @@ Contributors: infosecnexus
 Requires at least: 6.5
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.1.11
+Stable tag: 0.1.12
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -20,6 +20,9 @@ InfoSecNexus Toolkit provides content blocks, conditional display rules, Element
 3. Configure modules from Settings > InfoSecNexus Toolkit.
 
 == Changelog ==
+
+= 0.1.12 =
+Aligns the toolkit package with the theme polish release.
 
 = 0.1.11 =
 Adds plugin-list links for Settings and Check updates, and improves WordPress update metadata.

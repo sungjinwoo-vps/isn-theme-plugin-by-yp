@@ -1161,6 +1161,8 @@ textarea::placeholder {
 
 .single-rail {
   position: sticky;
+  display: grid;
+  gap: 1rem;
   top: 135px;
   align-self: start;
 }
@@ -1176,28 +1178,111 @@ textarea::placeholder {
 .toc,
 .share-links,
 .widget {
-  padding: 1rem;
-  background: #fff;
+  padding: 1.1rem;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 96%), rgb(246 250 255 / 96%));
   border: 1px solid var(--isnx-border);
   border-radius: var(--isnx-radius);
   box-shadow: var(--isnx-soft-shadow);
 }
 
-.toc h2 {
-  margin-top: 0;
-  font-size: 1rem;
+.toc__eyebrow,
+.share-links__eyebrow {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--isnx-blue);
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.toc h2,
+.widget-title {
+  margin: 0 0 0.9rem;
+  color: var(--isnx-navy);
+  font-size: 1.08rem;
+  line-height: 1.2;
 }
 
 .toc ol,
 .toc ul {
+  display: grid;
+  gap: 0.35rem;
   margin: 0;
-  padding-left: 1.1rem;
+  padding: 0;
+  list-style: none;
+  counter-reset: toc;
+}
+
+.toc li {
+  counter-increment: toc;
+}
+
+.toc a {
+  display: grid;
+  grid-template-columns: 1.65rem minmax(0, 1fr);
+  gap: 0.55rem;
+  align-items: start;
+  padding: 0.45rem;
+  color: var(--isnx-muted);
+  border-radius: 6px;
+}
+
+.toc a::before {
+  color: var(--isnx-blue);
+  font-weight: 900;
+  content: counter(toc, decimal-leading-zero);
+}
+
+.toc a:hover {
+  color: var(--isnx-blue);
+  background: #edf5ff;
 }
 
 .share-links {
   display: grid;
+  gap: 0.7rem;
+}
+
+.share-links__items {
+  display: grid;
   gap: 0.55rem;
-  margin-top: 1rem;
+}
+
+.share-links a {
+  display: grid;
+  grid-template-columns: 2.25rem minmax(0, 1fr);
+  gap: 0.6rem;
+  align-items: center;
+  min-height: 44px;
+  padding: 0.45rem 0.55rem;
+  color: var(--isnx-ink);
+  background: #fff;
+  border: 1px solid var(--isnx-border);
+  border-radius: 6px;
+}
+
+.share-links a:hover {
+  color: var(--isnx-blue);
+  border-color: #bad8ff;
+  box-shadow: 0 8px 18px rgb(9 105 255 / 12%);
+}
+
+.share-links a span {
+  display: grid;
+  width: 2.05rem;
+  height: 2.05rem;
+  place-items: center;
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 900;
+  background: var(--isnx-blue);
+  border-radius: 6px;
+}
+
+.share-links a b {
+  font-size: 0.92rem;
 }
 
 .entry-content {
@@ -1540,6 +1625,72 @@ textarea::placeholder {
   align-self: start;
 }
 
+.widget-area--curated .search-form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.widget-area--curated .search-field {
+  width: 100%;
+}
+
+.sidebar-post-list,
+.sidebar-topic-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sidebar-post-list li,
+.sidebar-topic-list li {
+  display: grid;
+  gap: 0.25rem;
+  padding-block: 0.75rem;
+  border-top: 1px solid var(--isnx-border);
+}
+
+.sidebar-post-list li:first-child,
+.sidebar-topic-list li:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.sidebar-post-list a,
+.sidebar-topic-list a {
+  color: var(--isnx-ink);
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.sidebar-post-list a:hover,
+.sidebar-topic-list a:hover {
+  color: var(--isnx-blue);
+}
+
+.sidebar-post-list span {
+  color: var(--isnx-muted);
+  font-size: 0.82rem;
+}
+
+.sidebar-topic-list li {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.sidebar-topic-list span {
+  display: grid;
+  min-width: 2rem;
+  min-height: 1.65rem;
+  place-items: center;
+  color: var(--isnx-blue);
+  font-size: 0.78rem;
+  font-weight: 900;
+  background: #eaf3ff;
+  border-radius: 999px;
+}
+
 .reading-progress {
   position: fixed;
   z-index: 110;
@@ -1729,6 +1880,10 @@ textarea::placeholder {
   box-shadow: 0 10px 22px rgb(9 105 255 / 28%);
 }
 
+.scroll-top[hidden] {
+  display: none;
+}
+
 .scroll-top:hover {
   color: #fff;
   background: var(--isnx-blue-dark);
@@ -1741,6 +1896,84 @@ textarea::placeholder {
 .comments-area {
   max-width: var(--isnx-content-width);
   margin: 2rem auto;
+}
+
+.comment-respond,
+.comment-list {
+  padding: clamp(1rem, 2vw, 1.4rem);
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 98%), rgb(247 251 255 / 98%));
+  border: 1px solid var(--isnx-border);
+  border-radius: var(--isnx-radius);
+  box-shadow: var(--isnx-soft-shadow);
+}
+
+.comment-reply-title,
+.comments-title {
+  margin: 0 0 0.65rem;
+  color: var(--isnx-navy);
+  font-size: 1.4rem;
+  line-height: 1.2;
+}
+
+.comment-notes {
+  margin: 0 0 1rem;
+  color: var(--isnx-muted);
+}
+
+.isnx-comment-form,
+.comment-form-identity {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.comment-form-identity,
+.comment-form-comment,
+.comment-form-url,
+.comment-notes,
+.form-submit {
+  grid-column: 1 / -1;
+}
+
+.comment-form p {
+  margin: 0;
+}
+
+.comment-form label {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--isnx-navy);
+  font-weight: 850;
+}
+
+.comment-form input[type="text"],
+.comment-form input[type="email"],
+.comment-form input[type="url"],
+.comment-form textarea {
+  width: 100%;
+  min-height: 48px;
+  padding: 0.8rem 0.9rem;
+  color: var(--isnx-ink);
+  background: #fff;
+  border: 1px solid var(--isnx-border);
+  border-radius: 6px;
+  box-shadow: 0 1px 0 rgb(8 25 74 / 4%);
+}
+
+.comment-form textarea {
+  min-height: 190px;
+  resize: vertical;
+}
+
+.comment-form input[readonly] {
+  color: var(--isnx-muted);
+  background: #f4f8ff;
+}
+
+.comment-submit {
+  min-width: 190px;
+  border: 0;
 }
 
 :root[data-color-mode="dark"] body {
@@ -1771,6 +2004,13 @@ textarea::placeholder {
 :root[data-color-mode="dark"] .entry-content h3,
 :root[data-color-mode="dark"] .entry-content .isnx-contact-form label,
 :root[data-color-mode="dark"] .entry-content .isnx-stat-strip strong,
+:root[data-color-mode="dark"] .toc h2,
+:root[data-color-mode="dark"] .widget-title,
+:root[data-color-mode="dark"] .comment-reply-title,
+:root[data-color-mode="dark"] .comments-title,
+:root[data-color-mode="dark"] .comment-form label,
+:root[data-color-mode="dark"] .sidebar-post-list a,
+:root[data-color-mode="dark"] .sidebar-topic-list a,
 :root[data-color-mode="dark"] .search-modal h2 {
   color: var(--isnx-navy);
 }
@@ -1784,6 +2024,8 @@ textarea::placeholder {
 :root[data-color-mode="dark"] .breadcrumbs,
 :root[data-color-mode="dark"] .post-card__excerpt,
 :root[data-color-mode="dark"] .entry-content,
+:root[data-color-mode="dark"] .comment-notes,
+:root[data-color-mode="dark"] .sidebar-post-list span,
 :root[data-color-mode="dark"] .entry-content .isnx-page-hero p,
 :root[data-color-mode="dark"] .entry-content .isnx-stat-strip span,
 :root[data-color-mode="dark"] .newsletter-section p,
@@ -1826,7 +2068,10 @@ textarea::placeholder {
 :root[data-color-mode="dark"] .isnx-cookie,
 :root[data-color-mode="dark"] .toc,
 :root[data-color-mode="dark"] .share-links,
+:root[data-color-mode="dark"] .share-links a,
 :root[data-color-mode="dark"] .widget,
+:root[data-color-mode="dark"] .comment-respond,
+:root[data-color-mode="dark"] .comment-list,
 :root[data-color-mode="dark"] .post-card,
 :root[data-color-mode="dark"] .mobile-panel__dialog,
 :root[data-color-mode="dark"] .entry-content .isnx-section,
@@ -1840,6 +2085,17 @@ textarea::placeholder {
   background: #101b33;
   border-color: var(--isnx-border);
   box-shadow: var(--isnx-soft-shadow);
+}
+
+:root[data-color-mode="dark"] .toc a:hover,
+:root[data-color-mode="dark"] .share-links a:hover {
+  background: #142540;
+  border-color: #2d4b72;
+}
+
+:root[data-color-mode="dark"] .comment-form input[readonly],
+:root[data-color-mode="dark"] .sidebar-topic-list span {
+  background: #142540;
 }
 
 :root[data-color-mode="dark"] .newsletter-section,
@@ -1981,6 +2237,7 @@ textarea::placeholder {
 
   .single-rail {
     position: static;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .post-grid--3,
@@ -2133,6 +2390,16 @@ textarea::placeholder {
   .entry-content .isnx-contact-panel,
   .entry-content .isnx-legal-body {
     padding: 1.15rem;
+  }
+
+  .single-rail,
+  .isnx-comment-form,
+  .comment-form-identity {
+    grid-template-columns: 1fr;
+  }
+
+  .comment-submit {
+    width: 100%;
   }
 
   .footer-element {

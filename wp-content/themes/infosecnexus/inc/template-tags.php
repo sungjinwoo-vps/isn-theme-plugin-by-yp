@@ -169,7 +169,7 @@ function table_of_contents(): void {
 		return;
 	}
 
-	echo '<nav class="toc" aria-label="' . esc_attr__( 'Table of contents', 'infosecnexus' ) . '"><h2>' . esc_html__( 'Contents', 'infosecnexus' ) . '</h2><ol>';
+	echo '<nav class="toc" aria-label="' . esc_attr__( 'Table of contents', 'infosecnexus' ) . '"><span class="toc__eyebrow">' . esc_html__( 'Article guide', 'infosecnexus' ) . '</span><h2>' . esc_html__( 'On this page', 'infosecnexus' ) . '</h2><ol>';
 	foreach ( $matches as $index => $match ) {
 		$label = wp_strip_all_tags( $match[2] );
 		$id    = 'section-' . ( $index + 1 );
@@ -220,9 +220,10 @@ function related_posts(): void {
 function social_share(): void {
 	$url   = rawurlencode( get_permalink() );
 	$title = rawurlencode( get_the_title() );
-	echo '<nav class="share-links" aria-label="' . esc_attr__( 'Share this post', 'infosecnexus' ) . '">';
-	echo '<a href="' . esc_url( 'https://www.linkedin.com/shareArticle?mini=true&url=' . $url . '&title=' . $title ) . '" rel="noopener">' . esc_html__( 'LinkedIn', 'infosecnexus' ) . '</a>';
-	echo '<a href="' . esc_url( 'https://x.com/intent/tweet?url=' . $url . '&text=' . $title ) . '" rel="noopener">' . esc_html__( 'X', 'infosecnexus' ) . '</a>';
-	echo '<a href="mailto:?subject=' . esc_attr( get_the_title() ) . '&body=' . esc_url( get_permalink() ) . '">' . esc_html__( 'Email', 'infosecnexus' ) . '</a>';
+	echo '<nav class="share-links" aria-label="' . esc_attr__( 'Share this post', 'infosecnexus' ) . '"><span class="share-links__eyebrow">' . esc_html__( 'Share briefing', 'infosecnexus' ) . '</span><div class="share-links__items">';
+	echo '<a href="' . esc_url( 'https://www.linkedin.com/shareArticle?mini=true&url=' . $url . '&title=' . $title ) . '" rel="noopener noreferrer" target="_blank"><span>in</span><b>' . esc_html__( 'LinkedIn', 'infosecnexus' ) . '</b></a>';
+	echo '<a href="' . esc_url( 'https://x.com/intent/tweet?url=' . $url . '&text=' . $title ) . '" rel="noopener noreferrer" target="_blank"><span>X</span><b>' . esc_html__( 'Post', 'infosecnexus' ) . '</b></a>';
+	echo '<a href="mailto:?subject=' . esc_attr( get_the_title() ) . '&body=' . esc_url( get_permalink() ) . '"><span>@</span><b>' . esc_html__( 'Email', 'infosecnexus' ) . '</b></a>';
+	echo '</div>';
 	echo '</nav>';
 }
