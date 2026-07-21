@@ -72,6 +72,7 @@ final class Related_Posts {
 			echo '<h3 class="post-card__title"><a href="' . esc_url( get_permalink( $post_id ) ) . '">' . esc_html( get_the_title( $post_id ) ) . '</a></h3>';
 			self::render_meta( $post_id );
 			echo '<p class="post-card__excerpt">' . esc_html( wp_trim_words( get_the_excerpt( $post_id ), 18 ) ) . '</p>';
+			echo '<a class="post-card__readmore" href="' . esc_url( get_permalink( $post_id ) ) . '" aria-label="' . esc_attr( sprintf( __( 'Read more about %s', 'infosecnexus' ), get_the_title( $post_id ) ) ) . '">' . esc_html__( 'Read More', 'infosecnexus' ) . ' <span aria-hidden="true">-&gt;</span></a>';
 			echo '</div>';
 			echo '</article>';
 		}

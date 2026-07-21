@@ -140,6 +140,10 @@ function post_card( string $variant = 'grid' ): void {
 			<h2 class="post-card__title"><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h2>
 			<?php post_meta(); ?>
 			<div class="post-card__excerpt"><?php the_excerpt(); ?></div>
+			<a class="post-card__readmore" href="<?php the_permalink(); ?>" aria-label="<?php echo esc_attr( sprintf( __( 'Read more about %s', 'infosecnexus' ), get_the_title() ) ); ?>">
+				<?php esc_html_e( 'Read More', 'infosecnexus' ); ?>
+				<span aria-hidden="true">-></span>
+			</a>
 		</div>
 	</article>
 	<?php
@@ -170,13 +174,13 @@ function featured_video( ?int $post_id = null ): void {
  */
 function table_of_contents(): void {
 	$content = get_post_field( 'post_content', get_the_ID() );
-	if ( ! preg_match_all( '/<h([2-3])[^>]*>(.*?)<\/h[2-3]>/', (string) $content, $matches, PREG_SET_ORDER ) ) {
+	if ( ! preg_match_all( '/<h2[^>]*>(.*?)<\/h2>/', (string) $content, $matches, PREG_SET_ORDER ) ) {
 		return;
 	}
 
 	echo '<nav class="toc" aria-label="' . esc_attr__( 'Table of contents', 'infosecnexus' ) . '"><span class="toc__eyebrow">' . esc_html__( 'Article guide', 'infosecnexus' ) . '</span><h2>' . esc_html__( 'On this page', 'infosecnexus' ) . '</h2><ol>';
 	foreach ( $matches as $index => $match ) {
-		$label = wp_strip_all_tags( $match[2] );
+		$label = wp_strip_all_tags( $match[1] );
 		$id    = 'section-' . ( $index + 1 );
 		echo '<li><a href="#' . esc_attr( $id ) . '">' . esc_html( $label ) . '</a></li>';
 	}
@@ -231,4 +235,19 @@ function social_share(): void {
 	echo '<a href="mailto:?subject=' . esc_attr( get_the_title() ) . '&body=' . esc_url( get_permalink() ) . '"><span>@</span><b>' . esc_html__( 'Email', 'infosecnexus' ) . '</b></a>';
 	echo '</div>';
 	echo '</nav>';
+}
+
+/**
+ * Render a contact callout instead of a comment form.
+ */
+function contact_cta(): void {
+	$page = get_page_by_path( 'contact' );
+	$url  = $page ? get_permalink( $page ) : home_url( '/contact/' );
+
+	echo '<section class="post-contact-cta">';
+	echo '<div><span class="post-contact-cta__eyebrow">' . esc_html__( 'Corrections and tips', 'infosecnexus' ) . '</span>';
+	echo '<h2>' . esc_html__( 'Need to add context to this briefing?', 'infosecnexus' ) . '</h2>';
+	echo '<p>' . esc_html__( 'Send corrections, security tips, source updates, or collaboration notes through the contact page so the editorial team can review them properly.', 'infosecnexus' ) . '</p></div>';
+	echo '<a class="button" href="' . esc_url( $url ) . '">' . esc_html__( 'Contact InfoSecNexus', 'infosecnexus' ) . '</a>';
+	echo '</section>';
 }

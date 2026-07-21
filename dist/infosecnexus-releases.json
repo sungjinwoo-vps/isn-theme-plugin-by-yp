@@ -1,7 +1,7 @@
 {
     "plugin":  {
                    "slug":  "infosecnexus-toolkit",
-                   "version":  "0.1.15",
+                   "version":  "0.1.16",
                    "plugin":  "infosecnexus-toolkit/infosecnexus-toolkit.php",
                    "requires_php":  "8.1",
                    "package":  "https://raw.githubusercontent.com/sungjinwoo-vps/isn-theme-plugin-by-yp/stable/dist/infosecnexus-toolkit.zip",
@@ -9,23 +9,23 @@
                    "homepage":  "https://infosecnexus.com/",
                    "last_updated":  "2026-07-21",
                    "sections":  {
-                                    "changelog":  "Turns the toolkit plugin into a legacy bridge because toolkit features are now bundled into the InfoSecNexus theme.",
+                                    "changelog":  "Keeps the legacy bridge version aligned with the bundled theme release.",
                                     "description":  "Legacy bridge for older InfoSecNexus installs. Current toolkit features are bundled into the InfoSecNexus theme."
                                 },
                    "requires":  "6.5"
                },
-    "generatedAt":  "2026-07-21T16:47:44Z",
+    "generatedAt":  "2026-07-21T18:01:05Z",
     "manifestVersion":  1,
     "theme":  {
                   "slug":  "infosecnexus",
-                  "version":  "0.1.15",
+                  "version":  "0.1.16",
                   "requires_php":  "8.1",
                   "package":  "https://raw.githubusercontent.com/sungjinwoo-vps/isn-theme-plugin-by-yp/stable/dist/infosecnexus-theme.zip",
                   "tested":  "7.0",
                   "homepage":  "https://infosecnexus.com/",
                   "last_updated":  "2026-07-21",
                   "sections":  {
-                                   "changelog":  "Refreshes demo posts and pages, restricts search to blog posts, adds security headers, improves dropdown navigation, and tightens page, 404, mobile, and footer presentation.",
+                                   "changelog":  "Expands seeded blog posts into longer SEO-friendly briefings, adds Read More links to post cards, and replaces post comments with a contact CTA.",
                                    "description":  "Cybersecurity newsroom theme for InfoSecNexus."
                                },
                   "requires":  "6.5"

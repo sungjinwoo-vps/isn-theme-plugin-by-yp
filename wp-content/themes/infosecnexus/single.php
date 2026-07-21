@@ -59,7 +59,7 @@ if ( \InfoSecNexus\Theme\Elementor\render_location( 'single' ) ) {
 					</footer>
 					<?php \InfoSecNexus\Theme\Template_Tags\related_posts(); ?>
 					<?php the_post_navigation(); ?>
-					<?php comments_template(); ?>
+					<?php \InfoSecNexus\Theme\Template_Tags\contact_cta(); ?>
 				</div>
 			</div>
 		</article>

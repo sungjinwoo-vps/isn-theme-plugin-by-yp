@@ -18,6 +18,11 @@ $asset = static function ( string $file ): string {
 	return get_template_directory_uri() . '/assets/images/' . $file;
 };
 
+$post_url = static function ( string $slug, string $fallback ): string {
+	$post = get_page_by_path( $slug, OBJECT, 'post' );
+	return $post ? get_permalink( $post ) : $fallback;
+};
+
 $critical_url = \InfoSecNexus\Theme\Header_Builder\category_url( 'critical-cves' );
 $cyber_url    = \InfoSecNexus\Theme\Header_Builder\category_url( 'cybersecurity' );
 $linux_url    = \InfoSecNexus\Theme\Header_Builder\category_url( 'linux-administration' );
@@ -35,7 +40,7 @@ $latest_cards = array(
 		'excerpt'  => __( 'Track owner, exposure, age, and verification so security work becomes measurable.', 'infosecnexus' ),
 		'category' => __( 'Cyber Security', 'infosecnexus' ),
 		'image'    => $asset( 'hero-shield.png' ),
-		'url'      => $cyber_url,
+		'url'      => $post_url( 'security-operations-metrics-that-reduce-risk', $cyber_url ),
 		'date'     => __( 'July 21, 2026', 'infosecnexus' ),
 		'read'     => __( '2 min read', 'infosecnexus' ),
 	),
@@ -44,7 +49,7 @@ $latest_cards = array(
 		'excerpt'  => __( 'Public access, encryption, logging, retention, and ownership checks for cloud teams.', 'infosecnexus' ),
 		'category' => __( 'Cloud Security', 'infosecnexus' ),
 		'image'    => $asset( 'cloud-security.png' ),
-		'url'      => $cloud_url,
+		'url'      => $post_url( 'cloud-storage-exposure-checklist', $cloud_url ),
 		'date'     => __( 'July 21, 2026', 'infosecnexus' ),
 		'read'     => __( '2 min read', 'infosecnexus' ),
 	),
@@ -53,7 +58,7 @@ $latest_cards = array(
 		'excerpt'  => __( 'Reduce prompt, file, connector, retrieval, and logging exposure in AI workflows.', 'infosecnexus' ),
 		'category' => __( 'AI Security', 'infosecnexus' ),
 		'image'    => $asset( 'data-center.png' ),
-		'url'      => $ai_url,
+		'url'      => $post_url( 'ai-data-leakage-controls-internal-tools', $ai_url ),
 		'date'     => __( 'July 21, 2026', 'infosecnexus' ),
 		'read'     => __( '2 min read', 'infosecnexus' ),
 	),
@@ -81,7 +86,7 @@ $cves = array(
 		</a>
 
 		<div class="home-hero__side">
-			<a class="side-story" href="<?php echo esc_url( $critical_url ); ?>">
+			<a class="side-story" href="<?php echo esc_url( $post_url( 'cve-triage-checklist-high-risk-vulnerabilities', $critical_url ) ); ?>">
 				<span class="side-story__copy">
 					<strong><?php esc_html_e( 'CVE Triage Checklist for High-Risk Vulnerabilities', 'infosecnexus' ); ?></strong>
 					<span><?php esc_html_e( 'Rank exploited vulnerabilities by exposure, blast radius, and patch urgency.', 'infosecnexus' ); ?></span>
@@ -89,7 +94,7 @@ $cves = array(
 				</span>
 				<img src="<?php echo esc_url( $asset( 'lock-chip.png' ) ); ?>" alt="" loading="lazy">
 			</a>
-			<a class="side-story" href="<?php echo esc_url( $linux_url ); ?>">
+			<a class="side-story" href="<?php echo esc_url( $post_url( 'linux-kernel-patch-runbook-production-servers', $linux_url ) ); ?>">
 				<span class="side-story__copy">
 					<strong><?php esc_html_e( 'Linux Kernel Patch Runbook for Production Servers', 'infosecnexus' ); ?></strong>
 					<span><?php esc_html_e( 'Plan reboot windows, module checks, validation, and visible exceptions.', 'infosecnexus' ); ?></span>
@@ -115,6 +120,7 @@ $cves = array(
 							<strong><?php echo esc_html( $card['title'] ); ?></strong>
 							<span><?php echo esc_html( $card['excerpt'] ); ?></span>
 							<span class="story-meta"><?php echo esc_html( $card['date'] ); ?> <span aria-hidden="true">-</span> <?php echo esc_html( $card['read'] ); ?></span>
+							<span class="intel-card__readmore"><?php esc_html_e( 'Read More', 'infosecnexus' ); ?> <span aria-hidden="true">-></span></span>
 						</span>
 					</a>
 				<?php endforeach; ?>

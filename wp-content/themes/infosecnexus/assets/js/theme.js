@@ -214,7 +214,7 @@
   }
 
   document.querySelectorAll('[data-enhance-headings]').forEach((content) => {
-    content.querySelectorAll('h2, h3').forEach((heading, index) => {
+    content.querySelectorAll('h2').forEach((heading, index) => {
       if (!heading.id) {
         heading.id = `section-${index + 1}`;
       }

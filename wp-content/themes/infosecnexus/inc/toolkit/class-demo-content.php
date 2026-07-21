@@ -14,7 +14,7 @@ namespace InfoSecNexus\Theme\Toolkit;
  */
 final class Demo_Content {
 	private const SEEDED_OPTION = 'infosecnexus_demo_seeded_version';
-	private const CONTENT_REFRESH_VERSION = '0.1.15';
+	private const CONTENT_REFRESH_VERSION = '0.1.16';
 
 	/**
 	 * Register hooks.
@@ -710,15 +710,17 @@ final class Demo_Content {
 					'post_title'    => $post['title'],
 					'post_excerpt'  => $post['excerpt'],
 					'post_content'  => $post['content'],
-					'post_status'   => 'publish',
-					'post_category' => $term_ids,
+					'post_status'    => 'publish',
+					'comment_status' => 'closed',
+					'ping_status'    => 'closed',
+					'post_category'  => $term_ids,
 				)
 			);
 		}
 	}
 
 	/**
-	 * Build a concise SEO-friendly demo briefing body.
+	 * Build an SEO-friendly demo briefing body.
 	 *
 	 * @param string   $summary Summary paragraph.
 	 * @param string[] $checks Action checklist.
@@ -726,13 +728,33 @@ final class Demo_Content {
 	 * @return string
 	 */
 	private static function brief_content( string $summary, array $checks, string $next_step ): string {
-		$content = '<h2>Why it matters</h2><p>' . $summary . '</p><h2>Quick checks</h2><ul>';
+		$content  = '<p>' . $summary . '</p><!--more-->';
+		$content .= '<h2>Operational context</h2>';
+		$content .= '<p>Security teams need guidance that connects risk to real systems, owners, and response work. A useful briefing should explain what changed, which environments are most likely to be affected, and what action can reduce exposure without creating unnecessary noise.</p>';
+		$content .= '<p>Use this article as a practical security review note for engineering, infrastructure, cloud, and operations teams. The focus is not only awareness. The goal is to turn a security topic into a short list of checks, decisions, and evidence that can be tracked during weekly review or urgent response.</p>';
+		$content .= '<h2>Risk signals to review</h2><ul>';
 
 		foreach ( $checks as $check ) {
 			$content .= '<li>' . $check . '</li>';
 		}
 
-		$content .= '</ul><h2>Next step</h2><p>' . $next_step . '</p>';
+		$content .= '</ul>';
+		$content .= '<h2>How to prioritize the work</h2>';
+		$content .= '<p>Start with systems that are internet-facing, business-critical, privileged, or difficult to recover. These assets usually deserve faster review because a single gap can affect customers, data, production availability, or administrative control.</p>';
+		$content .= '<p>Next, separate confirmed exposure from theoretical risk. Inventory matches, version evidence, access logs, security tool alerts, and ownership records help teams avoid wasting time on systems that are not reachable or not affected. Keep exceptions visible with a clear owner and expiry date.</p>';
+		$content .= '<h2>Implementation checklist</h2>';
+		$content .= '<ul><li>Assign one accountable owner for the review and one backup owner for follow-up.</li><li>Capture affected assets, business impact, current control status, and expected remediation date.</li><li>Document temporary mitigations so they can be removed or replaced after the permanent fix.</li><li>Verify completion with evidence such as version output, configuration export, log entry, or screenshot from a trusted system.</li></ul>';
+		$content .= '<h2>Common mistakes to avoid</h2>';
+		$content .= '<p>The most common mistake is treating a security issue as only a ticket count. A long backlog can hide the few items that actually matter. Review exposure, identity impact, data sensitivity, and operational dependency before deciding priority.</p>';
+		$content .= '<p>Another mistake is closing work before validation. A patch may be installed but not loaded, a policy may be written but not enforced, and a log source may be enabled but not collected centrally. Always confirm the control from the system that will matter during an incident.</p>';
+		$content .= '<h2>Validation and reporting</h2>';
+		$content .= '<p>After changes are complete, validate that the intended control is active and that monitoring still works. For technical teams, this may mean checking package versions, cloud policy state, firewall rules, endpoint alerts, or CI/CD logs. For leadership, report the remaining risk in plain language: what was fixed, what is still exposed, who owns it, and when it will be reviewed again.</p>';
+		$content .= '<p>Good security content should make the next decision easier. Keep the notes short enough to use during operations, but detailed enough that another engineer can repeat the review later.</p>';
+		$content .= '<h2>Frequently asked questions</h2>';
+		$content .= '<h3>Who should own this review?</h3><p>The asset owner should own remediation, while security should provide priority, evidence requirements, and validation support. Shared ownership works only when the next action and deadline are written down.</p>';
+		$content .= '<h3>How often should this be checked?</h3><p>Review high-risk items weekly and urgent exposure daily until the risk is reduced. Lower-risk work can follow the normal operational cadence, but exceptions should never remain open without a review date.</p>';
+		$content .= '<h3>What evidence should be kept?</h3><p>Keep the minimum evidence needed to prove the issue was reviewed and the action was completed. Useful evidence includes asset IDs, affected versions, ticket links, screenshots, configuration exports, log queries, and owner approval notes.</p>';
+		$content .= '<h2>Next step</h2><p>' . $next_step . '</p>';
 
 		return $content;
 	}

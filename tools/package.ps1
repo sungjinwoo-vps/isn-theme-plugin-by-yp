@@ -104,7 +104,7 @@ $releaseManifest = @{
         last_updated = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd")
         sections = @{
             description = "Cybersecurity newsroom theme for InfoSecNexus."
-            changelog = "Refreshes demo posts and pages, restricts search to blog posts, adds security headers, improves dropdown navigation, and tightens page, 404, mobile, and footer presentation."
+            changelog = "Expands seeded blog posts into longer SEO-friendly briefings, adds Read More links to post cards, and replaces post comments with a contact CTA."
         }
     }
     plugin = @{
@@ -119,7 +119,7 @@ $releaseManifest = @{
         last_updated = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd")
         sections = @{
             description = "Legacy bridge for older InfoSecNexus installs. Current toolkit features are bundled into the InfoSecNexus theme."
-            changelog = "Turns the toolkit plugin into a legacy bridge because toolkit features are now bundled into the InfoSecNexus theme."
+            changelog = "Keeps the legacy bridge version aligned with the bundled theme release."
         }
     }
 }
