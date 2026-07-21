@@ -14,7 +14,7 @@ namespace InfoSecNexus\Theme\Toolkit;
  */
 final class Demo_Content {
 	private const SEEDED_OPTION = 'infosecnexus_demo_seeded_version';
-	private const CONTENT_REFRESH_VERSION = '0.1.16';
+	private const CONTENT_REFRESH_VERSION = '0.1.17';
 
 	/**
 	 * Register hooks.
@@ -923,22 +923,22 @@ final class Demo_Content {
 		self::assign_location( $primary, 'primary' );
 		self::assign_location( $footer, 'footer' );
 		self::assign_location( $legal, 'legal' );
-		self::remove_menu_items_by_title( $primary, array( 'Home', 'Topics', 'Cyber Security', 'Critical CVEs', 'Linux & Kernel', 'Linux & DevOps', 'DevOps', 'AI Security', 'Tutorials', 'Cloud Security', 'Web Security', 'Windows Security', 'Network Security', 'About', 'About InfoSecNexus', 'Contact', 'Contact InfoSecNexus' ) );
+		self::remove_menu_items_by_title( $primary, array( 'Home', 'Topics', 'Blogs', 'Cybersecurity', 'Cyber Security', 'Critical CVEs', 'Linux Admin', 'Linux & Kernel', 'Linux & DevOps', 'DevOps', 'AI News', 'AI Security', 'Tutorials', 'Cloud Security', 'Web Security', 'Windows Security', 'Network Security', 'Major Releases', 'Sample Page', 'RSS', 'About', 'About InfoSecNexus', 'Contact', 'Contact InfoSecNexus' ) );
 		self::remove_menu_items_by_title( $footer, array( 'Home', 'About', 'About InfoSecNexus', 'Contact', 'Contact InfoSecNexus', 'Privacy Policy', 'Terms and Conditions', 'Disclaimer', 'Back to top', 'RSS' ) );
 		self::remove_menu_items_by_title( $legal, array( 'Privacy Policy', 'Terms and Conditions', 'Disclaimer', 'Back to top', 'RSS' ) );
 
 		self::add_custom_menu_item_once( $primary, 'Home', home_url( '/' ) );
-		$topics_parent = self::add_custom_menu_item_once( $primary, 'Topics', \InfoSecNexus\Theme\Header_Builder\category_url( 'cybersecurity' ) );
+		$topics_parent = self::add_custom_menu_item_once( $primary, 'Blogs', \InfoSecNexus\Theme\Header_Builder\category_url( 'cybersecurity' ) );
 		foreach ( array( 'cybersecurity', 'critical-cves', 'linux-administration', 'devops', 'artificial-intelligence', 'tutorials', 'cloud-security', 'web-security', 'windows-security', 'network-security' ) as $slug ) {
 			if ( isset( $categories[ $slug ] ) ) {
 				self::add_term_menu_item_once( $primary, $categories[ $slug ], $topics_parent );
 			}
 		}
 
-		foreach ( array( 'about', 'contact' ) as $slug ) {
+		foreach ( array( 'about' => 'About', 'contact' => 'Contact' ) as $slug => $label ) {
 			$page = get_page_by_path( $slug );
 			if ( $page ) {
-				self::add_post_menu_item_once( $primary, (int) $page->ID );
+				self::add_custom_menu_item_once( $primary, $label, get_permalink( $page ) );
 			}
 		}
 

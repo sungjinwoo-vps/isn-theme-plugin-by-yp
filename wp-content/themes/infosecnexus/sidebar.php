@@ -42,7 +42,7 @@ if ( is_home() || is_archive() || is_search() ) {
 			?>
 		</section>
 		<section class="widget widget--topics">
-			<h2 class="widget-title"><?php esc_html_e( 'Explore Topics', 'infosecnexus' ); ?></h2>
+			<h2 class="widget-title"><?php esc_html_e( 'Explore Blogs', 'infosecnexus' ); ?></h2>
 			<?php
 			$infosecnexus_uncategorized = get_cat_ID( 'Uncategorized' );
 			$infosecnexus_categories    = get_categories(

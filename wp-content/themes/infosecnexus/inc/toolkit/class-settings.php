@@ -13,7 +13,7 @@ namespace InfoSecNexus\Theme\Toolkit;
  * Settings UI.
  */
 final class Settings {
-	private const DEFAULT_MANIFEST_URL = 'https://raw.githubusercontent.com/sungjinwoo-vps/isn-theme-plugin-by-yp/stable/dist/infosecnexus-releases.json';
+	private const DEFAULT_MANIFEST_URL = 'https://github.com/sungjinwoo-vps/isn-theme-plugin-by-yp/releases/latest/download/infosecnexus-releases.json';
 
 	/**
 	 * Register hooks.
@@ -134,8 +134,8 @@ final class Settings {
 						<th scope="row"><label for="isnx-update-manifest-url"><?php esc_html_e( 'Manifest URL', 'infosecnexus' ); ?></label></th>
 						<td>
 							<input id="isnx-update-manifest-url" class="regular-text code" type="url" name="<?php echo esc_attr( OPTION_KEY ); ?>[update_manifest_url]" value="<?php echo esc_attr( (string) option( 'update_manifest_url', self::default_manifest_url() ) ); ?>">
-							<p class="description"><?php esc_html_e( 'Default: https://raw.githubusercontent.com/sungjinwoo-vps/isn-theme-plugin-by-yp/stable/dist/infosecnexus-releases.json', 'infosecnexus' ); ?></p>
-							<p><a class="button" href="<?php echo esc_url( admin_url( 'update-core.php?force-check=1' ) ); ?>"><?php esc_html_e( 'Open WordPress Updates', 'infosecnexus' ); ?></a></p>
+							<p class="description"><?php esc_html_e( 'Default: https://github.com/sungjinwoo-vps/isn-theme-plugin-by-yp/releases/latest/download/infosecnexus-releases.json', 'infosecnexus' ); ?></p>
+							<p><a class="button" href="<?php echo esc_url( \InfoSecNexus\Theme\Updater\check_now_url() ); ?>"><?php esc_html_e( 'Check Theme Updates Now', 'infosecnexus' ); ?></a></p>
 						</td>
 					</tr>
 				</table>

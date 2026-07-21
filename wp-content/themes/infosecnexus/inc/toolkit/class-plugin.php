@@ -13,7 +13,7 @@ namespace InfoSecNexus\Theme\Toolkit;
  * Main plugin class.
  */
 final class Plugin {
-	private const DEFAULT_MANIFEST_URL = 'https://raw.githubusercontent.com/sungjinwoo-vps/isn-theme-plugin-by-yp/stable/dist/infosecnexus-releases.json';
+	private const DEFAULT_MANIFEST_URL = 'https://github.com/sungjinwoo-vps/isn-theme-plugin-by-yp/releases/latest/download/infosecnexus-releases.json';
 
 	/**
 	 * Singleton.

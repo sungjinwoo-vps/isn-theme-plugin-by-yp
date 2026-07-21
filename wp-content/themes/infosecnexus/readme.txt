@@ -3,7 +3,7 @@ Contributors: infosecnexus
 Requires at least: 6.5
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.1.16
+Stable tag: 0.1.17
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,6 +25,9 @@ InfoSecNexus WordPress Theme, Copyright 2026 InfoSecNexus.
 InfoSecNexus is distributed under the terms of the GNU GPL.
 
 == Changelog ==
+
+= 0.1.17 =
+Restores visible WordPress theme updates with a newer release version, moves the updater to GitHub latest releases, fixes mobile submenu hover behavior, and renames Topics to Blogs.
 
 = 0.1.16 =
 Expands seeded blog posts into longer SEO-friendly briefings, adds Read More links to post cards, and replaces post comments with a contact CTA.

@@ -9,7 +9,7 @@ declare(strict_types=1);
 
 namespace InfoSecNexus\Theme\Updater;
 
-const DEFAULT_MANIFEST_URL = 'https://raw.githubusercontent.com/sungjinwoo-vps/isn-theme-plugin-by-yp/stable/dist/infosecnexus-releases.json';
+const DEFAULT_MANIFEST_URL = 'https://github.com/sungjinwoo-vps/isn-theme-plugin-by-yp/releases/latest/download/infosecnexus-releases.json';
 const MANIFEST_TRANSIENT   = 'infosecnexus_theme_update_manifest';
 const TOOLKIT_OPTION_KEY   = 'infosecnexus_toolkit_options';
 const UPDATE_URI           = 'https://github.com/sungjinwoo-vps/isn-theme-plugin-by-yp';
@@ -25,7 +25,30 @@ function bootstrap(): void {
 	add_filter( 'pre_set_site_transient_update_themes', __NAMESPACE__ . '\\check_theme_update' );
 	add_filter( 'update_themes_github.com', __NAMESPACE__ . '\\hosted_theme_update', 10, 4 );
 	add_filter( 'themes_api', __NAMESPACE__ . '\\theme_information', 10, 3 );
+	add_filter( 'site_transient_update_themes', __NAMESPACE__ . '\\check_theme_update' );
+	add_action( 'admin_init', __NAMESPACE__ . '\\handle_check_now' );
 	add_action( 'upgrader_process_complete', __NAMESPACE__ . '\\clear_cache' );
+}
+
+/**
+ * URL for a manual cache clear and update check.
+ */
+function check_now_url(): string {
+	return wp_nonce_url( admin_url( 'themes.php?page=infosecnexus-features&infosecnexus_theme_check_updates=1' ), 'infosecnexus_theme_check_updates' );
+}
+
+/**
+ * Clear cached update data before opening the WordPress Updates screen.
+ */
+function handle_check_now(): void {
+	if ( empty( $_GET['infosecnexus_theme_check_updates'] ) || ! current_user_can( 'update_themes' ) ) {
+		return;
+	}
+
+	check_admin_referer( 'infosecnexus_theme_check_updates' );
+	clear_cache();
+	wp_safe_redirect( admin_url( 'update-core.php?force-check=1' ) );
+	exit;
 }
 
 /**
@@ -163,7 +186,7 @@ function manifest_url(): string {
 }
 
 /**
- * Whether an older default endpoint should move to the stable branch manifest.
+ * Whether an older endpoint should move to the latest release manifest.
  *
  * @param string $url Manifest URL.
  * @return bool
@@ -173,7 +196,7 @@ function should_migrate_manifest_url( string $url ): bool {
 		$url,
 		array(
 			'https://infosecnexus.com/updates/infosecnexus-releases.json',
-			'https://github.com/sungjinwoo-vps/isn-theme-plugin-by-yp/releases/latest/download/infosecnexus-releases.json',
+			'https://raw.githubusercontent.com/sungjinwoo-vps/isn-theme-plugin-by-yp/stable/dist/infosecnexus-releases.json',
 		),
 		true
 	);

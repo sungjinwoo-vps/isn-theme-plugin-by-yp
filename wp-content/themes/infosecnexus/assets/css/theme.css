@@ -2041,6 +2041,13 @@ textarea::placeholder {
   transform: none;
 }
 
+.site-nav--mobile .has-submenu:hover .sub-menu,
+.site-nav--mobile .has-submenu:focus-within .sub-menu {
+  pointer-events: auto;
+  opacity: 1;
+  transform: none;
+}
+
 .site-nav--mobile .sub-menu::before {
   display: none;
 }

@@ -26,7 +26,7 @@ jobs:
             throw "Theme version not found."
           }
 
-          $releaseVersion = "$themeVersion.${{ github.run_number }}.${{ github.run_attempt }}"
+          $releaseVersion = $themeVersion
           $releaseTag = "auto-v$releaseVersion"
           $manifestUrl = "https://github.com/${{ github.repository }}/releases/latest/download/infosecnexus-releases.json"
 
