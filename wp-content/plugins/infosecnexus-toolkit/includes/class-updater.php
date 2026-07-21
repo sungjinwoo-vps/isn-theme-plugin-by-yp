@@ -13,7 +13,7 @@ namespace InfoSecNexus\Toolkit;
  * Adds WordPress update checks for the companion plugin.
  */
 final class Updater {
-	private const DEFAULT_MANIFEST_URL = 'https://github.com/sungjinwoo-vps/isn-theme-plugin-by-yp/releases/latest/download/infosecnexus-releases.json';
+	private const DEFAULT_MANIFEST_URL = 'https://raw.githubusercontent.com/sungjinwoo-vps/isn-theme-plugin-by-yp/stable/dist/infosecnexus-releases.json';
 	private const MANIFEST_TRANSIENT   = 'infosecnexus_update_manifest';
 	private const UPDATE_URI           = 'https://github.com/sungjinwoo-vps/isn-theme-plugin-by-yp';
 
@@ -72,12 +72,12 @@ final class Updater {
 	}
 
 	/**
-	 * Move older installs from the temporary domain endpoint to GitHub Releases.
+	 * Move older installs from temporary/release endpoints to the stable branch manifest.
 	 */
 	private static function maybe_migrate_manifest_url(): void {
 		$options = options();
 		$current = isset( $options['update_manifest_url'] ) ? (string) $options['update_manifest_url'] : '';
-		if ( '' !== $current && 'https://infosecnexus.com/updates/infosecnexus-releases.json' !== $current ) {
+		if ( '' !== $current && ! in_array( $current, array( 'https://infosecnexus.com/updates/infosecnexus-releases.json', 'https://github.com/sungjinwoo-vps/isn-theme-plugin-by-yp/releases/latest/download/infosecnexus-releases.json' ), true ) ) {
 			return;
 		}
 

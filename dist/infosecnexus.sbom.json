@@ -1,0 +1,23 @@
+{
+    "documentNamespace":  "https://infosecnexus.com/spdx/infosecnexus-0.1.15",
+    "name":  "InfoSecNexus WordPress Theme Ecosystem",
+    "packages":  [
+                     {
+                         "licenseDeclared":  "GPL-2.0-or-later",
+                         "name":  "infosecnexus",
+                         "versionInfo":  "0.1.15"
+                     },
+                     {
+                         "licenseDeclared":  "GPL-2.0-or-later",
+                         "name":  "infosecnexus-toolkit",
+                         "versionInfo":  "0.1.15"
+                     },
+                     {
+                         "licenseDeclared":  "GPL-2.0-or-later",
+                         "name":  "infosecnexus-elementor-kit",
+                         "versionInfo":  "0.1.0"
+                     }
+                 ],
+    "dataLicense":  "CC0-1.0",
+    "spdxVersion":  "SPDX-2.3"
+}

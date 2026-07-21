@@ -1,5 +1,5 @@
 param(
-    [string]$DownloadBaseUrl = "https://github.com/sungjinwoo-vps/isn-theme-plugin-by-yp/releases/latest/download",
+    [string]$DownloadBaseUrl = "https://raw.githubusercontent.com/sungjinwoo-vps/isn-theme-plugin-by-yp/stable/dist",
     [string]$ThemeVersion = "",
     [string]$ToolkitVersion = "",
     [string]$ElementorKitVersion = "0.1.0"
@@ -104,7 +104,7 @@ $releaseManifest = @{
         last_updated = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd")
         sections = @{
             description = "Cybersecurity newsroom theme for InfoSecNexus."
-            changelog = "Moves toolkit features into the theme so Content Blocks, newsletter, search, sidebars, Elementor widgets, and setup tools work without the separate plugin."
+            changelog = "Refreshes demo posts and pages, restricts search to blog posts, adds security headers, improves dropdown navigation, and tightens page, 404, mobile, and footer presentation."
         }
     }
     plugin = @{

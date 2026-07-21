@@ -11,13 +11,12 @@ if ( post_password_required() ) {
 	return;
 }
 
-$infosecnexus_commenter      = wp_get_current_commenter();
 $infosecnexus_required       = (bool) get_option( 'require_name_email' );
 $infosecnexus_required_label = $infosecnexus_required ? ' <span class="required">*</span>' : '';
 
 $infosecnexus_comment_fields = array(
-	'author' => '<p class="comment-form-author"><label for="author">' . esc_html__( 'Name', 'infosecnexus' ) . wp_kses_post( $infosecnexus_required_label ) . '</label><input id="author" name="author" type="text" value="' . esc_attr( $infosecnexus_commenter['comment_author'] ) . '" autocomplete="name" placeholder="' . esc_attr__( 'Your name', 'infosecnexus' ) . '"' . ( $infosecnexus_required ? ' required' : '' ) . '></p>',
-	'email'  => '<p class="comment-form-email"><label for="email">' . esc_html__( 'Email', 'infosecnexus' ) . wp_kses_post( $infosecnexus_required_label ) . '</label><input id="email" name="email" type="email" value="' . esc_attr( $infosecnexus_commenter['comment_author_email'] ) . '" autocomplete="email" placeholder="' . esc_attr__( 'you@example.com', 'infosecnexus' ) . '"' . ( $infosecnexus_required ? ' required' : '' ) . '></p>',
+	'author' => '<p class="comment-form-author"><label for="author">' . esc_html__( 'Name', 'infosecnexus' ) . wp_kses_post( $infosecnexus_required_label ) . '</label><input id="author" name="author" type="text" value="" autocomplete="name" placeholder="' . esc_attr__( 'Your name', 'infosecnexus' ) . '"' . ( $infosecnexus_required ? ' required' : '' ) . '></p>',
+	'email'  => '<p class="comment-form-email"><label for="email">' . esc_html__( 'Email', 'infosecnexus' ) . wp_kses_post( $infosecnexus_required_label ) . '</label><input id="email" name="email" type="email" value="" autocomplete="email" placeholder="' . esc_attr__( 'you@example.com', 'infosecnexus' ) . '"' . ( $infosecnexus_required ? ' required' : '' ) . '></p>',
 );
 ?>
 <section id="comments" class="comments-area">

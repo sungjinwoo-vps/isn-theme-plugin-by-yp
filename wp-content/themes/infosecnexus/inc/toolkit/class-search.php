@@ -39,8 +39,7 @@ final class Search {
 				'callback'            => array( __CLASS__, 'search' ),
 				'permission_callback' => '__return_true',
 				'args'                => array(
-					'q'         => array( 'sanitize_callback' => 'sanitize_text_field' ),
-					'post_type' => array( 'sanitize_callback' => 'sanitize_key' ),
+					'q' => array( 'sanitize_callback' => 'sanitize_text_field' ),
 				),
 			)
 		);
@@ -62,16 +61,10 @@ final class Search {
 			return new WP_REST_Response( array( 'results' => array() ) );
 		}
 
-		$post_type = sanitize_key( (string) $request->get_param( 'post_type' ) );
-		$allowed   = array_values( get_post_types( array( 'public' => true ), 'names' ) );
-		if ( ! in_array( $post_type, $allowed, true ) ) {
-			$post_type = 'any';
-		}
-
 		$wp_query = new \WP_Query(
 			array(
 				's'                   => $query_text,
-				'post_type'           => $post_type,
+				'post_type'           => 'post',
 				'post_status'         => 'publish',
 				'posts_per_page'      => 8,
 				'ignore_sticky_posts' => true,
@@ -85,7 +78,7 @@ final class Search {
 				'title'   => get_the_title( $post ),
 				'url'     => get_permalink( $post ),
 				'type'    => get_post_type_object( $post->post_type )->labels->singular_name ?? $post->post_type,
-				'excerpt' => wp_trim_words( wp_strip_all_tags( get_the_excerpt( $post ) ), 24 ),
+				'excerpt' => wp_trim_words( wp_strip_all_tags( get_the_excerpt( $post ) ), 22 ),
 			);
 		}
 
@@ -103,8 +96,9 @@ final class Search {
 				<form role="search" method="get" action="<?php echo esc_url( home_url( '/' ) ); ?>" data-isnx-live-search-form>
 					<label>
 						<span class="screen-reader-text"><?php esc_html_e( 'Search', 'infosecnexus' ); ?></span>
-						<input type="search" name="s" autocomplete="off" data-isnx-live-search-input placeholder="<?php esc_attr_e( 'Search security briefings...', 'infosecnexus' ); ?>">
+						<input type="search" name="s" autocomplete="off" data-isnx-live-search-input placeholder="<?php esc_attr_e( 'Search blog posts...', 'infosecnexus' ); ?>">
 					</label>
+					<input type="hidden" name="post_type" value="post">
 					<button type="submit"><?php esc_html_e( 'Search', 'infosecnexus' ); ?></button>
 				</form>
 				<div class="isnx-live-search__results" data-isnx-live-search-results role="listbox" aria-live="polite"></div>

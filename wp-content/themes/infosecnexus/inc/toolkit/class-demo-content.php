@@ -14,6 +14,7 @@ namespace InfoSecNexus\Theme\Toolkit;
  */
 final class Demo_Content {
 	private const SEEDED_OPTION = 'infosecnexus_demo_seeded_version';
+	private const CONTENT_REFRESH_VERSION = '0.1.15';
 
 	/**
 	 * Register hooks.
@@ -105,6 +106,9 @@ final class Demo_Content {
 
 		$seeded_version = (string) get_option( self::SEEDED_OPTION, '' );
 		if ( '' !== $seeded_version ) {
+			if ( version_compare( $seeded_version, self::CONTENT_REFRESH_VERSION, '<' ) && self::has_demo_content() ) {
+				self::run();
+			}
 			return;
 		}
 
@@ -128,6 +132,7 @@ final class Demo_Content {
 		self::create_posts( $categories );
 		self::create_pages();
 		self::create_menus( $categories );
+		self::refresh_content_theme_mods();
 		if ( $reset_settings ) {
 			self::set_options();
 		}
@@ -155,6 +160,40 @@ final class Demo_Content {
 		if ( $legacy_about && get_post_meta( $legacy_about->ID, '_infosecnexus_demo_content', true ) ) {
 			wp_trash_post( (int) $legacy_about->ID );
 		}
+
+		$demo_posts = get_posts(
+			array(
+				'post_type'      => 'post',
+				'post_status'    => array( 'publish', 'draft', 'private', 'pending', 'future' ),
+				'posts_per_page' => 200,
+				'fields'         => 'ids',
+				'meta_key'       => '_infosecnexus_demo_content',
+				'meta_value'     => '1',
+			)
+		);
+
+		foreach ( $demo_posts as $post_id ) {
+			wp_trash_post( (int) $post_id );
+		}
+	}
+
+	/**
+	 * Whether the site already contains theme-seeded content.
+	 */
+	private static function has_demo_content(): bool {
+		$query = new \WP_Query(
+			array(
+				'post_type'      => array( 'post', 'page' ),
+				'post_status'    => array( 'publish', 'draft', 'private', 'pending', 'future' ),
+				'posts_per_page' => 1,
+				'fields'         => 'ids',
+				'meta_key'       => '_infosecnexus_demo_content',
+				'meta_value'     => '1',
+				'no_found_rows'  => true,
+			)
+		);
+
+		return $query->have_posts();
 	}
 
 	/**
@@ -205,60 +244,454 @@ final class Demo_Content {
 	private static function create_posts( array $categories ): void {
 		$posts = array(
 			array(
-				'title'      => 'Januscape: The KVM Vulnerability That Requires Immediate Patching',
-				'slug'       => 'januscape-kvm-vulnerability-immediate-patching',
-				'categories' => array( 'critical-cves', 'linux-administration' ),
-				'excerpt'    => 'A critical flaw in Januscape KVM could allow attackers to escape the virtual environment.',
-				'content'    => self::article_content( 'januscape' ),
-			),
-			array(
-				'title'      => 'CVE-2026-57156: FreeRDP Integer Overflow',
-				'slug'       => 'cve-2026-57156-freerdp-integer-overflow',
+				'title'      => 'CVE Triage Checklist for High-Risk Vulnerabilities',
+				'slug'       => 'cve-triage-checklist-high-risk-vulnerabilities',
 				'categories' => array( 'critical-cves' ),
-				'excerpt'    => 'A heap-based buffer overflow in FreeRDP channel handling requires immediate review.',
-				'content'    => self::article_content( 'freerdp' ),
+				'excerpt'    => 'A short CVE triage workflow for ranking exploited vulnerabilities by exposure, blast radius, and patch urgency.',
+				'content'    => self::brief_content(
+					'CVE triage works best when severity is combined with business context. Scores matter, but internet exposure, privilege level, public exploit code, and affected asset value decide the real response order.',
+					array(
+						'Confirm affected versions and whether exploitation is active.',
+						'Rank internet-facing, privileged, and customer-impacting systems first.',
+						'Track owners, deadlines, compensating controls, and verification evidence.',
+					),
+					'Use this checklist during daily vulnerability review so critical CVEs become assigned work instead of unread alerts.'
+				),
 			),
 			array(
-				'title'      => 'GhostLock Kernel Fixes Released',
-				'slug'       => 'ghostlock-kernel-fixes-released',
-				'categories' => array( 'linux-administration', 'critical-cves' ),
-				'excerpt'    => 'Security patches are now available for supported Linux kernels.',
-				'content'    => self::article_content( 'ghostlock' ),
+				'title'      => 'Zero-Day Response: First 24 Hours for Security Teams',
+				'slug'       => 'zero-day-response-first-24-hours-security-teams',
+				'categories' => array( 'critical-cves' ),
+				'excerpt'    => 'A practical first-day response plan for zero-day exploitation, exposure checks, and temporary mitigations.',
+				'content'    => self::brief_content(
+					'The first day of a zero-day response should reduce uncertainty fast. Teams need to identify exposed assets, apply available mitigations, and create a repeatable update rhythm.',
+					array(
+						'Create one owner for the advisory and one source of truth for status.',
+						'Search external attack surface, endpoint telemetry, and asset tags.',
+						'Apply vendor mitigations, block risky paths, and schedule patches when available.',
+					),
+					'Keep the response short and visible: what is exposed, what is protected, what remains open, and when the next decision happens.'
+				),
 			),
 			array(
-				'title'      => 'Microsoft Products Reach End of Support',
-				'slug'       => 'microsoft-products-reach-end-of-support',
-				'categories' => array( 'cybersecurity', 'windows-security' ),
-				'excerpt'    => 'Several Microsoft products have reached end of support. Review your exposure and mitigation options.',
-				'content'    => self::article_content( 'microsoft-eol' ),
+				'title'      => 'Exploitability Signals to Watch Before Patch Tuesday',
+				'slug'       => 'exploitability-signals-before-patch-tuesday',
+				'categories' => array( 'critical-cves' ),
+				'excerpt'    => 'How defenders can spot vulnerability signals that deserve attention before the normal patch cycle.',
+				'content'    => self::brief_content(
+					'Exploitability clues often appear before broad exploitation. Public proof-of-concept code, unauthenticated attack paths, edge-device exposure, and suspicious scanning can all raise priority.',
+					array(
+						'Watch vendor advisories, KEV-style lists, exploit repositories, and honeypot telemetry.',
+						'Separate reachable services from products that exist only in inventory.',
+						'Prepare rollback and maintenance notes before the patch window opens.',
+					),
+					'This approach helps teams move early without treating every CVE as an emergency.'
+				),
 			),
 			array(
-				'title'      => 'Secure Your Cloud: 5 Misconfigurations to Fix',
-				'slug'       => 'secure-your-cloud-five-misconfigurations',
-				'categories' => array( 'cloud-security', 'cybersecurity' ),
-				'excerpt'    => 'Common cloud configuration mistakes continue to be a leading cause of breaches.',
-				'content'    => self::article_content( 'cloud-misconfigurations' ),
+				'title'      => 'Security Operations Metrics That Actually Reduce Risk',
+				'slug'       => 'security-operations-metrics-that-reduce-risk',
+				'categories' => array( 'cybersecurity' ),
+				'excerpt'    => 'Useful security operations metrics for vulnerability response, incident handling, and executive reporting.',
+				'content'    => self::brief_content(
+					'Security metrics should show whether risk is shrinking, not only whether dashboards are busy. Focus on measurable outcomes that change decisions.',
+					array(
+						'Track age of critical findings by owner and exposure level.',
+						'Measure time from alert validation to containment or patch verification.',
+						'Review repeated root causes so controls improve instead of tickets multiplying.',
+					),
+					'A small set of clear metrics beats a large report that no team uses during real security work.'
+				),
 			),
 			array(
-				'title'      => 'AI Model Supply Chain Risks on the Rise',
-				'slug'       => 'ai-model-supply-chain-risks-on-the-rise',
-				'categories' => array( 'artificial-intelligence', 'cybersecurity' ),
-				'excerpt'    => 'New research reveals vulnerabilities in model dependencies and third-party AI components.',
-				'content'    => self::article_content( 'ai-supply-chain' ),
+				'title'      => 'Phishing Defense Controls for Hybrid Teams',
+				'slug'       => 'phishing-defense-controls-hybrid-teams',
+				'categories' => array( 'cybersecurity' ),
+				'excerpt'    => 'A concise phishing defense baseline covering identity, mail security, browser controls, and response.',
+				'content'    => self::brief_content(
+					'Hybrid teams need phishing defenses that work beyond the office network. Identity controls, safe reporting, and fast takedown response matter more than awareness alone.',
+					array(
+						'Require phishing-resistant MFA for privileged and high-risk accounts.',
+						'Tune mail authentication, attachment controls, and suspicious link rewriting.',
+						'Create a one-click reporting path and measure time to mailbox cleanup.',
+					),
+					'Treat phishing defense as an operational workflow that connects users, identity, email, and incident response.'
+				),
 			),
 			array(
-				'title'      => 'KVM Security Hardening Best Practices for 2026',
-				'slug'       => 'kvm-security-hardening-best-practices-2026',
-				'categories' => array( 'linux-administration', 'tutorials' ),
-				'excerpt'    => 'A practical checklist for virtualization administrators.',
-				'content'    => self::article_content( 'kvm-hardening' ),
+				'title'      => 'Threat Intelligence Triage Without Alert Fatigue',
+				'slug'       => 'threat-intelligence-triage-without-alert-fatigue',
+				'categories' => array( 'cybersecurity' ),
+				'excerpt'    => 'A lean method for turning threat intelligence into actions security teams can actually complete.',
+				'content'    => self::brief_content(
+					'Threat intelligence becomes useful when it maps to your environment. Indicators, tactics, and advisories should drive scoped detection, hardening, or response tasks.',
+					array(
+						'Filter intelligence by industry, exposed technologies, geography, and current campaigns.',
+						'Convert relevant items into detection logic, patch tickets, or control reviews.',
+						'Retire stale indicators and document why low-value alerts were ignored.',
+					),
+					'The goal is fewer generic alerts and more decisions that protect real systems.'
+				),
 			),
 			array(
-				'title'      => 'Build a Patch Review Runbook',
-				'slug'       => 'build-a-patch-review-runbook',
-				'categories' => array( 'tutorials', 'devops' ),
-				'excerpt'    => 'A lightweight process for tracking risk, owners, testing, rollback, and deployment.',
-				'content'    => self::article_content( 'patch-runbook' ),
+				'title'      => 'Linux Kernel Patch Runbook for Production Servers',
+				'slug'       => 'linux-kernel-patch-runbook-production-servers',
+				'categories' => array( 'linux-administration' ),
+				'excerpt'    => 'A short Linux kernel patch runbook for maintenance windows, reboot planning, and validation.',
+				'content'    => self::brief_content(
+					'Linux kernel patching is complete only after teams verify the running kernel, module health, reboot state, and service behavior. Package installation alone is not enough.',
+					array(
+						'Group servers by service tier, reboot tolerance, and maintenance window.',
+						'Confirm backup, rollback, kernel module, storage, and monitoring readiness.',
+						'Validate kernel version, uptime, logs, and application health after deployment.',
+					),
+					'Keep exceptions visible with an owner and deadline so temporary exposure does not become permanent risk.'
+				),
+			),
+			array(
+				'title'      => 'SSH Hardening Baseline for Admin Teams',
+				'slug'       => 'ssh-hardening-baseline-admin-teams',
+				'categories' => array( 'linux-administration' ),
+				'excerpt'    => 'Essential SSH hardening controls for Linux servers, administrators, and automation accounts.',
+				'content'    => self::brief_content(
+					'SSH remains a critical administrative path for Linux systems. A good baseline reduces password attacks, credential reuse, and uncontrolled privileged access.',
+					array(
+						'Disable password login where key-based or federated access is available.',
+						'Restrict root login, enforce least privilege, and log administrative sessions.',
+						'Review authorized keys, stale accounts, bastion access, and exposed ports.',
+					),
+					'Document the approved access path so emergency changes do not quietly bypass the baseline.'
+				),
+			),
+			array(
+				'title'      => 'Linux Log Review Checklist After Suspicious Activity',
+				'slug'       => 'linux-log-review-checklist-suspicious-activity',
+				'categories' => array( 'linux-administration' ),
+				'excerpt'    => 'A compact Linux log review checklist for suspicious login, privilege, process, and network events.',
+				'content'    => self::brief_content(
+					'Linux incident review should quickly answer who logged in, what changed, which processes ran, and whether data moved. Start with high-signal logs before deep forensics.',
+					array(
+						'Review authentication, sudo, systemd, cron, package manager, and web server logs.',
+						'Compare new users, SSH keys, scheduled jobs, services, and listening ports.',
+						'Preserve logs before rebooting or rotating evidence.',
+					),
+					'A consistent checklist helps administrators collect useful evidence without delaying containment.'
+				),
+			),
+			array(
+				'title'      => 'CI/CD Secrets Hygiene Checklist',
+				'slug'       => 'ci-cd-secrets-hygiene-checklist',
+				'categories' => array( 'devops' ),
+				'excerpt'    => 'Short CI/CD secrets hygiene guidance for pipelines, runners, variables, and deployment keys.',
+				'content'    => self::brief_content(
+					'CI/CD systems often hold powerful credentials. Secrets hygiene reduces the blast radius when a repository, runner, or build job is compromised.',
+					array(
+						'Store secrets in managed vaults and scope them to specific environments.',
+						'Rotate long-lived tokens and remove credentials from logs, artifacts, and scripts.',
+						'Use protected branches, reviewed workflows, and isolated runners for production deploys.',
+					),
+					'Review secrets whenever pipeline permissions change, not only after a leak is discovered.'
+				),
+			),
+			array(
+				'title'      => 'Container Image Scanning Before Production Deploys',
+				'slug'       => 'container-image-scanning-before-production-deploys',
+				'categories' => array( 'devops' ),
+				'excerpt'    => 'A fast container image scanning workflow for vulnerabilities, base images, and risky packages.',
+				'content'    => self::brief_content(
+					'Container image scanning is most valuable when it runs before production and produces fixable results. Teams need policy, ownership, and repeatable exceptions.',
+					array(
+						'Pin base images and rebuild regularly to absorb upstream security fixes.',
+						'Block critical vulnerabilities with known fixes from production promotion.',
+						'Track accepted risk with expiry dates and compensating controls.',
+					),
+					'Scanning should make releases safer without turning every inherited package into an emergency.'
+				),
+			),
+			array(
+				'title'      => 'Infrastructure as Code Security Review Tips',
+				'slug'       => 'infrastructure-as-code-security-review-tips',
+				'categories' => array( 'devops' ),
+				'excerpt'    => 'Practical IaC security review checks for identity, storage, networks, logging, and drift.',
+				'content'    => self::brief_content(
+					'Infrastructure as Code review catches risky defaults before they become live cloud exposure. The best checks are specific, automated, and easy for engineers to fix.',
+					array(
+						'Review public access, broad IAM permissions, weak encryption, and disabled logging.',
+						'Scan pull requests and enforce guardrails in reusable modules.',
+						'Compare deployed resources with code to find drift and manual exceptions.',
+					),
+					'Pair automated policy with short human review for systems that carry sensitive data or privileged access.'
+				),
+			),
+			array(
+				'title'      => 'AI Data Leakage Controls for Internal Tools',
+				'slug'       => 'ai-data-leakage-controls-internal-tools',
+				'categories' => array( 'artificial-intelligence' ),
+				'excerpt'    => 'AI data leakage controls for prompts, files, connectors, logs, and internal knowledge tools.',
+				'content'    => self::brief_content(
+					'Internal AI tools can expose sensitive data through prompts, file uploads, retrieval systems, plugin calls, or verbose logs. Governance needs to be practical and visible.',
+					array(
+						'Classify which data types may be used with approved AI services.',
+						'Limit connectors, redact logs, and block secrets before prompts leave the browser.',
+						'Review access to retrieval indexes and shared conversation history.',
+					),
+					'Start with high-risk data such as credentials, customer records, legal material, and unreleased product information.'
+				),
+			),
+			array(
+				'title'      => 'Model Dependency Risk Checklist for AI Teams',
+				'slug'       => 'model-dependency-risk-checklist-ai-teams',
+				'categories' => array( 'artificial-intelligence' ),
+				'excerpt'    => 'A short model dependency checklist for AI supply chain, libraries, datasets, and external APIs.',
+				'content'    => self::brief_content(
+					'AI applications depend on models, libraries, datasets, vector stores, and external APIs. Each dependency can introduce security, privacy, reliability, or licensing risk.',
+					array(
+						'Maintain a model and dependency inventory with owners and versions.',
+						'Scan packages, pin versions, and record model provenance before deployment.',
+						'Review third-party APIs for data handling, outage impact, and access scope.',
+					),
+					'Make dependency review part of release readiness so AI systems are supportable after launch.'
+				),
+			),
+			array(
+				'title'      => 'Prompt Injection Monitoring for Business Apps',
+				'slug'       => 'prompt-injection-monitoring-business-apps',
+				'categories' => array( 'artificial-intelligence' ),
+				'excerpt'    => 'Monitoring ideas for prompt injection, unsafe tool calls, retrieval abuse, and AI app misuse.',
+				'content'    => self::brief_content(
+					'Prompt injection becomes serious when an AI system can retrieve private data or call tools. Monitoring should focus on impact, not only suspicious wording.',
+					array(
+						'Log tool calls, data sources used, user identity, and policy decisions.',
+						'Alert on unusual connector access, blocked instructions, and repeated sensitive requests.',
+						'Test prompts against approved abuse cases before major releases.',
+					),
+					'Good monitoring helps teams understand whether guardrails are working in real business workflows.'
+				),
+			),
+			array(
+				'title'      => 'Build a Weekly Vulnerability Review Workflow',
+				'slug'       => 'weekly-vulnerability-review-workflow',
+				'categories' => array( 'tutorials' ),
+				'excerpt'    => 'A simple weekly vulnerability review workflow for backlog cleanup, owners, and patch evidence.',
+				'content'    => self::brief_content(
+					'A weekly vulnerability review keeps patch work moving between emergency cycles. It should be short, owner-driven, and focused on aging risk.',
+					array(
+						'Sort findings by severity, exposure, asset value, and age.',
+						'Assign owners and due dates for the top unresolved items.',
+						'Close tickets only after version or configuration evidence is captured.',
+					),
+					'Keep the meeting practical: fewer slides, more decisions, and visible follow-through.'
+				),
+			),
+			array(
+				'title'      => 'How to Document Temporary Security Exceptions',
+				'slug'       => 'document-temporary-security-exceptions',
+				'categories' => array( 'tutorials' ),
+				'excerpt'    => 'A lightweight exception record for security risks that cannot be fixed immediately.',
+				'content'    => self::brief_content(
+					'Temporary exceptions are sometimes necessary, but undocumented exceptions become silent risk. A good record explains why the issue remains open and when it will be reviewed.',
+					array(
+						'Capture affected asset, risk, owner, compensating control, and expiry date.',
+						'Require approval from the team that owns the business impact.',
+						'Review expired exceptions before accepting new ones.',
+					),
+					'An exception should be a managed decision, not a place where unresolved security work disappears.'
+				),
+			),
+			array(
+				'title'      => 'Create a Simple Asset Exposure Register',
+				'slug'       => 'simple-asset-exposure-register',
+				'categories' => array( 'tutorials' ),
+				'excerpt'    => 'A beginner-friendly asset exposure register for internet-facing systems and critical services.',
+				'content'    => self::brief_content(
+					'Asset exposure registers help teams understand what attackers can reach. Start small with systems that face the internet or carry privileged access.',
+					array(
+						'Record hostname, owner, business purpose, technology stack, and public exposure.',
+						'Add authentication method, logging status, patch cadence, and backup contact.',
+						'Review the register before major releases and after incident response changes.',
+					),
+					'A simple register is better than a perfect inventory that nobody maintains.'
+				),
+			),
+			array(
+				'title'      => 'Cloud Storage Exposure Checklist',
+				'slug'       => 'cloud-storage-exposure-checklist',
+				'categories' => array( 'cloud-security' ),
+				'excerpt'    => 'Cloud storage security checks for public access, encryption, logging, retention, and ownership.',
+				'content'    => self::brief_content(
+					'Cloud storage exposure remains one of the easiest mistakes to make and one of the easiest to prevent. Defaults, ownership, and monitoring matter.',
+					array(
+						'Block public access by default and require documented exceptions.',
+						'Enable encryption, access logging, lifecycle retention, and versioning where needed.',
+						'Review stale buckets, broad policies, anonymous access, and shared credentials.',
+					),
+					'Use automated checks in every account so storage exposure is found before customers or attackers find it.'
+				),
+			),
+			array(
+				'title'      => 'IAM Least Privilege Review for Cloud Teams',
+				'slug'       => 'iam-least-privilege-review-cloud-teams',
+				'categories' => array( 'cloud-security' ),
+				'excerpt'    => 'A short cloud IAM review for administrator roles, service accounts, access keys, and stale users.',
+				'content'    => self::brief_content(
+					'Cloud IAM risk grows quietly as teams add projects, service accounts, and emergency permissions. Regular review keeps access aligned with real work.',
+					array(
+						'Identify administrator roles, wildcard permissions, long-lived keys, and unused accounts.',
+						'Replace broad roles with task-based access and time-bound elevation.',
+						'Monitor privileged changes and require stronger approval for production environments.',
+					),
+					'Least privilege is easier when access is reviewed in small, frequent batches instead of once a year.'
+				),
+			),
+			array(
+				'title'      => 'Cloud Logging Baseline for Faster Investigations',
+				'slug'       => 'cloud-logging-baseline-faster-investigations',
+				'categories' => array( 'cloud-security' ),
+				'excerpt'    => 'Cloud logging baseline guidance for audit trails, identity events, network flow, and storage access.',
+				'content'    => self::brief_content(
+					'Investigations move faster when cloud logs already exist. Missing audit trails turn simple questions into slow reconstruction work.',
+					array(
+						'Enable identity, control-plane, network, storage, and key-management logs.',
+						'Centralize logs outside the account or project they describe.',
+						'Create alerting for disabled logging, deleted trails, and unusual privileged actions.',
+					),
+					'Logging should be part of account creation, not a separate project after the first incident.'
+				),
+			),
+			array(
+				'title'      => 'Windows Endpoint Hardening Quick Wins',
+				'slug'       => 'windows-endpoint-hardening-quick-wins',
+				'categories' => array( 'windows-security' ),
+				'excerpt'    => 'Windows endpoint hardening quick wins for identity, macro control, PowerShell, and local admin rights.',
+				'content'    => self::brief_content(
+					'Windows endpoint hardening should focus on controls that reduce common attacker movement. Identity, scripting, and local admin scope are strong starting points.',
+					array(
+						'Remove unnecessary local administrators and monitor privilege changes.',
+						'Control macros, script execution, credential storage, and remote management paths.',
+						'Keep EDR, tamper protection, and operating system updates enforced.',
+					),
+					'Small baseline improvements can reduce incident impact before larger modernization work is complete.'
+				),
+			),
+			array(
+				'title'      => 'Active Directory Review Items Before an Incident',
+				'slug'       => 'active-directory-review-items-before-incident',
+				'categories' => array( 'windows-security' ),
+				'excerpt'    => 'Active Directory security review items for privileged groups, stale accounts, delegation, and logging.',
+				'content'    => self::brief_content(
+					'Active Directory remains a common control plane for enterprise access. Review high-impact settings before an incident forces a rushed audit.',
+					array(
+						'Check privileged groups, stale accounts, weak delegation, and service account sprawl.',
+						'Enable auditing for authentication, directory changes, and privileged operations.',
+						'Protect domain controllers with tight network access and backup validation.',
+					),
+					'Document normal admin paths so unusual access stands out when investigations begin.'
+				),
+			),
+			array(
+				'title'      => 'PowerShell Logging Controls for Security Teams',
+				'slug'       => 'powershell-logging-controls-security-teams',
+				'categories' => array( 'windows-security' ),
+				'excerpt'    => 'PowerShell logging controls that improve detection for suspicious scripts and administrative misuse.',
+				'content'    => self::brief_content(
+					'PowerShell is useful for administrators and attackers. Logging turns script activity into evidence that defenders can investigate.',
+					array(
+						'Enable script block logging, module logging, and transcription where appropriate.',
+						'Collect logs centrally and alert on encoded commands, download cradles, and unusual child processes.',
+						'Pair logging with execution policy, constrained language mode, and application control where feasible.',
+					),
+					'Validate that logs arrive in your SIEM before relying on them during an incident.'
+				),
+			),
+			array(
+				'title'      => 'Network Segmentation Checks That Reduce Blast Radius',
+				'slug'       => 'network-segmentation-checks-reduce-blast-radius',
+				'categories' => array( 'network-security' ),
+				'excerpt'    => 'Network segmentation checks for admin paths, production systems, backups, and exposed services.',
+				'content'    => self::brief_content(
+					'Network segmentation limits how far an attacker can move after one system is compromised. The most useful checks focus on sensitive zones and admin paths.',
+					array(
+						'Separate management, production, backup, user, and guest networks.',
+						'Review firewall rules for broad any-to-any access and stale exceptions.',
+						'Test whether low-trust systems can reach domain controllers, admin interfaces, or backup consoles.',
+					),
+					'Segmentation should be verified with real connectivity tests, not only diagrams.'
+				),
+			),
+			array(
+				'title'      => 'VPN Access Review for Remote Teams',
+				'slug'       => 'vpn-access-review-remote-teams',
+				'categories' => array( 'network-security' ),
+				'excerpt'    => 'VPN access review guidance for remote users, device posture, MFA, split tunneling, and logging.',
+				'content'    => self::brief_content(
+					'VPN access should be reviewed regularly because remote connectivity often reaches sensitive internal systems. Identity and device posture are key controls.',
+					array(
+						'Require MFA, device compliance, and clear ownership for remote access groups.',
+						'Remove stale users, shared accounts, and broad network routes.',
+						'Monitor impossible travel, unusual login times, and access from unmanaged devices.',
+					),
+					'The review should show who can connect, what they can reach, and which controls prove they should still have access.'
+				),
+			),
+			array(
+				'title'      => 'DNS Monitoring Ideas for Early Threat Detection',
+				'slug'       => 'dns-monitoring-ideas-early-threat-detection',
+				'categories' => array( 'network-security' ),
+				'excerpt'    => 'DNS monitoring ideas for suspicious domains, tunneling patterns, malware callbacks, and policy gaps.',
+				'content'    => self::brief_content(
+					'DNS telemetry can reveal early signs of phishing, malware, data staging, and policy bypass. It is especially useful when endpoint visibility is incomplete.',
+					array(
+						'Alert on newly registered domains, high-entropy names, unusual TLDs, and known malicious infrastructure.',
+						'Watch for DNS tunneling patterns such as long queries, high volume, and repeated failures.',
+						'Block unmanaged resolvers and compare DNS logs with proxy and endpoint data.',
+					),
+					'Keep detections tuned so DNS monitoring remains high signal instead of background noise.'
+				),
+			),
+			array(
+				'title'      => 'API Authentication Mistakes to Fix This Week',
+				'slug'       => 'api-authentication-mistakes-fix-this-week',
+				'categories' => array( 'web-security' ),
+				'excerpt'    => 'Web API authentication mistakes involving tokens, sessions, rate limits, and authorization checks.',
+				'content'    => self::brief_content(
+					'API security failures often come from authentication and authorization gaps that are easy to overlook during fast product changes.',
+					array(
+						'Use short-lived tokens, strong session storage, and rotation for leaked credentials.',
+						'Check object-level authorization on every sensitive API route.',
+						'Add rate limits, audit logs, and alerts for suspicious authentication patterns.',
+					),
+					'Fixing the basics reduces account takeover and data exposure risk before deeper testing begins.'
+				),
+			),
+			array(
+				'title'      => 'Web Application Security Headers Explained',
+				'slug'       => 'web-application-security-headers-explained',
+				'categories' => array( 'web-security' ),
+				'excerpt'    => 'A simple guide to security headers for clickjacking, content sniffing, HTTPS, and browser policy.',
+				'content'    => self::brief_content(
+					'Security headers help browsers enforce safer behavior. They are not a WAF, but they reduce common risks such as clickjacking, mixed content, and unsafe content handling.',
+					array(
+						'Set X-Frame-Options or CSP frame-ancestors to reduce clickjacking exposure.',
+						'Use X-Content-Type-Options nosniff and HSTS on HTTPS sites.',
+						'Add a Content-Security-Policy that fits scripts, images, forms, and frames your site actually uses.',
+					),
+					'Start with a compatible policy, test it, then tighten directives as the site becomes more predictable.'
+				),
+			),
+			array(
+				'title'      => 'Login Security Checklist for WordPress Sites',
+				'slug'       => 'login-security-checklist-wordpress-sites',
+				'categories' => array( 'web-security' ),
+				'excerpt'    => 'WordPress login security checklist for MFA, least privilege, updates, backups, and monitoring.',
+				'content'    => self::brief_content(
+					'WordPress login security depends on more than a hidden URL. Strong identity controls, updates, backups, and monitoring all matter.',
+					array(
+						'Use MFA for administrators and remove unused privileged accounts.',
+						'Keep themes, plugins, and WordPress core patched from trusted sources.',
+						'Monitor failed logins, admin changes, plugin installs, and file modifications.',
+					),
+					'Pair login hardening with reliable backups so recovery remains possible if prevention fails.'
+				),
 			),
 		);
 
@@ -285,104 +718,31 @@ final class Demo_Content {
 	}
 
 	/**
-	 * Rich article body for demo posts.
+	 * Build a concise SEO-friendly demo briefing body.
 	 *
-	 * @param string $key Article key.
+	 * @param string   $summary Summary paragraph.
+	 * @param string[] $checks Action checklist.
+	 * @param string   $next_step Closing paragraph.
 	 * @return string
 	 */
-	private static function article_content( string $key ): string {
-		$articles = array(
-			'januscape'               => array(
-				'<h2>Executive Summary</h2>',
-				'<p>Januscape KVM environments should be reviewed immediately because the flaw tracked as CVE-2026-53359 affects the trust boundary between guest workloads and the virtualization host. In a normal deployment, that boundary is the control point that prevents a compromised guest from influencing the host, neighboring guests, storage paths, or management services.</p>',
-				'<p>The highest priority systems are internet-facing virtualization gateways, shared hosting clusters, lab environments that run untrusted images, and production hosts where administrative access is delegated across teams. Even when exploitation requires local guest access, the business impact can be high because the attacker may already have a foothold inside a tenant or workload.</p>',
-				'<h2>What Happened</h2>',
-				'<p>The issue is rooted in insufficient isolation inside the virtualization path. A guest process can attempt to trigger unexpected host-side behavior through a crafted sequence of operations. Successful exploitation could allow privilege escalation, host process compromise, or access to information that should remain outside the guest boundary.</p>',
-				'<p>Security teams should treat this as a containment and patch-management event, not only a package update. The right response includes confirming which hosts run the vulnerable component, which guests are exposed to untrusted users, and which monitoring points can show abnormal guest-to-host activity.</p>',
-				'<h2>Systems Most at Risk</h2>',
-				'<ul><li>Virtualization hosts running public, customer-managed, or third-party guest images.</li><li>Clusters where management interfaces are reachable from broad internal networks.</li><li>Hosts that have delayed kernel, hypervisor, or platform updates because of uptime requirements.</li><li>Environments that lack detailed audit logs for guest lifecycle events, console access, and host management actions.</li></ul>',
-				'<h2>Recommended Action</h2>',
-				'<p>Patch affected hosts during the next emergency maintenance window and validate the exact vendor guidance for your distribution or appliance. If patching cannot happen immediately, isolate high-risk guests, restrict console and management access, and increase monitoring on host processes tied to virtualization.</p>',
-				'<p>After deployment, verify host versions, reboot status, live-patching state, and guest availability. Record any exceptions with an owner and a deadline so temporary mitigations do not become permanent risk.</p>',
-				'<h2>Detection Ideas</h2>',
-				'<ul><li>Review host logs for unexpected virtualization process crashes or restarts.</li><li>Look for guest actions followed by host-level privilege changes or unusual management API calls.</li><li>Alert on new administrative sessions to virtualization hosts during non-maintenance windows.</li><li>Compare guest inventory against known high-risk workloads and untrusted images.</li></ul>',
-			),
-			'freerdp'                 => array(
-				'<h2>Overview</h2>',
-				'<p>CVE-2026-57156 describes an integer overflow in FreeRDP channel handling that can lead to memory corruption when crafted input is processed. Remote desktop tooling often sits close to administrative workflows, which makes even client-side exposure important for enterprise defenders.</p>',
-				'<p>The risk is highest where users connect to untrusted RDP endpoints, where jump boxes accept connections from unmanaged networks, or where automation scripts invoke FreeRDP with stored credentials. A single compromised remote service can become a path to steal session data, execute code, or pivot into administrative tooling.</p>',
-				'<h2>Why This Matters</h2>',
-				'<p>Remote access clients are trusted by operators and are often permitted through endpoint controls. If the client is exploitable, attackers can reverse the expected trust relationship by turning a malicious server into the delivery mechanism.</p>',
-				'<h2>Immediate Response</h2>',
-				'<ul><li>Update FreeRDP packages on workstations, jump hosts, and automation runners.</li><li>Restrict outbound RDP connections to approved destinations while patching is in progress.</li><li>Rotate credentials used from any system that connected to suspicious or untrusted RDP services.</li><li>Review EDR telemetry for crashes, child processes, or unusual network activity from remote desktop clients.</li></ul>',
-				'<h2>Hardening Notes</h2>',
-				'<p>Prefer brokered access, conditional access, and short-lived credentials for administrative remote desktop workflows. Teams should also document which tools are approved for RDP access so unmanaged clients do not become hidden exposure.</p>',
-			),
-			'ghostlock'               => array(
-				'<h2>Patch Window</h2>',
-				'<p>GhostLock kernel fixes are available for supported Linux releases. Kernel updates deserve careful coordination because the patch is only complete when the running kernel is replaced, affected modules are refreshed, and reboot or live-patch status is verified.</p>',
-				'<p>For production systems, combine patching with a short validation plan: confirm service health, check kernel version, verify monitoring agents, and make sure rollback images are available before starting the maintenance window.</p>',
-				'<h2>Operational Checklist</h2>',
-				'<ul><li>Identify exposed systems and prioritize internet-facing hosts.</li><li>Confirm whether live patching applies or a reboot is required.</li><li>Validate kernel module compatibility for security, storage, networking, and virtualization drivers.</li><li>Document hosts that remain temporarily unpatched and isolate them where possible.</li></ul>',
-				'<h2>Monitoring After Patching</h2>',
-				'<p>Watch for failed boots, unexpected kernel taints, module load failures, and process behavior that changed after the update. The first twenty-four hours after a kernel maintenance window are the right time to review dashboards and compare error rates against the previous baseline.</p>',
-			),
-			'microsoft-eol'           => array(
-				'<h2>Operational Risk</h2>',
-				'<p>End-of-support software creates a predictable target for attackers. Once security updates stop, every newly disclosed flaw becomes more useful because defenders cannot rely on normal patch flow. The issue is not only the unsupported product itself; it is the identity, network access, and business workflow attached to it.</p>',
-				'<p>Teams should treat end-of-support inventory as a risk register item with owners, dates, compensating controls, and a migration path. Unsupported assets that cannot be upgraded quickly should be isolated and monitored until replacement is complete.</p>',
-				'<h2>Review Plan</h2>',
-				'<ul><li>Inventory installed versions across endpoints, servers, and shared workstations.</li><li>Map each affected system to the business process it supports.</li><li>Remove internet exposure and unnecessary lateral access.</li><li>Prioritize upgrades for systems with privileged users, sensitive data, or remote access.</li></ul>',
-				'<h2>Mitigation While Migrating</h2>',
-				'<p>Use application control, network segmentation, least-privilege access, and increased logging to reduce exposure. Where possible, move the workload behind a supported gateway or replace the vulnerable component with a maintained alternative.</p>',
-			),
-			'cloud-misconfigurations' => array(
-				'<h2>Focus Areas</h2>',
-				'<p>Cloud breaches often begin with simple configuration mistakes that remain visible for too long. The most common problems are public storage, broad identity permissions, exposed management ports, missing logging, and secrets stored in places that were never designed for credentials.</p>',
-				'<h2>Five Fixes to Prioritize</h2>',
-				'<ul><li>Block public object storage by default and require exception approval.</li><li>Replace broad administrator roles with task-based access and time-bound elevation.</li><li>Move secrets into a managed vault and rotate keys that have been exposed in code or tickets.</li><li>Limit management interfaces to trusted networks and identity-aware access paths.</li><li>Enable audit logs, cloud trail events, and alerting before an incident begins.</li></ul>',
-				'<h2>How to Measure Progress</h2>',
-				'<p>Track the number of critical misconfigurations by account, owner, and age. A useful dashboard shows which issues are new, which are repeated, and which teams need guardrails in CI/CD rather than more manual reminders.</p>',
-			),
-			'ai-supply-chain'         => array(
-				'<h2>Why It Matters</h2>',
-				'<p>AI systems increasingly depend on outside model registries, datasets, notebooks, plugins, and open-source libraries. That supply chain can introduce security, privacy, licensing, and reliability risk before the model ever reaches production.</p>',
-				'<p>Security review should cover where the model came from, what data shaped it, which dependencies are loaded at runtime, and who can change prompts, weights, connectors, or retrieval sources.</p>',
-				'<h2>Risk Areas</h2>',
-				'<ul><li>Untrusted model artifacts downloaded without provenance checks.</li><li>Training or fine-tuning data that includes sensitive information.</li><li>Plugins and tools with access to internal systems.</li><li>Prompt and retrieval changes deployed without review.</li><li>Third-party APIs that become business-critical without resilience planning.</li></ul>',
-				'<h2>Practical Controls</h2>',
-				'<p>Maintain a model inventory, pin dependencies, scan artifacts, approve external connectors, and log tool calls. The goal is not to slow teams down; it is to make AI deployments understandable enough to operate safely.</p>',
-			),
-			'kvm-hardening'           => array(
-				'<h2>Hardening Goal</h2>',
-				'<p>KVM hosts are high-value systems because one host can support many workloads. A secure configuration reduces the chance that a compromised guest can reach the host, neighboring guests, storage fabric, or management plane.</p>',
-				'<h2>Baseline Controls</h2>',
-				'<ul><li>Keep host kernels, QEMU, libvirt, firmware, and management tools patched.</li><li>Separate tenant, storage, backup, and management networks.</li><li>Use least privilege for operators and automation accounts.</li><li>Enable secure boot, measured boot, or integrity controls where the platform supports them.</li><li>Restrict device passthrough to workloads with clear business justification.</li></ul>',
-				'<h2>Operational Practices</h2>',
-				'<p>Review guest images before onboarding, keep snapshots under retention control, and test restore paths regularly. Logging should cover guest creation, deletion, migration, console access, and changes to host networking.</p>',
-				'<h2>Validation</h2>',
-				'<p>Run a quarterly review against your host baseline and capture exceptions. The best hardening program is boring, repeatable, and easy for operations teams to prove during an incident.</p>',
-			),
-			'patch-runbook'           => array(
-				'<h2>Runbook Structure</h2>',
-				'<p>A useful patch runbook turns vulnerability noise into a repeatable workflow. It should identify severity, affected assets, business owner, testing requirements, deployment window, rollback plan, and validation evidence.</p>',
-				'<h2>Recommended Fields</h2>',
-				'<ul><li>Vulnerability or advisory ID, product, and affected version range.</li><li>Asset owner, service tier, and exposure level.</li><li>Patch package, test result, deployment date, and rollback decision.</li><li>Compensating controls for systems that cannot be patched immediately.</li><li>Final validation notes and monitoring checks.</li></ul>',
-				'<h2>Operating Rhythm</h2>',
-				'<p>Review critical issues daily during active exploitation and weekly for normal patch cycles. Keep exception dates short and visible so risk does not disappear into a spreadsheet after the first meeting.</p>',
-				'<h2>Outcome</h2>',
-				'<p>The runbook should make it obvious what has been fixed, what remains exposed, who owns the decision, and when the next action happens.</p>',
-			),
-		);
+	private static function brief_content( string $summary, array $checks, string $next_step ): string {
+		$content = '<h2>Why it matters</h2><p>' . $summary . '</p><h2>Quick checks</h2><ul>';
 
-		return implode( '', $articles[ $key ] ?? array() );
+		foreach ( $checks as $check ) {
+			$content .= '<li>' . $check . '</li>';
+		}
+
+		$content .= '</ul><h2>Next step</h2><p>' . $next_step . '</p>';
+
+		return $content;
 	}
 
 	/**
 	 * Create demo pages.
 	 */
 	private static function create_pages(): void {
-		$image = esc_url( get_stylesheet_directory_uri() . '/assets/images/hero-shield.png' );
+		$image_file = file_exists( get_stylesheet_directory() . '/assets/images/hero-shield.webp' ) ? 'hero-shield.webp' : 'hero-shield.png';
+		$image      = esc_url( get_stylesheet_directory_uri() . '/assets/images/' . $image_file );
 		$pages = array(
 			'about'                => array(
 				'title'   => 'About InfoSecNexus',
@@ -541,13 +901,15 @@ final class Demo_Content {
 		self::assign_location( $primary, 'primary' );
 		self::assign_location( $footer, 'footer' );
 		self::assign_location( $legal, 'legal' );
+		self::remove_menu_items_by_title( $primary, array( 'Home', 'Topics', 'Cyber Security', 'Critical CVEs', 'Linux & Kernel', 'Linux & DevOps', 'DevOps', 'AI Security', 'Tutorials', 'Cloud Security', 'Web Security', 'Windows Security', 'Network Security', 'About', 'About InfoSecNexus', 'Contact', 'Contact InfoSecNexus' ) );
 		self::remove_menu_items_by_title( $footer, array( 'Home', 'About', 'About InfoSecNexus', 'Contact', 'Contact InfoSecNexus', 'Privacy Policy', 'Terms and Conditions', 'Disclaimer', 'Back to top', 'RSS' ) );
 		self::remove_menu_items_by_title( $legal, array( 'Privacy Policy', 'Terms and Conditions', 'Disclaimer', 'Back to top', 'RSS' ) );
 
 		self::add_custom_menu_item_once( $primary, 'Home', home_url( '/' ) );
-		foreach ( array( 'cybersecurity', 'critical-cves', 'linux-administration', 'artificial-intelligence', 'tutorials' ) as $slug ) {
+		$topics_parent = self::add_custom_menu_item_once( $primary, 'Topics', \InfoSecNexus\Theme\Header_Builder\category_url( 'cybersecurity' ) );
+		foreach ( array( 'cybersecurity', 'critical-cves', 'linux-administration', 'devops', 'artificial-intelligence', 'tutorials', 'cloud-security', 'web-security', 'windows-security', 'network-security' ) as $slug ) {
 			if ( isset( $categories[ $slug ] ) ) {
-				self::add_term_menu_item_once( $primary, $categories[ $slug ] );
+				self::add_term_menu_item_once( $primary, $categories[ $slug ], $topics_parent );
 			}
 		}
 
@@ -595,11 +957,12 @@ final class Demo_Content {
 	/**
 	 * Add custom menu item if missing.
 	 */
-	private static function add_custom_menu_item_once( int $menu_id, string $title, string $url ): void {
-		if ( self::menu_has_title( $menu_id, $title ) ) {
-			return;
+	private static function add_custom_menu_item_once( int $menu_id, string $title, string $url, int $parent_id = 0 ): int {
+		$existing = self::menu_item_id_by_title( $menu_id, $title );
+		if ( $existing ) {
+			return $existing;
 		}
-		wp_update_nav_menu_item(
+		return (int) wp_update_nav_menu_item(
 			$menu_id,
 			0,
 			array(
@@ -607,6 +970,7 @@ final class Demo_Content {
 				'menu-item-url'    => $url,
 				'menu-item-status' => 'publish',
 				'menu-item-type'   => 'custom',
+				'menu-item-parent-id' => $parent_id,
 			)
 		);
 	}
@@ -614,7 +978,7 @@ final class Demo_Content {
 	/**
 	 * Add term menu item if missing.
 	 */
-	private static function add_term_menu_item_once( int $menu_id, int $term_id ): void {
+	private static function add_term_menu_item_once( int $menu_id, int $term_id, int $parent_id = 0 ): void {
 		$term = get_term( $term_id, 'category' );
 		if ( ! $term || is_wp_error( $term ) || self::menu_has_title( $menu_id, $term->name ) ) {
 			return;
@@ -628,6 +992,7 @@ final class Demo_Content {
 				'menu-item-object'    => 'category',
 				'menu-item-type'      => 'taxonomy',
 				'menu-item-status'    => 'publish',
+				'menu-item-parent-id' => $parent_id,
 			)
 		);
 	}
@@ -657,16 +1022,23 @@ final class Demo_Content {
 	 * Check menu item by title.
 	 */
 	private static function menu_has_title( int $menu_id, string $title ): bool {
+		return (bool) self::menu_item_id_by_title( $menu_id, $title );
+	}
+
+	/**
+	 * Find a menu item by title.
+	 */
+	private static function menu_item_id_by_title( int $menu_id, string $title ): int {
 		$items = wp_get_nav_menu_items( $menu_id );
 		if ( empty( $items ) ) {
-			return false;
+			return 0;
 		}
 		foreach ( $items as $item ) {
 			if ( $item->title === $title ) {
-				return true;
+				return (int) $item->ID;
 			}
 		}
-		return false;
+		return 0;
 	}
 
 	/**
@@ -701,7 +1073,9 @@ final class Demo_Content {
 
 		set_theme_mod( 'default_color_mode', 'light' );
 		set_theme_mod( 'alert_enabled', false );
-		set_theme_mod( 'home_hero_badge', 'Critical Brief' );
+		set_theme_mod( 'home_hero_badge', 'Security Brief' );
+		set_theme_mod( 'home_hero_title', 'Security Operations Brief: Patch Risk, Cloud Exposure & AI Controls' );
+		set_theme_mod( 'home_hero_excerpt', 'Short, practical cybersecurity briefings for teams that need clear next steps.' );
 		set_theme_mod( 'header_button_label', 'Daily Cyber Brief' );
 		set_theme_mod( 'header_button_url', home_url( '/#daily-cyber-brief' ) );
 		set_theme_mod( 'alert_link_url', home_url( '/category/critical-cves/' ) );
@@ -709,6 +1083,46 @@ final class Demo_Content {
 		set_theme_mod( 'footer_top_elements', 'logo' );
 		set_theme_mod( 'footer_main_elements', '' );
 		set_theme_mod( 'footer_bottom_elements', 'copyright,spacer,legal_navigation' );
-		set_theme_mod( 'copyright', 'Copyright {year} InfoSecNexus. All rights reserved.' );
+		set_theme_mod( 'copyright', '© {year} InfoSecNexus. All rights reserved.' );
+	}
+
+	/**
+	 * Refresh stale demo copy without resetting user-selected design settings.
+	 */
+	private static function refresh_content_theme_mods(): void {
+		$legacy_hero_titles = array(
+			'',
+			'July Patch Shockwave: Enterprise EOL & Active Zero-Days',
+		);
+
+		if ( in_array( (string) get_theme_mod( 'home_hero_title', '' ), $legacy_hero_titles, true ) ) {
+			set_theme_mod( 'home_hero_title', 'Security Operations Brief: Patch Risk, Cloud Exposure & AI Controls' );
+		}
+
+		$legacy_hero_excerpts = array(
+			'',
+			'Critical updates, end-of-life notices, and zero-day activity shaping risk this month.',
+		);
+
+		if ( in_array( (string) get_theme_mod( 'home_hero_excerpt', '' ), $legacy_hero_excerpts, true ) ) {
+			set_theme_mod( 'home_hero_excerpt', 'Short, practical cybersecurity briefings for teams that need clear next steps.' );
+		}
+
+		$legacy_copyrights = array(
+			'',
+			'Copyright {year} InfoSecNexus. All rights reserved.',
+			'InfoSecNexus {year}. Cybersecurity insights, daily.',
+		);
+
+		if ( in_array( (string) get_theme_mod( 'copyright', '' ), $legacy_copyrights, true ) ) {
+			set_theme_mod( 'copyright', '© {year} InfoSecNexus. All rights reserved.' );
+		}
+
+		set_theme_mod( 'alert_enabled', false );
+		set_theme_mod( 'home_hero_badge', 'Security Brief' );
+		set_theme_mod( 'home_hero_button_url', home_url( '/category/critical-cves/' ) );
+		set_theme_mod( 'footer_top_elements', 'logo' );
+		set_theme_mod( 'footer_main_elements', '' );
+		set_theme_mod( 'footer_bottom_elements', 'copyright,spacer,legal_navigation' );
 	}
 }

@@ -7,10 +7,6 @@
 
 declare(strict_types=1);
 
-if ( function_exists( 'infosecnexus_toolkit_render_sidebar' ) && infosecnexus_toolkit_render_sidebar() ) {
-	return;
-}
-
 if ( is_home() || is_archive() || is_search() ) {
 	?>
 	<aside id="secondary" class="widget-area widget-area--curated" aria-label="<?php esc_attr_e( 'Sidebar', 'infosecnexus' ); ?>">
@@ -72,6 +68,10 @@ if ( is_home() || is_archive() || is_search() ) {
 		</section>
 	</aside>
 	<?php
+	return;
+}
+
+if ( function_exists( 'infosecnexus_toolkit_render_sidebar' ) && infosecnexus_toolkit_render_sidebar() ) {
 	return;
 }
 

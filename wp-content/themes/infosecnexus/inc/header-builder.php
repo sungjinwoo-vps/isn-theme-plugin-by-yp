@@ -32,7 +32,7 @@ function render(): void {
 				<?php render_logo(); ?>
 				<?php render_primary_nav( 'desktop' ); ?>
 				<div class="site-header__actions">
-					<a class="button header-brief-button" href="<?php echo esc_url( (string) get_value( 'header_button_url' ) ); ?>"><?php echo esc_html( (string) get_value( 'header_button_label' ) ); ?></a>
+					<a class="button header-brief-button" href="<?php echo esc_url( (string) get_value( 'header_button_url' ) ); ?>"><span class="button-label-full"><?php echo esc_html( (string) get_value( 'header_button_label' ) ); ?></span><span class="button-label-short"><?php esc_html_e( 'Daily Brief', 'infosecnexus' ); ?></span></a>
 					<button class="icon-button color-mode-toggle" type="button" data-color-mode-toggle aria-label="<?php esc_attr_e( 'Switch to dark mode', 'infosecnexus' ); ?>">
 						<span class="color-mode-toggle__icon color-mode-toggle__icon--moon"><?php icon( 'moon' ); ?></span>
 						<span class="color-mode-toggle__icon color-mode-toggle__icon--sun"><?php icon( 'sun' ); ?></span>
@@ -73,13 +73,32 @@ function render_logo(): void {
  * @param string $variant Navigation variant.
  */
 function render_primary_nav( string $variant = 'desktop' ): void {
-	$items = array(
-		array( 'label' => __( 'Home', 'infosecnexus' ), 'url' => home_url( '/' ), 'active' => is_front_page() ),
+	$topic_slugs = array(
+		'cybersecurity',
+		'critical-cves',
+		'linux-administration',
+		'devops',
+		'artificial-intelligence',
+		'tutorials',
+		'cloud-security',
+		'web-security',
+		'windows-security',
+		'network-security',
+	);
+	$topics     = array(
 		array( 'label' => __( 'Cyber Security', 'infosecnexus' ), 'url' => category_url( 'cybersecurity' ), 'active' => is_category( 'cybersecurity' ) ),
 		array( 'label' => __( 'Critical CVEs', 'infosecnexus' ), 'url' => category_url( 'critical-cves' ), 'active' => is_category( 'critical-cves' ) ),
 		array( 'label' => __( 'Linux & DevOps', 'infosecnexus' ), 'url' => category_url( 'linux-administration' ), 'active' => is_category( array( 'linux-administration', 'devops' ) ) ),
 		array( 'label' => __( 'AI Security', 'infosecnexus' ), 'url' => category_url( 'artificial-intelligence' ), 'active' => is_category( 'artificial-intelligence' ) ),
 		array( 'label' => __( 'Tutorials', 'infosecnexus' ), 'url' => category_url( 'tutorials' ), 'active' => is_category( 'tutorials' ) ),
+		array( 'label' => __( 'Cloud Security', 'infosecnexus' ), 'url' => category_url( 'cloud-security' ), 'active' => is_category( 'cloud-security' ) ),
+		array( 'label' => __( 'Web Security', 'infosecnexus' ), 'url' => category_url( 'web-security' ), 'active' => is_category( 'web-security' ) ),
+		array( 'label' => __( 'Windows Security', 'infosecnexus' ), 'url' => category_url( 'windows-security' ), 'active' => is_category( 'windows-security' ) ),
+		array( 'label' => __( 'Network Security', 'infosecnexus' ), 'url' => category_url( 'network-security' ), 'active' => is_category( 'network-security' ) ),
+	);
+	$items = array(
+		array( 'label' => __( 'Home', 'infosecnexus' ), 'url' => home_url( '/' ), 'active' => is_front_page() ),
+		array( 'label' => __( 'Topics', 'infosecnexus' ), 'url' => category_url( 'cybersecurity' ), 'active' => is_category( $topic_slugs ), 'children' => $topics ),
 		array( 'label' => __( 'About', 'infosecnexus' ), 'url' => page_url( 'about' ), 'active' => is_page( 'about' ) ),
 		array( 'label' => __( 'Contact', 'infosecnexus' ), 'url' => page_url( 'contact' ), 'active' => is_page( 'contact' ) ),
 	);
@@ -87,10 +106,22 @@ function render_primary_nav( string $variant = 'desktop' ): void {
 	<nav class="site-nav site-nav--<?php echo esc_attr( $variant ); ?>" aria-label="<?php esc_attr_e( 'Primary navigation', 'infosecnexus' ); ?>">
 		<ul>
 			<?php foreach ( $items as $item ) : ?>
-				<li>
-					<a class="<?php echo $item['active'] ? 'is-active' : ''; ?>" href="<?php echo esc_url( $item['url'] ); ?>">
+				<?php $children = isset( $item['children'] ) && is_array( $item['children'] ) ? $item['children'] : array(); ?>
+				<li class="<?php echo $children ? 'has-submenu' : ''; ?>">
+					<a class="<?php echo $item['active'] ? 'is-active' : ''; ?>" href="<?php echo esc_url( $item['url'] ); ?>"<?php echo $children ? ' aria-haspopup="true"' : ''; ?>>
 						<?php echo esc_html( $item['label'] ); ?>
 					</a>
+					<?php if ( $children ) : ?>
+						<ul class="sub-menu">
+							<?php foreach ( $children as $child ) : ?>
+								<li>
+									<a class="<?php echo $child['active'] ? 'is-active' : ''; ?>" href="<?php echo esc_url( $child['url'] ); ?>">
+										<?php echo esc_html( $child['label'] ); ?>
+									</a>
+								</li>
+							<?php endforeach; ?>
+						</ul>
+					<?php endif; ?>
 				</li>
 			<?php endforeach; ?>
 		</ul>
@@ -198,7 +229,7 @@ function render_search_modal(): void {
 				<?php icon( 'close' ); ?>
 			</button>
 			<p class="search-modal__eyebrow"><?php esc_html_e( 'Search InfoSecNexus', 'infosecnexus' ); ?></p>
-			<h2 id="infosecnexus-search-title"><?php esc_html_e( 'Find briefings, CVEs, guides, and advisories', 'infosecnexus' ); ?></h2>
+			<h2 id="infosecnexus-search-title"><?php esc_html_e( 'Search blog posts, CVE notes, guides, and briefings', 'infosecnexus' ); ?></h2>
 			<?php get_search_form(); ?>
 			<div class="search-modal__quick">
 				<span><?php esc_html_e( 'Popular:', 'infosecnexus' ); ?></span>

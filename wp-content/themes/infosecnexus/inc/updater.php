@@ -9,7 +9,7 @@ declare(strict_types=1);
 
 namespace InfoSecNexus\Theme\Updater;
 
-const DEFAULT_MANIFEST_URL = 'https://github.com/sungjinwoo-vps/isn-theme-plugin-by-yp/releases/latest/download/infosecnexus-releases.json';
+const DEFAULT_MANIFEST_URL = 'https://raw.githubusercontent.com/sungjinwoo-vps/isn-theme-plugin-by-yp/stable/dist/infosecnexus-releases.json';
 const MANIFEST_TRANSIENT   = 'infosecnexus_theme_update_manifest';
 const TOOLKIT_OPTION_KEY   = 'infosecnexus_toolkit_options';
 const UPDATE_URI           = 'https://github.com/sungjinwoo-vps/isn-theme-plugin-by-yp';
@@ -147,11 +147,36 @@ function manifest_url(): string {
 	} else {
 		$options = get_option( TOOLKIT_OPTION_KEY, array() );
 		$url     = is_array( $options ) && ! empty( $options['update_manifest_url'] ) ? (string) $options['update_manifest_url'] : DEFAULT_MANIFEST_URL;
+
+		if ( should_migrate_manifest_url( $url ) ) {
+			$url = DEFAULT_MANIFEST_URL;
+			if ( is_array( $options ) ) {
+				$options['update_manifest_url'] = $url;
+				update_option( TOOLKIT_OPTION_KEY, $options, false );
+			}
+		}
 	}
 
 	$url = esc_url_raw( $url );
 
 	return '' !== $url ? $url : DEFAULT_MANIFEST_URL;
+}
+
+/**
+ * Whether an older default endpoint should move to the stable branch manifest.
+ *
+ * @param string $url Manifest URL.
+ * @return bool
+ */
+function should_migrate_manifest_url( string $url ): bool {
+	return in_array(
+		$url,
+		array(
+			'https://infosecnexus.com/updates/infosecnexus-releases.json',
+			'https://github.com/sungjinwoo-vps/isn-theme-plugin-by-yp/releases/latest/download/infosecnexus-releases.json',
+		),
+		true
+	);
 }
 
 /**

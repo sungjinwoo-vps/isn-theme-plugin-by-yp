@@ -60,6 +60,11 @@ function category_badges(): void {
  * @return string
  */
 function asset_url( string $file ): string {
+	$webp = preg_replace( '/\.(png|jpg|jpeg)$/', '.webp', $file );
+	if ( is_string( $webp ) && file_exists( get_template_directory() . '/assets/images/' . $webp ) ) {
+		$file = $webp;
+	}
+
 	return get_template_directory_uri() . '/assets/images/' . $file;
 }
 

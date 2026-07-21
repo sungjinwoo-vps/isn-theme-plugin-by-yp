@@ -10,6 +10,11 @@ declare(strict_types=1);
 get_header();
 
 $asset = static function ( string $file ): string {
+	$webp = preg_replace( '/\.(png|jpg|jpeg)$/', '.webp', $file );
+	if ( is_string( $webp ) && file_exists( get_template_directory() . '/assets/images/' . $webp ) ) {
+		$file = $webp;
+	}
+
 	return get_template_directory_uri() . '/assets/images/' . $file;
 };
 
@@ -17,6 +22,7 @@ $critical_url = \InfoSecNexus\Theme\Header_Builder\category_url( 'critical-cves'
 $cyber_url    = \InfoSecNexus\Theme\Header_Builder\category_url( 'cybersecurity' );
 $linux_url    = \InfoSecNexus\Theme\Header_Builder\category_url( 'linux-administration' );
 $ai_url       = \InfoSecNexus\Theme\Header_Builder\category_url( 'artificial-intelligence' );
+$cloud_url    = \InfoSecNexus\Theme\Header_Builder\category_url( 'cloud-security' );
 
 $hero_url = (string) \InfoSecNexus\Theme\Customizer\get_value( 'home_hero_button_url' );
 if ( '' === $hero_url ) {
@@ -25,40 +31,40 @@ if ( '' === $hero_url ) {
 
 $latest_cards = array(
 	array(
-		'title'    => __( 'Microsoft Products Reach End of Support', 'infosecnexus' ),
-		'excerpt'  => __( 'Review exposure and mitigation options before unsupported systems become easy targets.', 'infosecnexus' ),
+		'title'    => __( 'Security Operations Metrics That Actually Reduce Risk', 'infosecnexus' ),
+		'excerpt'  => __( 'Track owner, exposure, age, and verification so security work becomes measurable.', 'infosecnexus' ),
 		'category' => __( 'Cyber Security', 'infosecnexus' ),
 		'image'    => $asset( 'hero-shield.png' ),
 		'url'      => $cyber_url,
-		'date'     => __( 'July 16, 2026', 'infosecnexus' ),
-		'read'     => __( '5 min read', 'infosecnexus' ),
+		'date'     => __( 'July 21, 2026', 'infosecnexus' ),
+		'read'     => __( '2 min read', 'infosecnexus' ),
 	),
 	array(
-		'title'    => __( 'Secure Your Cloud: 5 Misconfigurations to Fix', 'infosecnexus' ),
-		'excerpt'  => __( 'Common cloud configuration mistakes continue to be a leading cause of breaches.', 'infosecnexus' ),
+		'title'    => __( 'Cloud Storage Exposure Checklist', 'infosecnexus' ),
+		'excerpt'  => __( 'Public access, encryption, logging, retention, and ownership checks for cloud teams.', 'infosecnexus' ),
 		'category' => __( 'Cloud Security', 'infosecnexus' ),
 		'image'    => $asset( 'cloud-security.png' ),
-		'url'      => $cyber_url,
-		'date'     => __( 'July 15, 2026', 'infosecnexus' ),
-		'read'     => __( '6 min read', 'infosecnexus' ),
+		'url'      => $cloud_url,
+		'date'     => __( 'July 21, 2026', 'infosecnexus' ),
+		'read'     => __( '2 min read', 'infosecnexus' ),
 	),
 	array(
-		'title'    => __( 'AI Model Supply Chain Risks on the Rise', 'infosecnexus' ),
-		'excerpt'  => __( 'New research reveals vulnerabilities in model dependencies and third-party components.', 'infosecnexus' ),
+		'title'    => __( 'AI Data Leakage Controls for Internal Tools', 'infosecnexus' ),
+		'excerpt'  => __( 'Reduce prompt, file, connector, retrieval, and logging exposure in AI workflows.', 'infosecnexus' ),
 		'category' => __( 'AI Security', 'infosecnexus' ),
 		'image'    => $asset( 'data-center.png' ),
 		'url'      => $ai_url,
-		'date'     => __( 'July 14, 2026', 'infosecnexus' ),
-		'read'     => __( '4 min read', 'infosecnexus' ),
+		'date'     => __( 'July 21, 2026', 'infosecnexus' ),
+		'read'     => __( '2 min read', 'infosecnexus' ),
 	),
 );
 
 $cves = array(
-	array( 'id' => 'CVE-2026-35880', 'name' => __( 'Januscape KVM Escape Vulnerability', 'infosecnexus' ), 'severity' => 'Critical', 'score' => '9.8' ),
-	array( 'id' => 'CVE-2026-31324', 'name' => __( 'Windows Win32k Privilege Escalation', 'infosecnexus' ), 'severity' => 'High', 'score' => '8.1' ),
-	array( 'id' => 'CVE-2026-29927', 'name' => __( 'Apache HTTP Server HTTP/2 Rapid Reset', 'infosecnexus' ), 'severity' => 'High', 'score' => '7.5' ),
-	array( 'id' => 'CVE-2026-27130', 'name' => __( 'Linux Kernel Use-After-Free in Netfilter', 'infosecnexus' ), 'severity' => 'Medium', 'score' => '6.5' ),
-	array( 'id' => 'CVE-2026-24712', 'name' => __( 'VMware Tools Information Disclosure', 'infosecnexus' ), 'severity' => 'Low', 'score' => '3.7' ),
+	array( 'id' => 'CVE Triage', 'name' => __( 'High-risk vulnerability review workflow', 'infosecnexus' ), 'severity' => 'Critical', 'score' => '9.8' ),
+	array( 'id' => 'Zero-Day', 'name' => __( 'First 24 hours response checklist', 'infosecnexus' ), 'severity' => 'High', 'score' => '8.6' ),
+	array( 'id' => 'Exploit Signals', 'name' => __( 'Early indicators before patch windows', 'infosecnexus' ), 'severity' => 'High', 'score' => '8.1' ),
+	array( 'id' => 'Patch Ops', 'name' => __( 'Owner, deadline, and verification tracking', 'infosecnexus' ), 'severity' => 'Medium', 'score' => '6.9' ),
+	array( 'id' => 'Exceptions', 'name' => __( 'Temporary mitigation review cadence', 'infosecnexus' ), 'severity' => 'Low', 'score' => '4.2' ),
 );
 ?>
 <main id="primary" class="site-main">
@@ -68,7 +74,7 @@ $cves = array(
 			<span class="home-hero__shade" aria-hidden="true"></span>
 			<span class="home-hero__content">
 				<span class="severity-pill severity-pill--critical"><?php echo esc_html( (string) \InfoSecNexus\Theme\Customizer\get_value( 'home_hero_badge' ) ); ?></span>
-				<span class="home-hero__title"><?php echo esc_html( (string) \InfoSecNexus\Theme\Customizer\get_value( 'home_hero_title' ) ); ?></span>
+				<h1 class="home-hero__title"><?php echo esc_html( (string) \InfoSecNexus\Theme\Customizer\get_value( 'home_hero_title' ) ); ?></h1>
 				<span class="home-hero__excerpt"><?php echo esc_html( (string) \InfoSecNexus\Theme\Customizer\get_value( 'home_hero_excerpt' ) ); ?></span>
 				<span class="button button--hero"><?php echo esc_html( (string) \InfoSecNexus\Theme\Customizer\get_value( 'home_hero_button_label' ) ); ?><?php \InfoSecNexus\Theme\Header_Builder\icon( 'arrow-right' ); ?></span>
 			</span>
@@ -77,17 +83,17 @@ $cves = array(
 		<div class="home-hero__side">
 			<a class="side-story" href="<?php echo esc_url( $critical_url ); ?>">
 				<span class="side-story__copy">
-					<strong><?php esc_html_e( 'Januscape KVM Vulnerability Requires Immediate Patching', 'infosecnexus' ); ?></strong>
-					<span><?php esc_html_e( 'A critical flaw could allow attackers to escape the virtual environment.', 'infosecnexus' ); ?></span>
-					<span class="story-meta"><?php esc_html_e( 'July 18, 2026', 'infosecnexus' ); ?> <span class="severity-tag severity-tag--critical"><?php esc_html_e( 'Critical', 'infosecnexus' ); ?></span></span>
+					<strong><?php esc_html_e( 'CVE Triage Checklist for High-Risk Vulnerabilities', 'infosecnexus' ); ?></strong>
+					<span><?php esc_html_e( 'Rank exploited vulnerabilities by exposure, blast radius, and patch urgency.', 'infosecnexus' ); ?></span>
+					<span class="story-meta"><?php esc_html_e( 'July 21, 2026', 'infosecnexus' ); ?> <span class="severity-tag severity-tag--critical"><?php esc_html_e( 'Critical', 'infosecnexus' ); ?></span></span>
 				</span>
 				<img src="<?php echo esc_url( $asset( 'lock-chip.png' ) ); ?>" alt="" loading="lazy">
 			</a>
 			<a class="side-story" href="<?php echo esc_url( $linux_url ); ?>">
 				<span class="side-story__copy">
-					<strong><?php esc_html_e( 'GhostLock Kernel Fixes Released', 'infosecnexus' ); ?></strong>
-					<span><?php esc_html_e( 'Security patches are now available for supported Linux kernels.', 'infosecnexus' ); ?></span>
-					<span class="story-meta"><?php esc_html_e( 'July 17, 2026', 'infosecnexus' ); ?> <span class="severity-tag severity-tag--high"><?php esc_html_e( 'High', 'infosecnexus' ); ?></span></span>
+					<strong><?php esc_html_e( 'Linux Kernel Patch Runbook for Production Servers', 'infosecnexus' ); ?></strong>
+					<span><?php esc_html_e( 'Plan reboot windows, module checks, validation, and visible exceptions.', 'infosecnexus' ); ?></span>
+					<span class="story-meta"><?php esc_html_e( 'July 21, 2026', 'infosecnexus' ); ?> <span class="severity-tag severity-tag--high"><?php esc_html_e( 'High', 'infosecnexus' ); ?></span></span>
 				</span>
 				<img src="<?php echo esc_url( $asset( 'linux-circuit.png' ) ); ?>" alt="" loading="lazy">
 			</a>

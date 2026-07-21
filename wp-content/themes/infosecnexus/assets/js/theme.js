@@ -226,7 +226,8 @@
     scrollTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 
     const update = () => {
-      scrollTop.hidden = window.scrollY < 720;
+      const threshold = Math.max(900, window.innerHeight * 1.25);
+      scrollTop.hidden = window.scrollY < threshold;
     };
 
     update();
