@@ -57,7 +57,7 @@ function render(): void {
 		}
 		echo '<li aria-current="page">' . esc_html( get_the_title() ) . '</li>';
 	} elseif ( is_archive() ) {
-		echo '<li aria-current="page">' . esc_html( get_the_archive_title() ) . '</li>';
+		echo '<li aria-current="page">' . esc_html( archive_label() ) . '</li>';
 	} elseif ( is_search() ) {
 		echo '<li aria-current="page">' . esc_html__( 'Search', 'infosecnexus' ) . '</li>';
 	} elseif ( is_404() ) {
@@ -66,4 +66,37 @@ function render(): void {
 
 	echo '</ol>';
 	echo '</nav>';
+}
+
+/**
+ * Return a clean archive label without WordPress archive prefixes or HTML markup.
+ *
+ * @return string
+ */
+function archive_label(): string {
+	if ( is_category() || is_tag() || is_tax() ) {
+		return single_term_title( '', false );
+	}
+
+	if ( is_author() ) {
+		return get_the_author();
+	}
+
+	if ( is_post_type_archive() ) {
+		return post_type_archive_title( '', false );
+	}
+
+	if ( is_year() ) {
+		return get_the_date( 'Y' );
+	}
+
+	if ( is_month() ) {
+		return get_the_date( 'F Y' );
+	}
+
+	if ( is_day() ) {
+		return get_the_date();
+	}
+
+	return wp_strip_all_tags( get_the_archive_title() );
 }

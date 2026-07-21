@@ -44,7 +44,7 @@ final class Plugin {
 			'live_search'       => true,
 			'sidebars'          => true,
 			'newsletter'        => true,
-			'cookie_consent'    => true,
+			'cookie_consent'    => false,
 			'featured_videos'   => true,
 			'related_posts'     => true,
 			'snippets'          => false,
@@ -70,6 +70,8 @@ final class Plugin {
 					'custom_js'           => '',
 					'sidebar_conditions'  => '',
 					'maintenance_enabled' => false,
+					'updates_enabled'     => true,
+					'update_manifest_url' => Updater::default_manifest_url(),
 				),
 				'',
 				false
@@ -84,6 +86,7 @@ final class Plugin {
 	 * Boot modules.
 	 */
 	public function boot(): void {
+		Updater::boot();
 		Settings::boot();
 		Assets::boot();
 		Admin_Meta::boot();
@@ -93,6 +96,7 @@ final class Plugin {
 		Newsletter::boot();
 		Cookie_Consent::boot();
 		Related_Posts::boot();
+		Demo_Content::boot();
 		Snippets::boot();
 		Maintenance::boot();
 		WooCommerce::boot();

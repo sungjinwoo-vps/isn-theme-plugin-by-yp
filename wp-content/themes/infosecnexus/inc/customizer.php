@@ -24,6 +24,11 @@ const DEFAULTS = array(
 	'wide_width'             => '1360px',
 	'default_color_mode'     => 'system',
 	'enable_scroll_top'      => true,
+	'alert_enabled'          => false,
+	'alert_label'            => 'Security Alert:',
+	'alert_text'             => 'Active exploitation reported for multiple vulnerabilities. Apply patches immediately.',
+	'alert_link_label'       => 'View Alerts',
+	'alert_link_url'         => '/category/critical-cves/',
 	'header_top_elements'    => 'tagline,spacer,social_links',
 	'header_main_elements'   => 'logo,primary_menu,spacer,search,color_mode_switch,mobile_trigger',
 	'header_bottom_elements' => 'secondary_menu',
@@ -31,19 +36,27 @@ const DEFAULTS = array(
 	'header_shrink'          => true,
 	'header_reveal'          => true,
 	'header_transparent'     => false,
-	'header_button_label'    => 'Subscribe',
-	'header_button_url'      => '/newsletter/',
+	'header_button_label'    => 'Daily Cyber Brief',
+	'header_button_url'      => '/#daily-cyber-brief',
+	'home_hero_badge'        => 'Critical Brief',
+	'home_hero_title'        => 'July Patch Shockwave: Enterprise EOL & Active Zero-Days',
+	'home_hero_excerpt'      => 'Critical updates, end-of-life notices, and zero-day activity shaping risk this month.',
+	'home_hero_button_label' => 'Read Full Brief',
+	'home_hero_button_url'   => '/category/critical-cves/',
+	'home_latest_title'      => 'Latest Intelligence',
+	'home_cve_title'         => 'Critical CVEs',
+	'newsletter_title'       => 'Get the Daily Cyber Brief',
+	'newsletter_intro'       => 'Top stories, critical alerts, and expert analysis delivered to your inbox every morning.',
 	'header_html'            => '',
 	'contact_text'           => '',
-	'footer_top_elements'    => 'logo,spacer,social_links',
+	'footer_top_elements'    => 'logo',
 	'footer_main_elements'   => 'widgets',
-	'footer_bottom_elements' => 'copyright,navigation,back_to_top',
-	'copyright'              => 'Copyright {year} InfoSecNexus.',
+	'footer_bottom_elements' => 'copyright,spacer,legal_navigation',
+	'copyright'              => 'Copyright {year} InfoSecNexus. All rights reserved.',
 	'social_x'               => '',
 	'social_github'          => '',
 	'social_linkedin'        => '',
 	'social_youtube'         => '',
-	'social_rss'             => '',
 	'archive_layout_width'   => 'content-sidebar',
 );
 
@@ -81,10 +94,6 @@ function allowed_setting_keys(): array {
  * @return mixed
  */
 function get_value( string $key ) {
-	if ( 'social_rss' === $key && '' === get_theme_mod( $key, '' ) ) {
-		return get_bloginfo( 'rss2_url' );
-	}
-
 	return get_theme_mod( $key, default_value( $key ) );
 }
 
@@ -103,6 +112,8 @@ function register( WP_Customize_Manager $wp_customize ): void {
 	);
 
 	register_design_section( $wp_customize );
+	register_alert_section( $wp_customize );
+	register_homepage_section( $wp_customize );
 	register_header_section( $wp_customize );
 	register_footer_section( $wp_customize );
 	register_social_section( $wp_customize );
@@ -207,6 +218,52 @@ function register_design_section( WP_Customize_Manager $wp_customize ): void {
 }
 
 /**
+ * Register security alert controls.
+ *
+ * @param WP_Customize_Manager $wp_customize Customizer instance.
+ */
+function register_alert_section( WP_Customize_Manager $wp_customize ): void {
+	$wp_customize->add_section(
+		'infosecnexus_alert',
+		array(
+			'title' => __( 'Security Alert Bar', 'infosecnexus' ),
+			'panel' => 'infosecnexus_design',
+		)
+	);
+
+	add_checkbox_control( $wp_customize, 'alert_enabled', __( 'Show alert bar', 'infosecnexus' ), 'infosecnexus_alert' );
+	add_text_control( $wp_customize, 'alert_label', __( 'Alert Label', 'infosecnexus' ), 'infosecnexus_alert' );
+	add_text_control( $wp_customize, 'alert_text', __( 'Alert Text', 'infosecnexus' ), 'infosecnexus_alert' );
+	add_text_control( $wp_customize, 'alert_link_label', __( 'Alert Link Label', 'infosecnexus' ), 'infosecnexus_alert' );
+	add_url_control( $wp_customize, 'alert_link_url', __( 'Alert Link URL', 'infosecnexus' ), 'infosecnexus_alert' );
+}
+
+/**
+ * Register homepage content controls.
+ *
+ * @param WP_Customize_Manager $wp_customize Customizer instance.
+ */
+function register_homepage_section( WP_Customize_Manager $wp_customize ): void {
+	$wp_customize->add_section(
+		'infosecnexus_homepage',
+		array(
+			'title' => __( 'Homepage Content', 'infosecnexus' ),
+			'panel' => 'infosecnexus_design',
+		)
+	);
+
+	add_text_control( $wp_customize, 'home_hero_badge', __( 'Hero Badge', 'infosecnexus' ), 'infosecnexus_homepage' );
+	add_textarea_control( $wp_customize, 'home_hero_title', __( 'Hero Title', 'infosecnexus' ), 'infosecnexus_homepage' );
+	add_textarea_control( $wp_customize, 'home_hero_excerpt', __( 'Hero Excerpt', 'infosecnexus' ), 'infosecnexus_homepage' );
+	add_text_control( $wp_customize, 'home_hero_button_label', __( 'Hero Button Label', 'infosecnexus' ), 'infosecnexus_homepage' );
+	add_url_control( $wp_customize, 'home_hero_button_url', __( 'Hero Button URL', 'infosecnexus' ), 'infosecnexus_homepage' );
+	add_text_control( $wp_customize, 'home_latest_title', __( 'Latest Section Title', 'infosecnexus' ), 'infosecnexus_homepage' );
+	add_text_control( $wp_customize, 'home_cve_title', __( 'CVE Section Title', 'infosecnexus' ), 'infosecnexus_homepage' );
+	add_text_control( $wp_customize, 'newsletter_title', __( 'Newsletter Title', 'infosecnexus' ), 'infosecnexus_homepage' );
+	add_textarea_control( $wp_customize, 'newsletter_intro', __( 'Newsletter Intro', 'infosecnexus' ), 'infosecnexus_homepage' );
+}
+
+/**
  * Register header builder controls.
  *
  * @param WP_Customize_Manager $wp_customize Customizer instance.
@@ -287,7 +344,7 @@ function register_footer_section( WP_Customize_Manager $wp_customize ): void {
 			$key,
 			array(
 				'label'       => $label,
-				'description' => __( 'Comma-separated: logo, site_identity, copyright, navigation, social_links, contact, search, html, widgets, button, elementor_template, back_to_top, spacer, divider.', 'infosecnexus' ),
+				'description' => __( 'Comma-separated: logo, site_identity, copyright, navigation, legal_navigation, social_links, contact, search, html, widgets, button, elementor_template, spacer, divider.', 'infosecnexus' ),
 				'section'     => 'infosecnexus_footer_builder',
 				'type'        => 'text',
 			)
@@ -317,7 +374,6 @@ function register_social_section( WP_Customize_Manager $wp_customize ): void {
 			'social_github'   => 'GitHub',
 			'social_linkedin' => 'LinkedIn',
 			'social_youtube'  => 'YouTube',
-			'social_rss'      => 'RSS',
 		) as $key => $label
 	) {
 		add_url_control( $wp_customize, $key, $label, 'infosecnexus_social' );
@@ -494,7 +550,7 @@ function allowed_header_elements(): array {
  * @return string[]
  */
 function allowed_footer_elements(): array {
-	return array( 'logo', 'site_identity', 'copyright', 'navigation', 'social_links', 'contact', 'search', 'html', 'widgets', 'button', 'elementor_template', 'back_to_top', 'spacer', 'divider' );
+	return array( 'logo', 'site_identity', 'copyright', 'navigation', 'legal_navigation', 'social_links', 'contact', 'search', 'html', 'widgets', 'button', 'elementor_template', 'back_to_top', 'spacer', 'divider' );
 }
 
 /**

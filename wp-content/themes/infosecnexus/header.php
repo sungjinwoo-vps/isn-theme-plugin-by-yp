@@ -7,8 +7,11 @@
 
 declare(strict_types=1);
 
+$infosecnexus_default_color_mode = (string) \InfoSecNexus\Theme\Customizer\get_value( 'default_color_mode' );
+$infosecnexus_initial_color_mode = 'dark' === $infosecnexus_default_color_mode ? 'dark' : 'light';
+
 ?><!doctype html>
-<html <?php language_attributes(); ?> data-color-mode="<?php echo esc_attr( (string) get_theme_mod( 'default_color_mode', 'system' ) ); ?>">
+<html <?php language_attributes(); ?> data-color-mode="<?php echo esc_attr( $infosecnexus_initial_color_mode ); ?>" data-default-color-mode="<?php echo esc_attr( $infosecnexus_default_color_mode ); ?>">
 <head>
 	<meta charset="<?php bloginfo( 'charset' ); ?>">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -17,6 +20,7 @@ declare(strict_types=1);
 <body <?php body_class(); ?>>
 <?php wp_body_open(); ?>
 <div id="page" class="site">
+	<div class="reading-progress" data-reading-progress aria-hidden="true"></div>
 	<a class="skip-link screen-reader-text" href="#primary"><?php esc_html_e( 'Skip to content', 'infosecnexus' ); ?></a>
 	<?php do_action( 'infosecnexus_before_header' ); ?>
 	<?php

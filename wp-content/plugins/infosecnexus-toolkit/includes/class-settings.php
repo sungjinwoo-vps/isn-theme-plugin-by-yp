@@ -69,6 +69,8 @@ final class Settings {
 		$output['newsletter_intro']    = sanitize_textarea_field( (string) ( $input['newsletter_intro'] ?? '' ) );
 		$output['sidebar_conditions']  = self::sanitize_json_textarea( (string) ( $input['sidebar_conditions'] ?? '' ) );
 		$output['maintenance_enabled'] = ! empty( $input['maintenance_enabled'] );
+		$output['updates_enabled']     = ! empty( $input['updates_enabled'] );
+		$output['update_manifest_url'] = esc_url_raw( (string) ( $input['update_manifest_url'] ?? Updater::default_manifest_url() ) );
 
 		$custom_css = (string) ( $input['custom_css'] ?? '' );
 		$custom_js  = (string) ( $input['custom_js'] ?? '' );
@@ -111,9 +113,33 @@ final class Settings {
 		?>
 		<div class="wrap">
 			<h1><?php esc_html_e( 'InfoSecNexus Toolkit', 'infosecnexus-toolkit' ); ?></h1>
+			<?php if ( ! empty( $_GET['infosecnexus_updates_checked'] ) ) : ?>
+				<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Private update cache cleared. Open Dashboard > Updates and run Check Again if WordPress has not refreshed yet.', 'infosecnexus-toolkit' ); ?></p></div>
+			<?php endif; ?>
 			<p><?php esc_html_e( 'Modules load only when enabled and when their dependencies are available.', 'infosecnexus-toolkit' ); ?></p>
 			<form method="post" action="options.php">
 				<?php settings_fields( 'infosecnexus_toolkit' ); ?>
+				<h2><?php esc_html_e( 'Private Updates', 'infosecnexus-toolkit' ); ?></h2>
+				<p><?php esc_html_e( 'Use a self-hosted release manifest so WordPress can show update buttons for the InfoSecNexus theme and toolkit plugin.', 'infosecnexus-toolkit' ); ?></p>
+				<table class="form-table" role="presentation">
+					<tr>
+						<th scope="row"><?php esc_html_e( 'Enable Update Channel', 'infosecnexus-toolkit' ); ?></th>
+						<td>
+							<label>
+								<input type="checkbox" name="<?php echo esc_attr( OPTION_KEY ); ?>[updates_enabled]" value="1" <?php checked( (bool) option( 'updates_enabled', true ) ); ?>>
+								<?php esc_html_e( 'Show private updates when a newer release is published.', 'infosecnexus-toolkit' ); ?>
+							</label>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="isnx-update-manifest-url"><?php esc_html_e( 'Manifest URL', 'infosecnexus-toolkit' ); ?></label></th>
+						<td>
+							<input id="isnx-update-manifest-url" class="regular-text code" type="url" name="<?php echo esc_attr( OPTION_KEY ); ?>[update_manifest_url]" value="<?php echo esc_attr( (string) option( 'update_manifest_url', Updater::default_manifest_url() ) ); ?>">
+							<p class="description"><?php esc_html_e( 'Default: https://infosecnexus.com/updates/infosecnexus-releases.json', 'infosecnexus-toolkit' ); ?></p>
+							<p><a class="button" href="<?php echo esc_url( Updater::check_now_url() ); ?>"><?php esc_html_e( 'Check Private Updates Now', 'infosecnexus-toolkit' ); ?></a></p>
+						</td>
+					</tr>
+				</table>
 				<h2><?php esc_html_e( 'Modules', 'infosecnexus-toolkit' ); ?></h2>
 				<table class="form-table" role="presentation">
 					<tbody>

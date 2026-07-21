@@ -19,7 +19,7 @@ if ( \InfoSecNexus\Theme\Elementor\render_location( 'archive' ) ) {
 		<section class="content-area">
 			<header class="archive-header">
 				<?php \InfoSecNexus\Theme\Breadcrumbs\render(); ?>
-				<h1><?php the_archive_title(); ?></h1>
+				<h1><?php echo esc_html( \InfoSecNexus\Theme\Breadcrumbs\archive_label() ); ?></h1>
 				<?php the_archive_description( '<div class="archive-description">', '</div>' ); ?>
 			</header>
 			<?php if ( have_posts() ) : ?>

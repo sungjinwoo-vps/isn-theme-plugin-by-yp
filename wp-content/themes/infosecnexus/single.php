@@ -18,7 +18,6 @@ if ( \InfoSecNexus\Theme\Elementor\render_location( 'single' ) ) {
 	<?php while ( have_posts() ) : ?>
 		<?php the_post(); ?>
 		<article id="post-<?php the_ID(); ?>" <?php post_class( 'single-entry' ); ?>>
-			<div class="reading-progress" data-reading-progress aria-hidden="true"></div>
 			<header class="single-hero">
 				<div class="single-hero__inner">
 					<?php \InfoSecNexus\Theme\Breadcrumbs\render(); ?>
@@ -26,9 +25,13 @@ if ( \InfoSecNexus\Theme\Elementor\render_location( 'single' ) ) {
 					<h1><?php the_title(); ?></h1>
 					<?php \InfoSecNexus\Theme\Template_Tags\post_meta(); ?>
 				</div>
-				<?php if ( has_post_thumbnail() ) : ?>
-					<div class="single-hero__media"><?php the_post_thumbnail( 'full' ); ?></div>
-				<?php endif; ?>
+				<div class="single-hero__media">
+					<?php if ( has_post_thumbnail() ) : ?>
+						<?php the_post_thumbnail( 'full' ); ?>
+					<?php else : ?>
+						<img src="<?php echo esc_url( \InfoSecNexus\Theme\Template_Tags\fallback_image_url() ); ?>" alt="">
+					<?php endif; ?>
+				</div>
 			</header>
 			<div class="layout-shell layout-shell--single">
 				<aside class="single-rail">

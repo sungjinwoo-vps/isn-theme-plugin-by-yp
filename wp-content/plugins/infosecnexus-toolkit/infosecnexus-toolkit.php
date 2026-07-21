@@ -3,7 +3,7 @@
  * Plugin Name: InfoSecNexus Toolkit
  * Plugin URI: https://infosecnexus.com/
  * Description: Companion functionality for the InfoSecNexus theme: content blocks, conditions, Elementor widgets, live search, sidebars, newsletter, and optional modules.
- * Version: 0.1.0
+ * Version: 0.1.9
  * Requires at least: 6.5
  * Requires PHP: 8.1
  * Author: InfoSecNexus
@@ -23,12 +23,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'INFOSECNEXUS_TOOLKIT_VERSION', '0.1.0' );
+define( 'INFOSECNEXUS_TOOLKIT_VERSION', '0.1.9' );
 define( 'INFOSECNEXUS_TOOLKIT_FILE', __FILE__ );
 define( 'INFOSECNEXUS_TOOLKIT_DIR', plugin_dir_path( __FILE__ ) );
 define( 'INFOSECNEXUS_TOOLKIT_URL', plugin_dir_url( __FILE__ ) );
 
 require_once INFOSECNEXUS_TOOLKIT_DIR . 'includes/helpers.php';
+require_once INFOSECNEXUS_TOOLKIT_DIR . 'includes/class-updater.php';
 require_once INFOSECNEXUS_TOOLKIT_DIR . 'includes/class-plugin.php';
 require_once INFOSECNEXUS_TOOLKIT_DIR . 'includes/class-settings.php';
 require_once INFOSECNEXUS_TOOLKIT_DIR . 'includes/class-assets.php';
@@ -40,6 +41,7 @@ require_once INFOSECNEXUS_TOOLKIT_DIR . 'includes/class-search.php';
 require_once INFOSECNEXUS_TOOLKIT_DIR . 'includes/class-newsletter.php';
 require_once INFOSECNEXUS_TOOLKIT_DIR . 'includes/class-cookie-consent.php';
 require_once INFOSECNEXUS_TOOLKIT_DIR . 'includes/class-related-posts.php';
+require_once INFOSECNEXUS_TOOLKIT_DIR . 'includes/class-demo-content.php';
 require_once INFOSECNEXUS_TOOLKIT_DIR . 'includes/class-snippets.php';
 require_once INFOSECNEXUS_TOOLKIT_DIR . 'includes/class-maintenance.php';
 require_once INFOSECNEXUS_TOOLKIT_DIR . 'includes/class-woocommerce.php';

@@ -78,15 +78,10 @@ function render_element( string $item ): void {
 			echo '<p>' . esc_html( $text ) . '</p>';
 			break;
 		case 'navigation':
-			wp_nav_menu(
-				array(
-					'theme_location'  => 'footer',
-					'container'       => 'nav',
-					'container_class' => 'footer-nav',
-					'fallback_cb'     => false,
-					'depth'           => 1,
-				)
-			);
+			render_menu( 'footer' );
+			break;
+		case 'legal_navigation':
+			render_menu( 'legal' );
 			break;
 		case 'social_links':
 			render_social_links();
@@ -112,7 +107,6 @@ function render_element( string $item ): void {
 			}
 			break;
 		case 'back_to_top':
-			echo '<a href="#page" class="back-to-top-link">' . esc_html__( 'Back to top', 'infosecnexus' ) . '</a>';
 			break;
 		case 'spacer':
 			echo '<span class="builder-spacer" aria-hidden="true"></span>';
@@ -121,6 +115,23 @@ function render_element( string $item ): void {
 			echo '<span class="builder-divider" aria-hidden="true"></span>';
 			break;
 	}
+}
+
+/**
+ * Render a footer navigation location.
+ *
+ * @param string $location Menu location.
+ */
+function render_menu( string $location ): void {
+	wp_nav_menu(
+		array(
+			'theme_location'  => $location,
+			'container'       => 'nav',
+			'container_class' => 'footer-nav footer-nav--' . sanitize_html_class( $location ),
+			'fallback_cb'     => false,
+			'depth'           => 1,
+		)
+	);
 }
 
 /**

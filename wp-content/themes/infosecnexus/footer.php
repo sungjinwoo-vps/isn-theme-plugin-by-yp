@@ -17,7 +17,9 @@ declare(strict_types=1);
 	?>
 	<?php do_action( 'infosecnexus_after_footer' ); ?>
 	<?php if ( get_theme_mod( 'enable_scroll_top', true ) ) : ?>
-		<button class="scroll-top" type="button" data-scroll-top aria-label="<?php esc_attr_e( 'Scroll to top', 'infosecnexus' ); ?>">ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬Ëœ</button>
+		<button class="scroll-top" type="button" data-scroll-top aria-label="<?php esc_attr_e( 'Scroll to top', 'infosecnexus' ); ?>">
+			<svg aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+		</button>
 	<?php endif; ?>
 </div>
 <?php wp_footer(); ?>

@@ -1,0 +1,102 @@
+name: Build InfoSecNexus Release
+
+on:
+  push:
+    branches:
+      - stable
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare release version
+        shell: pwsh
+        run: |
+          $themeStyle = "wp-content/themes/infosecnexus/style.css"
+          $themeVersion = ([regex]::Match((Get-Content -Raw $themeStyle), "Version:\s*([^\r\n]+)")).Groups[1].Value.Trim()
+          if (-not $themeVersion) {
+            throw "Theme version not found."
+          }
+
+          $releaseVersion = "$themeVersion.${{ github.run_number }}.${{ github.run_attempt }}"
+          $releaseTag = "auto-v$releaseVersion"
+          $manifestUrl = "https://github.com/${{ github.repository }}/releases/latest/download/infosecnexus-releases.json"
+
+          "RELEASE_VERSION=$releaseVersion" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "RELEASE_TAG=$releaseTag" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "RELEASE_DOWNLOAD_BASE=https://github.com/${{ github.repository }}/releases/download/$releaseTag" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "RELEASE_MANIFEST_URL=$manifestUrl" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Stamp package version and update endpoint
+        shell: pwsh
+        run: |
+          $version = $env:RELEASE_VERSION
+          $manifestUrl = $env:RELEASE_MANIFEST_URL
+
+          $files = @{
+            "wp-content/themes/infosecnexus/style.css" = @(
+              @{ Pattern = "Version:\s*[^\r\n]+"; Replacement = "Version: $version" }
+            )
+            "wp-content/themes/infosecnexus/functions.php" = @(
+              @{ Pattern = "define\( 'INFOSECNEXUS_VERSION', '[^']+' \);"; Replacement = "define( 'INFOSECNEXUS_VERSION', '$version' );" }
+            )
+            "wp-content/themes/infosecnexus/readme.txt" = @(
+              @{ Pattern = "Stable tag:\s*[^\r\n]+"; Replacement = "Stable tag: $version" }
+            )
+            "wp-content/plugins/infosecnexus-toolkit/infosecnexus-toolkit.php" = @(
+              @{ Pattern = "Version:\s*[^\r\n]+"; Replacement = "Version: $version" },
+              @{ Pattern = "define\( 'INFOSECNEXUS_TOOLKIT_VERSION', '[^']+' \);"; Replacement = "define( 'INFOSECNEXUS_TOOLKIT_VERSION', '$version' );" }
+            )
+            "wp-content/plugins/infosecnexus-toolkit/readme.txt" = @(
+              @{ Pattern = "Stable tag:\s*[^\r\n]+"; Replacement = "Stable tag: $version" }
+            )
+            "wp-content/themes/infosecnexus/inc/updater.php" = @(
+              @{ Pattern = "https://infosecnexus.com/updates/infosecnexus-releases\.json"; Replacement = $manifestUrl }
+            )
+            "wp-content/plugins/infosecnexus-toolkit/includes/class-updater.php" = @(
+              @{ Pattern = "https://infosecnexus.com/updates/infosecnexus-releases\.json"; Replacement = $manifestUrl }
+            )
+          }
+
+          foreach ($path in $files.Keys) {
+            $content = Get-Content -LiteralPath $path -Raw
+            foreach ($rule in $files[$path]) {
+              $content = [regex]::Replace($content, $rule.Pattern, $rule.Replacement)
+            }
+            Set-Content -LiteralPath $path -Value $content -Encoding UTF8NoBOM
+          }
+
+      - name: Package
+        shell: pwsh
+        run: |
+          .\tools\package.ps1 -DownloadBaseUrl $env:RELEASE_DOWNLOAD_BASE
+
+      - name: Create GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create $env:RELEASE_TAG `
+            dist/infosecnexus-theme.zip `
+            dist/infosecnexus-toolkit.zip `
+            dist/infosecnexus-elementor-kit.zip `
+            dist/infosecnexus-releases.json `
+            dist/SHA256SUMS `
+            dist/infosecnexus.sbom.json `
+            --target "${{ github.sha }}" `
+            --title "InfoSecNexus $env:RELEASE_VERSION" `
+            --notes "Automated InfoSecNexus release from commit ${{ github.sha }}."
+
+      - name: Summary
+        shell: pwsh
+        run: |
+          "Release: $env:RELEASE_TAG" >> $env:GITHUB_STEP_SUMMARY
+          "Manifest: $env:RELEASE_MANIFEST_URL" >> $env:GITHUB_STEP_SUMMARY

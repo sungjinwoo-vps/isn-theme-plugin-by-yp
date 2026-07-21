@@ -54,6 +54,53 @@ function category_badges(): void {
 }
 
 /**
+ * Return a theme image asset URL.
+ *
+ * @param string $file Asset file name.
+ * @return string
+ */
+function asset_url( string $file ): string {
+	return get_template_directory_uri() . '/assets/images/' . $file;
+}
+
+/**
+ * Return a category-aware fallback image URL.
+ *
+ * @param int|null $post_id Post ID.
+ * @return string
+ */
+function fallback_image_url( ?int $post_id = null ): string {
+	if ( ! $post_id ) {
+		$post_id = get_the_ID();
+	}
+
+	$slugs = wp_get_post_categories(
+		$post_id,
+		array(
+			'fields' => 'slugs',
+		)
+	);
+
+	if ( in_array( 'critical-cves', $slugs, true ) ) {
+		return asset_url( 'lock-chip.png' );
+	}
+
+	if ( in_array( 'linux-administration', $slugs, true ) || in_array( 'devops', $slugs, true ) ) {
+		return asset_url( 'linux-circuit.png' );
+	}
+
+	if ( in_array( 'artificial-intelligence', $slugs, true ) ) {
+		return asset_url( 'data-center.png' );
+	}
+
+	if ( in_array( 'cybersecurity', $slugs, true ) ) {
+		return asset_url( 'cloud-security.png' );
+	}
+
+	return asset_url( 'hero-shield.png' );
+}
+
+/**
  * Render pagination.
  */
 function pagination(): void {
@@ -73,13 +120,16 @@ function pagination(): void {
  * @param string $variant Card variant.
  */
 function post_card( string $variant = 'grid' ): void {
+	$image_url = fallback_image_url();
 	?>
 	<article id="post-<?php the_ID(); ?>" <?php post_class( 'post-card post-card--' . sanitize_html_class( $variant ) ); ?>>
-		<?php if ( has_post_thumbnail() ) : ?>
-			<a class="post-card__image" href="<?php the_permalink(); ?>" aria-label="<?php the_title_attribute(); ?>">
+		<a class="post-card__image" href="<?php the_permalink(); ?>" aria-label="<?php the_title_attribute(); ?>">
+			<?php if ( has_post_thumbnail() ) : ?>
 				<?php the_post_thumbnail( 'large', array( 'loading' => 'lazy' ) ); ?>
-			</a>
-		<?php endif; ?>
+			<?php else : ?>
+				<img src="<?php echo esc_url( $image_url ); ?>" alt="" loading="lazy">
+			<?php endif; ?>
+		</a>
 		<div class="post-card__body">
 			<?php category_badges(); ?>
 			<h2 class="post-card__title"><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h2>
