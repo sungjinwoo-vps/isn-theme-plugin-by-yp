@@ -3,7 +3,7 @@ Contributors: infosecnexus
 Requires at least: 6.5
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.1.9
+Stable tag: 0.1.10
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -20,6 +20,9 @@ InfoSecNexus Toolkit provides content blocks, conditional display rules, Element
 3. Configure modules from Settings > InfoSecNexus Toolkit.
 
 == Changelog ==
+
+= 0.1.10 =
+Points the private updater to GitHub Releases by default, adds native Update URI metadata, and supports WordPress auto-update toggles.
 
 = 0.1.9 =
 Adds private update-channel settings and plugin update support through a self-hosted release manifest.

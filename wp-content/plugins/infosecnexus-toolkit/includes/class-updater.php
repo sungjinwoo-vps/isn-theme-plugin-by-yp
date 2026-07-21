@@ -13,8 +13,9 @@ namespace InfoSecNexus\Toolkit;
  * Adds WordPress update checks for the companion plugin.
  */
 final class Updater {
-	private const DEFAULT_MANIFEST_URL = 'https://infosecnexus.com/updates/infosecnexus-releases.json';
+	private const DEFAULT_MANIFEST_URL = 'https://github.com/sungjinwoo-vps/isn-theme-plugin-by-yp/releases/latest/download/infosecnexus-releases.json';
 	private const MANIFEST_TRANSIENT   = 'infosecnexus_update_manifest';
+	private const UPDATE_URI           = 'https://github.com/sungjinwoo-vps/isn-theme-plugin-by-yp';
 
 	/**
 	 * Register hooks.
@@ -24,7 +25,9 @@ final class Updater {
 			return;
 		}
 
+		self::maybe_migrate_manifest_url();
 		add_filter( 'pre_set_site_transient_update_plugins', array( __CLASS__, 'check_plugin_update' ) );
+		add_filter( 'update_plugins_github.com', array( __CLASS__, 'hosted_plugin_update' ), 10, 4 );
 		add_filter( 'plugins_api', array( __CLASS__, 'plugin_information' ), 10, 3 );
 		add_action( 'admin_init', array( __CLASS__, 'handle_check_now' ) );
 		add_action( 'upgrader_process_complete', array( __CLASS__, 'clear_cache' ) );
@@ -69,6 +72,20 @@ final class Updater {
 	}
 
 	/**
+	 * Move older installs from the temporary domain endpoint to GitHub Releases.
+	 */
+	private static function maybe_migrate_manifest_url(): void {
+		$options = options();
+		$current = isset( $options['update_manifest_url'] ) ? (string) $options['update_manifest_url'] : '';
+		if ( '' !== $current && 'https://infosecnexus.com/updates/infosecnexus-releases.json' !== $current ) {
+			return;
+		}
+
+		$options['update_manifest_url'] = self::DEFAULT_MANIFEST_URL;
+		update_option( OPTION_KEY, $options, false );
+	}
+
+	/**
 	 * Add plugin update data to the WordPress update transient.
 	 *
 	 * @param mixed $transient Update transient.
@@ -79,11 +96,8 @@ final class Updater {
 			return $transient;
 		}
 
-		$release = self::release( 'plugin' );
-		$version = self::release_value( $release, 'version' );
-		$package = self::release_value( $release, 'package' );
-
-		if ( '' === $version || '' === $package || ! version_compare( INFOSECNEXUS_TOOLKIT_VERSION, $version, '<' ) ) {
+		$item = self::update_item();
+		if ( null === $item ) {
 			return $transient;
 		}
 
@@ -93,21 +107,40 @@ final class Updater {
 			$transient->response = array();
 		}
 
-		$transient->response[ $plugin_file ] = (object) array(
-			'id'            => 'infosecnexus-toolkit',
-			'slug'          => 'infosecnexus-toolkit',
-			'plugin'        => $plugin_file,
-			'new_version'   => $version,
-			'url'           => self::release_value( $release, 'homepage', home_url( '/' ) ),
-			'package'       => $package,
-			'tested'        => self::release_value( $release, 'tested', '7.0' ),
-			'requires'      => self::release_value( $release, 'requires', '6.5' ),
-			'requires_php'  => self::release_value( $release, 'requires_php', '8.1' ),
-			'last_updated'  => self::release_value( $release, 'last_updated' ),
-			'upgrade_notice' => self::release_value( $release, 'upgrade_notice' ),
-		);
+		if ( ! isset( $transient->no_update ) || ! is_array( $transient->no_update ) ) {
+			$transient->no_update = array();
+		}
+
+		unset( $transient->response[ $plugin_file ], $transient->no_update[ $plugin_file ] );
+
+		if ( version_compare( INFOSECNEXUS_TOOLKIT_VERSION, $item->new_version, '<' ) ) {
+			$transient->response[ $plugin_file ] = $item;
+		} else {
+			$transient->no_update[ $plugin_file ] = $item;
+		}
 
 		return $transient;
+	}
+
+	/**
+	 * Provide update data for WordPress' native Update URI host filter.
+	 *
+	 * @param array|false $update Existing update data.
+	 * @param array       $plugin_data Plugin headers.
+	 * @param string      $plugin_file Plugin basename.
+	 * @param string[]    $locales Installed locales.
+	 * @return array|false
+	 */
+	public static function hosted_plugin_update( $update, array $plugin_data, string $plugin_file, array $locales ) {
+		unset( $plugin_data, $locales );
+
+		if ( plugin_basename( INFOSECNEXUS_TOOLKIT_FILE ) !== $plugin_file || ! self::updates_enabled() ) {
+			return $update;
+		}
+
+		$item = self::update_item();
+
+		return null === $item ? $update : (array) $item;
 	}
 
 	/**
@@ -214,6 +247,35 @@ final class Updater {
 		}
 
 		return $release;
+	}
+
+	/**
+	 * Build a WordPress update payload for this plugin.
+	 */
+	private static function update_item(): ?object {
+		$release = self::release( 'plugin' );
+		$version = self::release_value( $release, 'version' );
+		$package = self::release_value( $release, 'package' );
+
+		if ( '' === $version || '' === $package ) {
+			return null;
+		}
+
+		return (object) array(
+			'id'             => self::UPDATE_URI,
+			'slug'           => 'infosecnexus-toolkit',
+			'plugin'         => plugin_basename( INFOSECNEXUS_TOOLKIT_FILE ),
+			'version'        => $version,
+			'new_version'    => $version,
+			'url'            => self::release_value( $release, 'homepage', home_url( '/' ) ),
+			'package'        => $package,
+			'tested'         => self::release_value( $release, 'tested', '7.0' ),
+			'requires'       => self::release_value( $release, 'requires', '6.5' ),
+			'requires_php'   => self::release_value( $release, 'requires_php', '8.1' ),
+			'last_updated'   => self::release_value( $release, 'last_updated' ),
+			'upgrade_notice' => self::release_value( $release, 'upgrade_notice' ),
+			'autoupdate'     => true,
+		);
 	}
 
 	/**

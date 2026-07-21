@@ -205,7 +205,7 @@ textarea {
   display: flex;
   min-height: 96px;
   align-items: center;
-  gap: 2rem;
+  gap: 1.6rem;
   transition: min-height 160ms ease;
 }
 
@@ -215,7 +215,7 @@ textarea {
 
 .site-brand {
   display: inline-flex;
-  min-width: 250px;
+  min-width: 226px;
   align-items: center;
   gap: 0.9rem;
   color: var(--isnx-navy);
@@ -227,8 +227,8 @@ textarea {
 
 .site-brand__mark {
   display: grid;
-  width: 46px;
-  height: 52px;
+  width: 42px;
+  height: 48px;
   flex: 0 0 auto;
   place-items: center;
 }
@@ -247,7 +247,7 @@ textarea {
   margin: 0;
   color: var(--isnx-navy);
   font-family: var(--isnx-ui-font);
-  font-size: 1.74rem;
+  font-size: 1.58rem;
   font-weight: 850;
   line-height: 1;
 }
@@ -350,7 +350,7 @@ button[type="submit"]:hover {
 
 .header-brief-button {
   flex: 0 0 auto;
-  min-width: 150px;
+  min-width: 144px;
   white-space: nowrap;
 }
 
@@ -1918,6 +1918,18 @@ textarea::placeholder {
     gap: 0.9rem;
   }
 
+  .site-nav--desktop {
+    display: none;
+  }
+
+  .mobile-menu-toggle {
+    display: inline-grid;
+  }
+
+  .site-header__actions {
+    margin-left: auto;
+  }
+
   .home-hero {
     grid-template-columns: 1fr;
   }
@@ -1960,18 +1972,6 @@ textarea::placeholder {
 
   .site-header__inner {
     min-height: 86px;
-  }
-
-  .site-nav--desktop {
-    display: none;
-  }
-
-  .mobile-menu-toggle {
-    display: inline-grid;
-  }
-
-  .site-header__actions {
-    margin-left: auto;
   }
 
   .layout-shell,
@@ -2135,13 +2135,13 @@ textarea::placeholder {
     padding: 1.15rem;
   }
 
-  .footer-element,
-  .site-footer__inner {
+  .footer-element {
     width: 100%;
   }
 
   .site-footer__inner {
     flex-wrap: wrap;
+    width: min(calc(100% - 32px), var(--isnx-wide-width));
   }
 
   .site-footer__row--bottom .site-footer__inner {

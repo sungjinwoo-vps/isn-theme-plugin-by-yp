@@ -9,9 +9,10 @@ declare(strict_types=1);
 
 namespace InfoSecNexus\Theme\Updater;
 
-const DEFAULT_MANIFEST_URL = 'https://infosecnexus.com/updates/infosecnexus-releases.json';
+const DEFAULT_MANIFEST_URL = 'https://github.com/sungjinwoo-vps/isn-theme-plugin-by-yp/releases/latest/download/infosecnexus-releases.json';
 const MANIFEST_TRANSIENT   = 'infosecnexus_theme_update_manifest';
 const TOOLKIT_OPTION_KEY   = 'infosecnexus_toolkit_options';
+const UPDATE_URI           = 'https://github.com/sungjinwoo-vps/isn-theme-plugin-by-yp';
 
 /**
  * Register update hooks.
@@ -22,6 +23,7 @@ function bootstrap(): void {
 	}
 
 	add_filter( 'pre_set_site_transient_update_themes', __NAMESPACE__ . '\\check_theme_update' );
+	add_filter( 'update_themes_github.com', __NAMESPACE__ . '\\hosted_theme_update', 10, 4 );
 	add_filter( 'themes_api', __NAMESPACE__ . '\\theme_information', 10, 3 );
 	add_action( 'upgrader_process_complete', __NAMESPACE__ . '\\clear_cache' );
 }
@@ -37,11 +39,8 @@ function check_theme_update( $transient ) {
 		return $transient;
 	}
 
-	$release = release();
-	$version = release_value( $release, 'version' );
-	$package = release_value( $release, 'package' );
-
-	if ( '' === $version || '' === $package || ! version_compare( INFOSECNEXUS_VERSION, $version, '<' ) ) {
+	$item = update_item();
+	if ( null === $item ) {
 		return $transient;
 	}
 
@@ -49,17 +48,40 @@ function check_theme_update( $transient ) {
 		$transient->response = array();
 	}
 
-	$transient->response['infosecnexus'] = array(
-		'theme'        => 'infosecnexus',
-		'new_version'  => $version,
-		'url'          => release_value( $release, 'homepage', home_url( '/' ) ),
-		'package'      => $package,
-		'tested'       => release_value( $release, 'tested', '7.0' ),
-		'requires'     => release_value( $release, 'requires', '6.5' ),
-		'requires_php' => release_value( $release, 'requires_php', '8.1' ),
-	);
+	if ( ! isset( $transient->no_update ) || ! is_array( $transient->no_update ) ) {
+		$transient->no_update = array();
+	}
+
+	unset( $transient->response['infosecnexus'], $transient->no_update['infosecnexus'] );
+
+	if ( version_compare( INFOSECNEXUS_VERSION, $item['new_version'], '<' ) ) {
+		$transient->response['infosecnexus'] = $item;
+	} else {
+		$transient->no_update['infosecnexus'] = $item;
+	}
 
 	return $transient;
+}
+
+/**
+ * Provide update data for WordPress' native Update URI host filter.
+ *
+ * @param array|false $update Existing update data.
+ * @param array       $theme_data Theme headers.
+ * @param string      $theme_stylesheet Theme stylesheet.
+ * @param string[]    $locales Installed locales.
+ * @return array|false
+ */
+function hosted_theme_update( $update, array $theme_data, string $theme_stylesheet, array $locales ) {
+	unset( $theme_data, $locales );
+
+	if ( 'infosecnexus' !== $theme_stylesheet || ! updates_enabled() ) {
+		return $update;
+	}
+
+	$item = update_item();
+
+	return null === $item ? $update : $item;
 }
 
 /**
@@ -185,6 +207,36 @@ function release(): array {
 	}
 
 	return $release;
+}
+
+/**
+ * Build a WordPress update payload for this theme.
+ *
+ * @return array<string,mixed>|null
+ */
+function update_item(): ?array {
+	$release = release();
+	$version = release_value( $release, 'version' );
+	$package = release_value( $release, 'package' );
+
+	if ( '' === $version || '' === $package ) {
+		return null;
+	}
+
+	return array(
+		'id'             => UPDATE_URI,
+		'theme'          => 'infosecnexus',
+		'version'        => $version,
+		'new_version'    => $version,
+		'url'            => release_value( $release, 'homepage', home_url( '/' ) ),
+		'package'        => $package,
+		'tested'         => release_value( $release, 'tested', '7.0' ),
+		'requires'       => release_value( $release, 'requires', '6.5' ),
+		'requires_php'   => release_value( $release, 'requires_php', '8.1' ),
+		'last_updated'   => release_value( $release, 'last_updated' ),
+		'upgrade_notice' => release_value( $release, 'upgrade_notice' ),
+		'autoupdate'     => true,
+	);
 }
 
 /**

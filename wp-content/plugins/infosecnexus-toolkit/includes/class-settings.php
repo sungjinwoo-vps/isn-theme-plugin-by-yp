@@ -135,7 +135,7 @@ final class Settings {
 						<th scope="row"><label for="isnx-update-manifest-url"><?php esc_html_e( 'Manifest URL', 'infosecnexus-toolkit' ); ?></label></th>
 						<td>
 							<input id="isnx-update-manifest-url" class="regular-text code" type="url" name="<?php echo esc_attr( OPTION_KEY ); ?>[update_manifest_url]" value="<?php echo esc_attr( (string) option( 'update_manifest_url', Updater::default_manifest_url() ) ); ?>">
-							<p class="description"><?php esc_html_e( 'Default: https://infosecnexus.com/updates/infosecnexus-releases.json', 'infosecnexus-toolkit' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Default: https://github.com/sungjinwoo-vps/isn-theme-plugin-by-yp/releases/latest/download/infosecnexus-releases.json', 'infosecnexus-toolkit' ); ?></p>
 							<p><a class="button" href="<?php echo esc_url( Updater::check_now_url() ); ?>"><?php esc_html_e( 'Check Private Updates Now', 'infosecnexus-toolkit' ); ?></a></p>
 						</td>
 					</tr>

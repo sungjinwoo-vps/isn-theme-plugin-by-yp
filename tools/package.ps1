@@ -1,5 +1,5 @@
 param(
-    [string]$DownloadBaseUrl = "https://infosecnexus.com/updates",
+    [string]$DownloadBaseUrl = "https://github.com/sungjinwoo-vps/isn-theme-plugin-by-yp/releases/latest/download",
     [string]$ThemeVersion = "",
     [string]$ToolkitVersion = "",
     [string]$ElementorKitVersion = "0.1.0"
@@ -104,7 +104,7 @@ $releaseManifest = @{
         last_updated = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd")
         sections = @{
             description = "Cybersecurity newsroom theme for InfoSecNexus."
-            changelog = "Adds private update-channel support so future theme releases can appear in the WordPress Updates screen."
+            changelog = "Points the private updater to GitHub Releases by default, adds native Update URI metadata, supports auto-update toggles, and refreshes the theme preview image."
         }
     }
     plugin = @{
@@ -119,7 +119,7 @@ $releaseManifest = @{
         last_updated = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd")
         sections = @{
             description = "Companion functionality for the InfoSecNexus WordPress theme."
-            changelog = "Adds private update-channel settings and plugin update support through a self-hosted release manifest."
+            changelog = "Points the private updater to GitHub Releases by default, adds native Update URI metadata, and supports WordPress auto-update toggles."
         }
     }
 }

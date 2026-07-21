@@ -3,7 +3,7 @@ Contributors: infosecnexus
 Requires at least: 6.5
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.1.9
+Stable tag: 0.1.10
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,6 +25,9 @@ InfoSecNexus WordPress Theme, Copyright 2026 InfoSecNexus.
 InfoSecNexus is distributed under the terms of the GNU GPL.
 
 == Changelog ==
+
+= 0.1.10 =
+Points the private updater to GitHub Releases by default, adds native Update URI metadata, supports auto-update toggles, and refreshes the theme preview image.
 
 = 0.1.9 =
 Adds private update-channel support so future theme releases can appear in the WordPress Updates screen.
