@@ -1,9 +1,9 @@
 <?php
 /**
- * Plugin Name: InfoSecNexus Toolkit
+ * Plugin Name: InfoSecNexus Toolkit Legacy Bridge
  * Plugin URI: https://infosecnexus.com/
- * Description: Companion functionality for the InfoSecNexus theme: content blocks, conditions, Elementor widgets, live search, sidebars, newsletter, and optional modules.
- * Version: 0.1.13
+ * Description: Legacy bridge for older InfoSecNexus installs. Current toolkit features are bundled into the InfoSecNexus theme.
+ * Version: 0.1.14
  * Requires at least: 6.5
  * Requires PHP: 8.1
  * Author: InfoSecNexus
@@ -24,10 +24,27 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'INFOSECNEXUS_TOOLKIT_VERSION', '0.1.13' );
+define( 'INFOSECNEXUS_TOOLKIT_VERSION', '0.1.14' );
 define( 'INFOSECNEXUS_TOOLKIT_FILE', __FILE__ );
 define( 'INFOSECNEXUS_TOOLKIT_DIR', plugin_dir_path( __FILE__ ) );
 define( 'INFOSECNEXUS_TOOLKIT_URL', plugin_dir_url( __FILE__ ) );
+
+if ( function_exists( 'wp_get_theme' ) ) {
+	$infosecnexus_active_theme = wp_get_theme();
+	if ( 'infosecnexus' === $infosecnexus_active_theme->get_stylesheet() && version_compare( (string) $infosecnexus_active_theme->get( 'Version' ), '0.1.14', '>=' ) ) {
+		define( 'INFOSECNEXUS_TOOLKIT_BRIDGED_TO_THEME', true );
+		add_action(
+			'admin_notices',
+			static function (): void {
+				if ( ! current_user_can( 'activate_plugins' ) ) {
+					return;
+				}
+				echo '<div class="notice notice-info"><p>' . esc_html__( 'InfoSecNexus Toolkit features are now built into the active InfoSecNexus theme. You can safely deactivate and delete the legacy toolkit plugin.', 'infosecnexus-toolkit' ) . '</p></div>';
+			}
+		);
+		return;
+	}
+}
 
 require_once INFOSECNEXUS_TOOLKIT_DIR . 'includes/helpers.php';
 require_once INFOSECNEXUS_TOOLKIT_DIR . 'includes/class-updater.php';

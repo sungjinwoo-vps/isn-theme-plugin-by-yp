@@ -104,7 +104,7 @@ $releaseManifest = @{
         last_updated = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd")
         sections = @{
             description = "Cybersecurity newsroom theme for InfoSecNexus."
-            changelog = "Simplifies the comment form and restores image-led related briefing cards."
+            changelog = "Moves toolkit features into the theme so Content Blocks, newsletter, search, sidebars, Elementor widgets, and setup tools work without the separate plugin."
         }
     }
     plugin = @{
@@ -118,8 +118,8 @@ $releaseManifest = @{
         requires_php = "8.1"
         last_updated = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd")
         sections = @{
-            description = "Companion functionality for the InfoSecNexus WordPress theme."
-            changelog = "Renders related briefings as full image cards with category-aware fallbacks."
+            description = "Legacy bridge for older InfoSecNexus installs. Current toolkit features are bundled into the InfoSecNexus theme."
+            changelog = "Turns the toolkit plugin into a legacy bridge because toolkit features are now bundled into the InfoSecNexus theme."
         }
     }
 }

@@ -48,7 +48,7 @@ The repository includes `.github/workflows/release.yml`.
 When code is pushed to `stable`, GitHub Actions will:
 
 1. Read the current theme version from `style.css`.
-2. Create a build version like `0.1.13.123.1`.
+2. Create a build version like `0.1.14.123.1`.
 3. Stamp that version into the packaged theme and plugin.
 4. Patch the packaged updater endpoint to:
 
