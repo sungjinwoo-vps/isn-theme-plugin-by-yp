@@ -104,7 +104,7 @@ $releaseManifest = @{
         last_updated = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd")
         sections = @{
             description = "Cybersecurity newsroom theme for InfoSecNexus."
-            changelog = "Improves mobile scroll-to-top timing, post rail styling, archive sidebars, and the comment form layout."
+            changelog = "Simplifies the comment form and restores image-led related briefing cards."
         }
     }
     plugin = @{
@@ -119,7 +119,7 @@ $releaseManifest = @{
         last_updated = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd")
         sections = @{
             description = "Companion functionality for the InfoSecNexus WordPress theme."
-            changelog = "Aligns the toolkit package with the theme polish release."
+            changelog = "Renders related briefings as full image cards with category-aware fallbacks."
         }
     }
 }
