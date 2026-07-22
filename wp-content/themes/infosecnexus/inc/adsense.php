@@ -11,6 +11,8 @@ namespace InfoSecNexus\Theme\AdSense;
 
 use function InfoSecNexus\Theme\Toolkit\option;
 
+const DEFAULT_CLIENT_ID = 'ca-pub-6550916382964760';
+
 /**
  * Register AdSense hooks.
  */
@@ -31,7 +33,7 @@ function enabled(): bool {
  */
 function client_id(): string {
 	$client = (string) option( 'adsense_client', '' );
-	return preg_match( '/^ca-pub-\d{10,}$/', $client ) ? $client : '';
+	return preg_match( '/^ca-pub-\d{10,}$/', $client ) ? $client : DEFAULT_CLIENT_ID;
 }
 
 /**
@@ -56,19 +58,15 @@ function should_show_side_rails(): bool {
 }
 
 /**
- * Output the official AdSense loader once when a configured slot can render.
+ * Output the official AdSense loader for Auto ads and manual slots.
  */
 function render_adsense_script(): void {
-	if ( ! enabled() ) {
+	$client = client_id();
+	if ( '' === $client ) {
 		return;
 	}
 
-	$has_slot = slot_id( 'adsense_left_slot' ) || slot_id( 'adsense_right_slot' ) || slot_id( 'adsense_inarticle_slot' );
-	if ( ! $has_slot ) {
-		return;
-	}
-
-	echo '<script async src="' . esc_url( 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' . rawurlencode( client_id() ) ) . '" crossorigin="anonymous"></script>' . "\n";
+	echo '<script async src="' . esc_url( 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' . rawurlencode( $client ) ) . '" crossorigin="anonymous"></script>' . "\n";
 }
 
 /**

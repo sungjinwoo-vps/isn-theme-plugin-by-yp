@@ -181,8 +181,8 @@ final class Settings {
 					<tr>
 						<th scope="row"><label for="isnx-adsense-client"><?php esc_html_e( 'Publisher ID', 'infosecnexus' ); ?></label></th>
 						<td>
-							<input id="isnx-adsense-client" class="regular-text code" placeholder="ca-pub-1234567890123456" name="<?php echo esc_attr( OPTION_KEY ); ?>[adsense_client]" value="<?php echo esc_attr( (string) option( 'adsense_client', '' ) ); ?>">
-							<p class="description"><?php esc_html_e( 'Use the ca-pub ID from your AdSense account.', 'infosecnexus' ); ?></p>
+							<input id="isnx-adsense-client" class="regular-text code" placeholder="ca-pub-6550916382964760" name="<?php echo esc_attr( OPTION_KEY ); ?>[adsense_client]" value="<?php echo esc_attr( (string) option( 'adsense_client', 'ca-pub-6550916382964760' ) ); ?>">
+							<p class="description"><?php esc_html_e( 'Auto ads use ca-pub-6550916382964760 by default and the loader is printed in the head on every frontend page.', 'infosecnexus' ); ?></p>
 						</td>
 					</tr>
 					<tr>
