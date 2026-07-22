@@ -126,8 +126,11 @@ function render_gated_post_content(): void {
 	$slot       = slot_id( 'adsense_inarticle_slot' );
 	$has_ad_gap = enabled() && '' !== $slot && (bool) option( 'adsense_post_gate', true );
 	if ( $has_ad_gap ) {
-		echo '<section class="post-gate__ad" aria-label="' . esc_attr__( 'Advertisement', 'infosecnexus' ) . '">';
-		render_slot( 'inarticle', $slot, __( 'Advertisement', 'infosecnexus' ) );
+		echo '<section class="post-gate__ad" data-post-gate-ad data-ad-client="' . esc_attr( client_id() ) . '" data-ad-slot="' . esc_attr( $slot ) . '" aria-label="' . esc_attr__( 'Advertisement', 'infosecnexus' ) . '" hidden>';
+		echo '<div class="isnx-ad-slot isnx-ad-slot--inarticle">';
+		echo '<span class="isnx-ad-slot__label">' . esc_html__( 'Advertisement', 'infosecnexus' ) . '</span>';
+		echo '<div data-post-gate-ad-inner></div>';
+		echo '</div>';
 		echo '</section>';
 	}
 
@@ -140,7 +143,7 @@ function render_gated_post_content(): void {
 }
 
 /**
- * Split post content near the middle of the article.
+ * Split post content around the first substantial third of the article.
  *
  * @param string $content Raw post content.
  * @return array{teaser:string,rest:string}
@@ -151,7 +154,7 @@ function split_post_content( string $content ): array {
 	$blocks = parse_blocks( $content );
 	$chunks = has_structured_blocks( $blocks ) ? chunks_from_blocks( $blocks ) : chunks_from_classic_html( $content );
 
-	return split_chunks_near_half( $chunks, $content );
+	return split_chunks_near_gate( $chunks, $content );
 }
 
 /**
@@ -227,13 +230,13 @@ function chunks_from_classic_html( string $content ): array {
 }
 
 /**
- * Split chunks at the closest sensible boundary to half of the total word count.
+ * Split chunks at the closest sensible boundary before the article midpoint.
  *
  * @param string[] $chunks  Content chunks.
  * @param string   $content Original content fallback.
  * @return array{teaser:string,rest:string}
  */
-function split_chunks_near_half( array $chunks, string $content ): array {
+function split_chunks_near_gate( array $chunks, string $content ): array {
 	if ( count( $chunks ) < 3 ) {
 		return array(
 			'teaser' => $content,
@@ -250,9 +253,9 @@ function split_chunks_near_half( array $chunks, string $content ): array {
 		);
 	}
 
-	$target      = max( 180, (int) round( $total * 0.52 ) );
-	$minimum     = (int) round( $total * 0.38 );
-	$maximum     = (int) round( $total * 0.68 );
+	$target      = max( 150, (int) round( $total * 0.36 ) );
+	$minimum     = (int) round( $total * 0.24 );
+	$maximum     = (int) round( $total * 0.48 );
 	$running     = 0;
 	$split_index = 0;
 	$best_score  = PHP_INT_MAX;
@@ -280,12 +283,12 @@ function split_chunks_near_half( array $chunks, string $content ): array {
 	}
 
 	if ( 0 === $split_index ) {
-		$split_index = max( 1, (int) floor( count( $chunks ) / 2 ) );
+		$split_index = max( 1, (int) floor( count( $chunks ) * 0.38 ) );
 	}
 
 	$teaser = trim( implode( '', array_slice( $chunks, 0, $split_index ) ) );
 	$rest   = trim( implode( '', array_slice( $chunks, $split_index ) ) );
-	if ( chunk_word_count( $teaser ) < 150 || chunk_word_count( $rest ) < 120 ) {
+	if ( chunk_word_count( $teaser ) < 120 || chunk_word_count( $rest ) < 180 ) {
 		return array(
 			'teaser' => $content,
 			'rest'   => '',

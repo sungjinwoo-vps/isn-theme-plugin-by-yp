@@ -104,7 +104,7 @@ $releaseManifest = @{
         last_updated = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd")
         sections = @{
             description = "Cybersecurity newsroom theme for InfoSecNexus."
-            changelog = "Moves the post Read More gate to an automatic mid-article split and makes the unlock control more compact."
+            changelog = "Moves the Read More gate earlier in posts and lazy-loads the in-post AdSense slot only after the reader clicks Read More."
         }
     }
     plugin = @{
@@ -119,7 +119,7 @@ $releaseManifest = @{
         last_updated = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd")
         sections = @{
             description = "Legacy bridge for older InfoSecNexus installs. Current toolkit features are bundled into the InfoSecNexus theme."
-            changelog = "Keeps the legacy bridge version aligned with the theme mid-article Read More release."
+            changelog = "Keeps the legacy bridge version aligned with the theme Read More and AdSense lazy-load release."
         }
     }
 }

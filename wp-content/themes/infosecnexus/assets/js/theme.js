@@ -229,7 +229,41 @@
       return;
     }
 
+    const loadGateAd = () => {
+      const ad = gate.querySelector('[data-post-gate-ad]');
+      if (!ad || ad.dataset.loaded === 'true') {
+        return ad;
+      }
+
+      const client = ad.dataset.adClient || '';
+      const slot = ad.dataset.adSlot || '';
+      const adInner = ad.querySelector('[data-post-gate-ad-inner]');
+      if (!client || !slot || !adInner) {
+        return null;
+      }
+
+      const unit = document.createElement('ins');
+      unit.className = 'adsbygoogle';
+      unit.style.display = 'block';
+      unit.dataset.adClient = client;
+      unit.dataset.adSlot = slot;
+      unit.dataset.adFormat = 'fluid';
+      unit.dataset.fullWidthResponsive = 'true';
+      adInner.appendChild(unit);
+      ad.hidden = false;
+      ad.dataset.loaded = 'true';
+
+      try {
+        (window.adsbygoogle = window.adsbygoogle || []).push({});
+      } catch {
+        ad.dataset.loadError = 'true';
+      }
+
+      return ad;
+    };
+
     button.addEventListener('click', () => {
+      const ad = loadGateAd();
       content.hidden = false;
       gate.classList.add('is-unlocked');
       content.querySelectorAll('h2').forEach((heading, index) => {
@@ -237,9 +271,9 @@
           heading.id = `section-unlocked-${index + 1}`;
         }
       });
-      const firstHeading = content.querySelector('h2, h3, p');
-      if (firstHeading) {
-        firstHeading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const scrollTarget = ad || content.querySelector('h2, h3, p');
+      if (scrollTarget) {
+        scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     });
   });
