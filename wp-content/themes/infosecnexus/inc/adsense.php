@@ -140,47 +140,180 @@ function render_gated_post_content(): void {
 }
 
 /**
- * Split post content at a more tag or after the opening paragraphs.
+ * Split post content near the middle of the article.
  *
  * @param string $content Raw post content.
  * @return array{teaser:string,rest:string}
  */
 function split_post_content( string $content ): array {
-	if ( preg_match( '/<!--more(.*?)?-->/', $content ) ) {
-		$parts = get_extended( $content );
-		return array(
-			'teaser' => trim( (string) $parts['main'] ),
-			'rest'   => trim( (string) $parts['extended'] ),
-		);
+	$content = preg_replace( '/<!--more(.*?)?-->/', '', $content );
+	$content = is_string( $content ) ? trim( $content ) : '';
+	$blocks = parse_blocks( $content );
+	$chunks = has_structured_blocks( $blocks ) ? chunks_from_blocks( $blocks ) : chunks_from_classic_html( $content );
+
+	return split_chunks_near_half( $chunks, $content );
+}
+
+/**
+ * Whether parsed blocks contain real block structure.
+ *
+ * @param array<int,array<string,mixed>> $blocks Parsed blocks.
+ */
+function has_structured_blocks( array $blocks ): bool {
+	foreach ( $blocks as $block ) {
+		if ( null !== ( $block['blockName'] ?? null ) ) {
+			return true;
+		}
 	}
 
-	$blocks = parse_blocks( $content );
-	if ( empty( $blocks ) ) {
+	return count( $blocks ) > 1;
+}
+
+/**
+ * Convert Gutenberg blocks into split chunks.
+ *
+ * @param array<int,array<string,mixed>> $blocks Parsed blocks.
+ * @return string[]
+ */
+function chunks_from_blocks( array $blocks ): array {
+	$chunks = array();
+	foreach ( $blocks as $block ) {
+		if ( 'core/more' === (string) ( $block['blockName'] ?? '' ) ) {
+			continue;
+		}
+		$html = trim( serialize_block( $block ) );
+		if ( '' !== $html ) {
+			$chunks[] = $html;
+		}
+	}
+
+	return $chunks;
+}
+
+/**
+ * Convert classic HTML into top-level readable chunks.
+ *
+ * @param string $content Raw post content.
+ * @return string[]
+ */
+function chunks_from_classic_html( string $content ): array {
+	$chunks = array();
+	if ( preg_match_all( '/<(h[2-6]|p|ul|ol|figure|blockquote|table|pre)\b[^>]*>.*?<\/\1>/is', $content, $matches, PREG_OFFSET_CAPTURE ) ) {
+		$cursor = 0;
+		foreach ( $matches[0] as $match ) {
+			$html   = $match[0];
+			$offset = (int) $match[1];
+			if ( $offset > $cursor ) {
+				$before = trim( substr( $content, $cursor, $offset - $cursor ) );
+				if ( '' !== $before ) {
+					$chunks[] = $before;
+				}
+			}
+			$chunks[] = trim( $html );
+			$cursor   = $offset + strlen( $html );
+		}
+
+		$after = trim( substr( $content, $cursor ) );
+		if ( '' !== $after ) {
+			$chunks[] = $after;
+		}
+	}
+
+	if ( empty( $chunks ) ) {
+		$chunks = preg_split( '/\n\s*\n/', $content );
+	}
+
+	return array_values( array_filter( array_map( 'trim', (array) $chunks ) ) );
+}
+
+/**
+ * Split chunks at the closest sensible boundary to half of the total word count.
+ *
+ * @param string[] $chunks  Content chunks.
+ * @param string   $content Original content fallback.
+ * @return array{teaser:string,rest:string}
+ */
+function split_chunks_near_half( array $chunks, string $content ): array {
+	if ( count( $chunks ) < 3 ) {
 		return array(
 			'teaser' => $content,
 			'rest'   => '',
 		);
 	}
 
-	$teaser = array();
-	$rest   = array();
-	$count  = 0;
-	foreach ( $blocks as $block ) {
-		$target = $count < 2 ? 'teaser' : 'rest';
-		if ( 'core/paragraph' === (string) ( $block['blockName'] ?? '' ) ) {
-			++$count;
+	$weights = array_map( __NAMESPACE__ . '\\chunk_word_count', $chunks );
+	$total   = array_sum( $weights );
+	if ( $total < 260 ) {
+		return array(
+			'teaser' => $content,
+			'rest'   => '',
+		);
+	}
+
+	$target      = max( 180, (int) round( $total * 0.52 ) );
+	$minimum     = (int) round( $total * 0.38 );
+	$maximum     = (int) round( $total * 0.68 );
+	$running     = 0;
+	$split_index = 0;
+	$best_score  = PHP_INT_MAX;
+
+	foreach ( $chunks as $index => $chunk ) {
+		$running += $weights[ $index ];
+		if ( $running < $minimum || $running > $maximum ) {
+			continue;
 		}
-		if ( 'teaser' === $target ) {
-			$teaser[] = serialize_block( $block );
-		} else {
-			$rest[] = serialize_block( $block );
+
+		$candidate = $index + 1;
+		if ( $candidate >= count( $chunks ) ) {
+			continue;
+		}
+
+		while ( $candidate < count( $chunks ) && chunk_is_heading( $chunks[ $candidate - 1 ] ) ) {
+			++$candidate;
+		}
+
+		$score = abs( $running - $target );
+		if ( $score < $best_score ) {
+			$best_score  = $score;
+			$split_index = $candidate;
 		}
 	}
 
+	if ( 0 === $split_index ) {
+		$split_index = max( 1, (int) floor( count( $chunks ) / 2 ) );
+	}
+
+	$teaser = trim( implode( '', array_slice( $chunks, 0, $split_index ) ) );
+	$rest   = trim( implode( '', array_slice( $chunks, $split_index ) ) );
+	if ( chunk_word_count( $teaser ) < 150 || chunk_word_count( $rest ) < 120 ) {
+		return array(
+			'teaser' => $content,
+			'rest'   => '',
+		);
+	}
+
 	return array(
-		'teaser' => trim( implode( '', $teaser ) ),
-		'rest'   => trim( implode( '', $rest ) ),
+		'teaser' => $teaser,
+		'rest'   => $rest,
 	);
+}
+
+/**
+ * Count readable words in a chunk.
+ *
+ * @param string $chunk HTML chunk.
+ */
+function chunk_word_count( string $chunk ): int {
+	return str_word_count( wp_strip_all_tags( strip_shortcodes( $chunk ) ) );
+}
+
+/**
+ * Whether a chunk is only a heading.
+ *
+ * @param string $chunk HTML chunk.
+ */
+function chunk_is_heading( string $chunk ): bool {
+	return (bool) preg_match( '/^\s*<h[2-6]\b/i', $chunk );
 }
 
 /**

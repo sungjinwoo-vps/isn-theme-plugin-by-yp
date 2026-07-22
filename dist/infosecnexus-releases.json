@@ -1,7 +1,7 @@
 {
     "plugin":  {
                    "slug":  "infosecnexus-toolkit",
-                   "version":  "0.1.18",
+                   "version":  "0.1.19",
                    "plugin":  "infosecnexus-toolkit/infosecnexus-toolkit.php",
                    "requires_php":  "8.1",
                    "package":  "https://raw.githubusercontent.com/sungjinwoo-vps/isn-theme-plugin-by-yp/stable/dist/infosecnexus-toolkit.zip",
@@ -9,23 +9,23 @@
                    "homepage":  "https://infosecnexus.com/",
                    "last_updated":  "2026-07-22",
                    "sections":  {
-                                    "changelog":  "Keeps the legacy bridge version aligned with the theme AdSense release.",
+                                    "changelog":  "Keeps the legacy bridge version aligned with the theme mid-article Read More release.",
                                     "description":  "Legacy bridge for older InfoSecNexus installs. Current toolkit features are bundled into the InfoSecNexus theme."
                                 },
                    "requires":  "6.5"
                },
-    "generatedAt":  "2026-07-22T06:10:41Z",
+    "generatedAt":  "2026-07-22T06:55:00Z",
     "manifestVersion":  1,
     "theme":  {
                   "slug":  "infosecnexus",
-                  "version":  "0.1.18",
+                  "version":  "0.1.19",
                   "requires_php":  "8.1",
                   "package":  "https://raw.githubusercontent.com/sungjinwoo-vps/isn-theme-plugin-by-yp/stable/dist/infosecnexus-theme.zip",
                   "tested":  "7.0",
                   "homepage":  "https://infosecnexus.com/",
                   "last_updated":  "2026-07-22",
                   "sections":  {
-                                   "changelog":  "Adds configurable AdSense slots, desktop sticky side ad rails, and a compliant post-only Read More gate with an in-article ad position.",
+                                   "changelog":  "Moves the post Read More gate to an automatic mid-article split and makes the unlock control more compact.",
                                    "description":  "Cybersecurity newsroom theme for InfoSecNexus."
                                },
                   "requires":  "6.5"
