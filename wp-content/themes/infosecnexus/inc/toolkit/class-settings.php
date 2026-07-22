@@ -73,6 +73,7 @@ final class Settings {
 		$output['maintenance_enabled'] = ! empty( $input['maintenance_enabled'] );
 		$output['updates_enabled']     = ! empty( $input['updates_enabled'] );
 		$output['update_manifest_url'] = esc_url_raw( (string) ( $input['update_manifest_url'] ?? self::default_manifest_url() ) );
+		$output['daily_content_enabled'] = ! empty( $input['daily_content_enabled'] );
 		$output['adsense_enabled']     = ! empty( $input['adsense_enabled'] );
 		$output['adsense_side_rails']  = ! empty( $input['adsense_side_rails'] );
 		$output['adsense_post_gate']   = ! empty( $input['adsense_post_gate'] );
@@ -163,6 +164,20 @@ final class Settings {
 							<input id="isnx-update-manifest-url" class="regular-text code" type="url" name="<?php echo esc_attr( OPTION_KEY ); ?>[update_manifest_url]" value="<?php echo esc_attr( (string) option( 'update_manifest_url', self::default_manifest_url() ) ); ?>">
 							<p class="description"><?php esc_html_e( 'Default: https://github.com/sungjinwoo-vps/isn-theme-plugin-by-yp/releases/latest/download/infosecnexus-releases.json', 'infosecnexus' ); ?></p>
 							<p><a class="button" href="<?php echo esc_url( \InfoSecNexus\Theme\Updater\check_now_url() ); ?>"><?php esc_html_e( 'Check Theme Updates Now', 'infosecnexus' ); ?></a></p>
+						</td>
+					</tr>
+				</table>
+				<h2><?php esc_html_e( 'Daily Blog Publisher', 'infosecnexus' ); ?></h2>
+				<p><?php esc_html_e( 'Automatically add one short SEO briefing per category each day. Existing posts are preserved and duplicate date slugs are skipped.', 'infosecnexus' ); ?></p>
+				<table class="form-table" role="presentation">
+					<tr>
+						<th scope="row"><?php esc_html_e( 'Enable Daily Content', 'infosecnexus' ); ?></th>
+						<td>
+							<label>
+								<input type="checkbox" name="<?php echo esc_attr( OPTION_KEY ); ?>[daily_content_enabled]" value="1" <?php checked( (bool) option( 'daily_content_enabled', true ) ); ?>>
+								<?php esc_html_e( 'Publish today\'s category briefing batch automatically.', 'infosecnexus' ); ?>
+							</label>
+							<p class="description"><?php esc_html_e( 'Use Appearance > InfoSecNexus Setup to add or repair today\'s batch immediately.', 'infosecnexus' ); ?></p>
 						</td>
 					</tr>
 				</table>

@@ -14,6 +14,8 @@ namespace InfoSecNexus\Theme\Toolkit;
  */
 final class Demo_Content {
 	private const SEEDED_OPTION = 'infosecnexus_demo_seeded_version';
+	private const DAILY_SEEDED_OPTION = 'infosecnexus_daily_content_seeded_dates';
+	private const DAILY_CRON_HOOK = 'infosecnexus_publish_daily_content';
 	private const CONTENT_REFRESH_VERSION = '0.1.17';
 
 	/**
@@ -23,6 +25,9 @@ final class Demo_Content {
 		add_action( 'admin_menu', array( __CLASS__, 'admin_menu' ) );
 		add_action( 'admin_init', array( __CLASS__, 'handle_import' ) );
 		add_action( 'admin_init', array( __CLASS__, 'maybe_auto_seed' ) );
+		add_action( 'admin_init', array( __CLASS__, 'maybe_seed_daily_content' ) );
+		add_action( 'init', array( __CLASS__, 'schedule_daily_content' ) );
+		add_action( self::DAILY_CRON_HOOK, array( __CLASS__, 'publish_daily_content' ) );
 	}
 
 	/**
@@ -47,6 +52,7 @@ final class Demo_Content {
 		}
 
 		$import_url = wp_nonce_url( admin_url( 'themes.php?page=infosecnexus-setup&infosecnexus_import_demo=1' ), 'infosecnexus_import_demo' );
+		$daily_url  = wp_nonce_url( admin_url( 'themes.php?page=infosecnexus-setup&infosecnexus_add_daily_content=1' ), 'infosecnexus_add_daily_content' );
 		$reset_url  = wp_nonce_url( admin_url( 'themes.php?page=infosecnexus-setup&infosecnexus_reset_demo_settings=1' ), 'infosecnexus_reset_demo_settings' );
 		?>
 		<div class="wrap">
@@ -54,12 +60,19 @@ final class Demo_Content {
 			<?php if ( ! empty( $_GET['infosecnexus_imported'] ) ) : ?>
 				<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Demo content repaired. Your existing theme settings were not reset.', 'infosecnexus' ); ?></p></div>
 			<?php endif; ?>
+			<?php if ( ! empty( $_GET['infosecnexus_daily_added'] ) ) : ?>
+				<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Today\'s category blog batch was added or repaired without deleting old posts.', 'infosecnexus' ); ?></p></div>
+			<?php endif; ?>
 			<?php if ( ! empty( $_GET['infosecnexus_settings_reset'] ) ) : ?>
 				<div class="notice notice-warning is-dismissible"><p><?php esc_html_e( 'Recommended demo settings were reset.', 'infosecnexus' ); ?></p></div>
 			<?php endif; ?>
 			<p><?php esc_html_e( 'Create or repair the missing categories, demo posts, pages, and menus for the newsroom demo.', 'infosecnexus' ); ?></p>
 			<p><a class="button button-primary" href="<?php echo esc_url( $import_url ); ?>"><?php esc_html_e( 'Import / Repair Demo Content', 'infosecnexus' ); ?></a></p>
 			<p><?php esc_html_e( 'This content repair is non-destructive for your Customizer and feature settings.', 'infosecnexus' ); ?></p>
+			<hr>
+			<h2><?php esc_html_e( 'Daily Blog Batch', 'infosecnexus' ); ?></h2>
+			<p><?php esc_html_e( 'Add one fresh SEO briefing for every blog category using duplicate-safe date slugs. Existing posts remain published.', 'infosecnexus' ); ?></p>
+			<p><a class="button button-primary" href="<?php echo esc_url( $daily_url ); ?>"><?php esc_html_e( 'Add Today\'s Blog Batch', 'infosecnexus' ); ?></a></p>
 			<hr>
 			<h2><?php esc_html_e( 'Reset Settings', 'infosecnexus' ); ?></h2>
 			<p><?php esc_html_e( 'Use this only when you intentionally want to restore the recommended InfoSecNexus theme and feature settings.', 'infosecnexus' ); ?></p>
@@ -80,6 +93,14 @@ final class Demo_Content {
 			check_admin_referer( 'infosecnexus_import_demo' );
 			self::run();
 			wp_safe_redirect( admin_url( 'themes.php?page=infosecnexus-setup&infosecnexus_imported=1' ) );
+			exit;
+		}
+
+		if ( ! empty( $_GET['infosecnexus_add_daily_content'] ) ) {
+			check_admin_referer( 'infosecnexus_add_daily_content' );
+			$categories = self::create_categories();
+			self::create_daily_posts( $categories, true );
+			wp_safe_redirect( admin_url( 'themes.php?page=infosecnexus-setup&infosecnexus_daily_added=1' ) );
 			exit;
 		}
 
@@ -122,6 +143,52 @@ final class Demo_Content {
 	}
 
 	/**
+	 * Add today's daily batch when an admin visits and the cron has not run yet.
+	 */
+	public static function maybe_seed_daily_content(): void {
+		if ( ! current_user_can( 'manage_options' ) || ! (bool) option( 'daily_content_enabled', true ) ) {
+			return;
+		}
+
+		$theme = wp_get_theme();
+		if ( 'infosecnexus' !== $theme->get_stylesheet() ) {
+			return;
+		}
+
+		self::publish_daily_content();
+	}
+
+	/**
+	 * Schedule or unschedule the daily content event.
+	 */
+	public static function schedule_daily_content(): void {
+		$timestamp = wp_next_scheduled( self::DAILY_CRON_HOOK );
+
+		if ( ! (bool) option( 'daily_content_enabled', true ) ) {
+			if ( $timestamp ) {
+				wp_unschedule_event( $timestamp, self::DAILY_CRON_HOOK );
+			}
+			return;
+		}
+
+		if ( ! $timestamp ) {
+			wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', self::DAILY_CRON_HOOK );
+		}
+	}
+
+	/**
+	 * Publish today's daily blog batch.
+	 */
+	public static function publish_daily_content(): void {
+		if ( ! (bool) option( 'daily_content_enabled', true ) ) {
+			return;
+		}
+
+		$categories = self::create_categories();
+		self::create_daily_posts( $categories );
+	}
+
+	/**
 	 * Run importer.
 	 *
 	 * @param bool $reset_settings Whether to reset recommended theme/toolkit settings.
@@ -130,6 +197,7 @@ final class Demo_Content {
 		self::cleanup_starter_content();
 		$categories = self::create_categories();
 		self::create_posts( $categories );
+		self::create_daily_posts( $categories, true );
 		self::create_pages();
 		self::create_menus( $categories );
 		self::refresh_content_theme_mods();
@@ -161,20 +229,7 @@ final class Demo_Content {
 			wp_trash_post( (int) $legacy_about->ID );
 		}
 
-		$demo_posts = get_posts(
-			array(
-				'post_type'      => 'post',
-				'post_status'    => array( 'publish', 'draft', 'private', 'pending', 'future' ),
-				'posts_per_page' => 200,
-				'fields'         => 'ids',
-				'meta_key'       => '_infosecnexus_demo_content',
-				'meta_value'     => '1',
-			)
-		);
-
-		foreach ( $demo_posts as $post_id ) {
-			wp_trash_post( (int) $post_id );
-		}
+		// Keep existing demo and daily blog posts. Imports now repair missing content only.
 	}
 
 	/**
@@ -720,6 +775,333 @@ final class Demo_Content {
 	}
 
 	/**
+	 * Create one current briefing per category for the active site date.
+	 *
+	 * @param array<string,int> $categories Category IDs by slug.
+	 * @param bool              $force      Whether to repair today's posts even if the date was marked complete.
+	 */
+	private static function create_daily_posts( array $categories, bool $force = false ): void {
+		$date = current_time( 'Y-m-d' );
+		if ( ! $force && self::daily_date_seeded( $date ) ) {
+			return;
+		}
+
+		$timestamp  = strtotime( $date . ' 12:00:00' );
+		$human_date = $timestamp ? wp_date( 'F j, Y', $timestamp ) : $date;
+		$post_date  = current_time( 'mysql' );
+		$date_slug  = sanitize_title( $date );
+
+		foreach ( self::daily_post_blueprints( $human_date ) as $post ) {
+			$term_ids = array();
+			foreach ( $post['categories'] as $slug ) {
+				if ( isset( $categories[ $slug ] ) ) {
+					$term_ids[] = $categories[ $slug ];
+				}
+			}
+
+			self::upsert_post(
+				'post',
+				$date_slug . '-' . $post['slug'],
+				array(
+					'post_title'    => $post['title'],
+					'post_excerpt'  => $post['excerpt'],
+					'post_content'  => self::daily_brief_content( $post['summary'], $post['checks'], $post['source_note'], $post['sources'], $post['next_step'] ),
+					'post_status'   => 'publish',
+					'post_date'     => $post_date,
+					'post_date_gmt' => get_gmt_from_date( $post_date ),
+					'comment_status' => 'closed',
+					'ping_status'   => 'closed',
+					'post_category' => $term_ids,
+					'meta_input'    => array(
+						'_infosecnexus_daily_content' => $date,
+						'_infosecnexus_source_urls'   => wp_json_encode( $post['sources'] ),
+					),
+				)
+			);
+		}
+
+		self::mark_daily_date_seeded( $date );
+	}
+
+	/**
+	 * Return duplicate-safe daily briefing blueprints.
+	 *
+	 * @param string $date Human readable date.
+	 * @return array<int,array<string,mixed>>
+	 */
+	private static function daily_post_blueprints( string $date ): array {
+		return array(
+			array(
+				'title'       => 'Daily CVE Watch for ' . $date . ': KEV, NVD, and Patch Priority',
+				'slug'        => 'daily-cve-watch-kev-nvd-patch-priority',
+				'categories'  => array( 'critical-cves' ),
+				'excerpt'     => 'A daily CVE triage note for exploited vulnerabilities, recent NVD entries, exposure checks, and patch ownership.',
+				'summary'     => 'Today\'s CVE review should start with active exploitation signals, then move into fresh NVD entries and the systems that are actually reachable in your environment.',
+				'source_note' => 'The latest CISA KEV additions on July 21, 2026 included Langflow, WordPress Core, DD-WRT, Fortinet FortiSandbox, and Microsoft SharePoint entries. NVD also published multiple new CVE records on July 21, including Netty and Gitleaks items.',
+				'checks'      => array(
+					'Compare the CISA KEV catalog with your external asset inventory before ranking normal backlog items.',
+					'Review NVD records for technologies your teams actually run, then confirm affected versions from vendor guidance.',
+					'Give internet-facing, privileged, and customer-impacting systems the first patch or mitigation window.',
+					'Record the owner, target date, temporary control, and validation evidence for every high-risk exception.',
+				),
+				'sources'     => array(
+					array( 'CISA Known Exploited Vulnerabilities Catalog', 'https://www.cisa.gov/known-exploited-vulnerabilities-catalog' ),
+					array( 'NVD Vulnerability Search', 'https://nvd.nist.gov/vuln/search' ),
+				),
+				'next_step'   => 'Create a same-day shortlist of exposed assets and schedule validation before the patch ticket is marked complete.',
+			),
+			array(
+				'title'       => 'Cyber Security Brief for ' . $date . ': Exploitation Signals and Response Focus',
+				'slug'        => 'cyber-security-brief-exploitation-signals-response-focus',
+				'categories'  => array( 'cybersecurity' ),
+				'excerpt'     => 'A practical daily security operations brief for exploit signals, detection review, and response planning.',
+				'summary'     => 'Daily security review works best when threat signals are converted into tasks that engineering, IT, and security can finish within the next operating window.',
+				'source_note' => 'Use the current CISA KEV and NVD feeds as source inputs, then map only relevant items to your environment instead of treating every advisory as equal.',
+				'checks'      => array(
+					'Check whether newly listed exploited products overlap with internet-facing services, VPN paths, identity platforms, or admin tooling.',
+					'Review detection coverage for authentication changes, new processes, public scanning, and unusual outbound traffic.',
+					'Separate confirmed exposure from inventory-only matches so urgent work does not become background noise.',
+					'Publish a short internal note with what changed, who owns action, and when the next update will happen.',
+				),
+				'sources'     => array(
+					array( 'CISA Known Exploited Vulnerabilities Catalog', 'https://www.cisa.gov/known-exploited-vulnerabilities-catalog' ),
+					array( 'NVD Vulnerability Search', 'https://nvd.nist.gov/vuln/search' ),
+				),
+				'next_step'   => 'Turn the top three relevant signals into detection, patch, or isolation work with named owners.',
+			),
+			array(
+				'title'       => 'Linux Security Brief for ' . $date . ': Kernel, Package, and Service Checks',
+				'slug'        => 'linux-security-brief-kernel-package-service-checks',
+				'categories'  => array( 'linux-administration' ),
+				'excerpt'     => 'A Linux admin checklist for daily security notices, kernel updates, exposed packages, and post-patch validation.',
+				'summary'     => 'Linux patch review should connect distribution notices with the servers, containers, and services that actually depend on affected packages.',
+				'source_note' => 'Ubuntu Security Notices and NVD recent records are useful daily inputs for kernel, service, and library review. Treat distribution guidance as the final source for package versions.',
+				'checks'      => array(
+					'Compare distro security notices with your running kernel and installed package versions.',
+					'Check reboot-required status, live patch status, loaded modules, and service restarts after updates.',
+					'Prioritize exposed SSH, web, DNS, database, and management hosts before lower-risk internal systems.',
+					'Document exceptions for hosts that cannot reboot, including the temporary control and next maintenance window.',
+				),
+				'sources'     => array(
+					array( 'Ubuntu Security Notices', 'https://ubuntu.com/security/notices' ),
+					array( 'NVD Vulnerability Search', 'https://nvd.nist.gov/vuln/search' ),
+				),
+				'next_step'   => 'Run a version and reboot-state check on production Linux groups before closing patch work.',
+			),
+			array(
+				'title'       => 'DevOps Security Brief for ' . $date . ': Pipelines, Secrets, and Build Dependencies',
+				'slug'        => 'devops-security-brief-pipelines-secrets-build-dependencies',
+				'categories'  => array( 'devops' ),
+				'excerpt'     => 'A daily DevOps security review for CI/CD secrets, package advisories, runners, and build isolation.',
+				'summary'     => 'DevOps risk often appears through build systems, dependency updates, automation tokens, and release workflows rather than a single server alert.',
+				'source_note' => 'Recent NVD and GitHub advisory feeds should be checked for dependency, package, and developer-tool vulnerabilities that affect active pipelines.',
+				'checks'      => array(
+					'Review dependency advisories for packages used by build jobs, deployment tooling, and internal services.',
+					'Rotate exposed or long-lived CI/CD tokens and remove secrets from logs, artifacts, and cached workspaces.',
+					'Confirm production deploy workflows require reviewed branches, scoped permissions, and isolated runners.',
+					'Block releases only for issues with reachable impact or clear exploitability in your pipeline context.',
+				),
+				'sources'     => array(
+					array( 'GitHub Advisory Database', 'https://github.com/advisories' ),
+					array( 'NVD Vulnerability Search', 'https://nvd.nist.gov/vuln/search' ),
+				),
+				'next_step'   => 'Pick one high-risk pipeline and verify secrets, runner isolation, and dependency scan results today.',
+			),
+			array(
+				'title'       => 'AI Security Brief for ' . $date . ': Prompt Injection, Connectors, and Data Boundaries',
+				'slug'        => 'ai-security-brief-prompt-injection-connectors-data-boundaries',
+				'categories'  => array( 'artificial-intelligence' ),
+				'excerpt'     => 'A daily AI security note for prompt injection, connector access, sensitive data, and model dependency review.',
+				'summary'     => 'AI security review should focus on the points where model output can trigger tools, expose private data, or influence business workflows.',
+				'source_note' => 'OWASP GenAI guidance and the NIST Generative AI profile provide useful control language for prompt injection, data leakage, and governance discussions.',
+				'checks'      => array(
+					'List which AI tools can access email, tickets, code, documents, cloud data, or production systems.',
+					'Add approval, logging, and scope controls around connector actions that change data or call external services.',
+					'Block credentials, private keys, customer records, and unreleased product information from prompts and logs.',
+					'Test prompt injection scenarios against retrieval and tool-use workflows before expanding access.',
+				),
+				'sources'     => array(
+					array( 'OWASP Top 10 for LLM Applications', 'https://genai.owasp.org/llm-top-10/' ),
+					array( 'NIST Generative AI Profile', 'https://www.nist.gov/itl/ai-risk-management-framework/generative-artificial-intelligence-profile' ),
+				),
+				'next_step'   => 'Review one AI workflow with connector access and document the data it can read, write, and expose.',
+			),
+			array(
+				'title'       => 'Tutorial: Run a 30-Minute Daily Vulnerability Standup on ' . $date,
+				'slug'        => 'tutorial-run-daily-vulnerability-standup',
+				'categories'  => array( 'tutorials' ),
+				'excerpt'     => 'A simple daily vulnerability standup format for teams that need faster ownership and cleaner patch decisions.',
+				'summary'     => 'A daily vulnerability standup does not need to be long. It needs a clear queue, owners, evidence, and decisions that reduce exposure before the next meeting.',
+				'source_note' => 'Use authoritative feeds such as CISA KEV, NVD, vendor bulletins, and distribution notices to decide what belongs in the agenda.',
+				'checks'      => array(
+					'Open with exploited and internet-facing items before normal severity sorting.',
+					'Assign one owner and one validation method for each action item.',
+					'Separate patch-now, mitigate-now, monitor, and accept-risk decisions.',
+					'End with a written list of assets still exposed and the next review time.',
+				),
+				'sources'     => array(
+					array( 'CISA Known Exploited Vulnerabilities Catalog', 'https://www.cisa.gov/known-exploited-vulnerabilities-catalog' ),
+					array( 'NVD Vulnerability Search', 'https://nvd.nist.gov/vuln/search' ),
+				),
+				'next_step'   => 'Use this agenda for the next patch review and keep the notes short enough that teams will actually update them.',
+			),
+			array(
+				'title'       => 'Cloud Security Brief for ' . $date . ': Bulletins, IAM, and Public Exposure',
+				'slug'        => 'cloud-security-brief-bulletins-iam-public-exposure',
+				'categories'  => array( 'cloud-security' ),
+				'excerpt'     => 'A cloud security review for provider bulletins, public assets, IAM risk, and logging coverage.',
+				'summary'     => 'Cloud security review should combine provider bulletins with your own exposure map. A bulletin matters most when affected services are public, privileged, or tied to sensitive data.',
+				'source_note' => 'AWS and Google Cloud security bulletin pages are useful starting points, but each team must confirm which managed services, images, and nodes are deployed.',
+				'checks'      => array(
+					'Review provider security bulletins against cloud accounts, projects, regions, and managed services in use.',
+					'Check public storage, exposed load balancers, admin ports, and broad security group rules.',
+					'Look for over-permissive IAM roles, long-lived keys, stale service accounts, and missing MFA paths.',
+					'Confirm audit logs are centralized outside the account or project they describe.',
+				),
+				'sources'     => array(
+					array( 'AWS Security Bulletins', 'https://aws.amazon.com/security/security-bulletins/' ),
+					array( 'Google Cloud Security Bulletins', 'https://cloud.google.com/support/bulletins' ),
+				),
+				'next_step'   => 'Select one production account and verify public exposure, privileged IAM, and log collection before the next deploy.',
+			),
+			array(
+				'title'       => 'Windows Security Brief for ' . $date . ': Update Review and Identity Controls',
+				'slug'        => 'windows-security-brief-update-review-identity-controls',
+				'categories'  => array( 'windows-security' ),
+				'excerpt'     => 'A Windows security review for Microsoft updates, privileged access, endpoint controls, and patch validation.',
+				'summary'     => 'Windows patch review should not stop at installing updates. Teams need to confirm affected products, restart state, privilege exposure, and endpoint control health.',
+				'source_note' => 'The Microsoft Security Update Guide is the primary source for Windows and Microsoft product security update details. Use it with asset inventory and EDR telemetry.',
+				'checks'      => array(
+					'Confirm which Microsoft products and versions are present across endpoints and servers.',
+					'Review privileged groups, service accounts, remote management paths, and stale local administrators.',
+					'Validate patch state after reboot, then verify EDR, tamper protection, and logging still report correctly.',
+					'Escalate systems with internet exposure, domain privilege, or sensitive data before normal endpoint queues.',
+				),
+				'sources'     => array(
+					array( 'Microsoft Security Update Guide', 'https://msrc.microsoft.com/update-guide' ),
+					array( 'NVD Vulnerability Search', 'https://nvd.nist.gov/vuln/search' ),
+				),
+				'next_step'   => 'Run a focused report for unpatched privileged Windows systems and give each exception a deadline.',
+			),
+			array(
+				'title'       => 'Network Security Brief for ' . $date . ': Edge Devices, DNS, and Segmentation',
+				'slug'        => 'network-security-brief-edge-devices-dns-segmentation',
+				'categories'  => array( 'network-security' ),
+				'excerpt'     => 'A daily network security review for exposed edge devices, DNS signals, firewall rules, and blast-radius reduction.',
+				'summary'     => 'Network teams should treat exploited edge-device advisories and suspicious DNS behavior as signals to verify reachable paths, not only device versions.',
+				'source_note' => 'CISA KEV and NVD records regularly include routers, NAS devices, VPN products, and network appliances. Confirm public exposure before assigning urgency.',
+				'checks'      => array(
+					'Compare edge-device advisories with firewall, VPN, NAS, router, and remote-management inventory.',
+					'Check whether management interfaces are reachable from the internet or lower-trust networks.',
+					'Review DNS logs for newly registered domains, tunneling patterns, and malware callback indicators.',
+					'Test segmentation between user, production, management, and backup networks.',
+				),
+				'sources'     => array(
+					array( 'CISA Known Exploited Vulnerabilities Catalog', 'https://www.cisa.gov/known-exploited-vulnerabilities-catalog' ),
+					array( 'NVD Vulnerability Search', 'https://nvd.nist.gov/vuln/search' ),
+				),
+				'next_step'   => 'Choose the most exposed edge service and verify patch state, management access, logs, and backup isolation.',
+			),
+			array(
+				'title'       => 'Web Security Brief for ' . $date . ': APIs, Headers, and WordPress Attack Surface',
+				'slug'        => 'web-security-brief-apis-headers-wordpress-attack-surface',
+				'categories'  => array( 'web-security' ),
+				'excerpt'     => 'A web security review for API authentication, browser security headers, WordPress updates, and public attack surface.',
+				'summary'     => 'Web security review should cover the application behavior users touch, the headers browsers enforce, and the CMS or framework components that can expose the site.',
+				'source_note' => 'Use OWASP API guidance with WordPress and NVD advisories to review authentication, authorization, patching, and browser protection basics.',
+				'checks'      => array(
+					'Confirm API routes enforce object-level authorization and rate limits on sensitive actions.',
+					'Check security headers for frame protection, content sniffing prevention, HSTS, and a compatible CSP.',
+					'Update WordPress core, themes, and plugins from trusted sources and remove unused extensions.',
+					'Review logs for failed logins, admin changes, plugin installs, and unusual request spikes.',
+				),
+				'sources'     => array(
+					array( 'OWASP API Security Project', 'https://owasp.org/API-Security/' ),
+					array( 'NVD Vulnerability Search', 'https://nvd.nist.gov/vuln/search' ),
+				),
+				'next_step'   => 'Run one public-page check and one authenticated API check, then fix the highest-impact gap first.',
+			),
+		);
+	}
+
+	/**
+	 * Build a daily, source-aware SEO briefing body.
+	 *
+	 * @param string               $summary Summary paragraph.
+	 * @param string[]             $checks Action checklist.
+	 * @param string               $source_note Source context.
+	 * @param array<int,string[]>   $sources Source title and URL pairs.
+	 * @param string               $next_step Closing paragraph.
+	 * @return string
+	 */
+	private static function daily_brief_content( string $summary, array $checks, string $source_note, array $sources, string $next_step ): string {
+		$content  = '<p>' . esc_html( $summary ) . '</p><!--more-->';
+		$content .= '<h2>What changed today</h2>';
+		$content .= '<p>' . esc_html( $source_note ) . '</p>';
+		$content .= '<h2>Why this matters</h2>';
+		$content .= '<p>Daily cybersecurity content should help teams move from awareness to action. The best review starts with trusted sources, filters those signals through your own asset inventory, and turns the remaining items into work that has owners and evidence.</p>';
+		$content .= '<h2>Action checklist</h2><ul>';
+
+		foreach ( $checks as $check ) {
+			$content .= '<li>' . esc_html( $check ) . '</li>';
+		}
+
+		$content .= '</ul>';
+		$content .= '<h2>Source watch</h2>';
+		$content .= '<p>Use these references as live source material, then validate affected versions and mitigations against vendor documentation before making production changes.</p>';
+		$content .= self::source_links_html( $sources );
+		$content .= '<h2>Next step</h2><p>' . esc_html( $next_step ) . '</p>';
+
+		return $content;
+	}
+
+	/**
+	 * Render source links for generated briefings.
+	 *
+	 * @param array<int,string[]> $sources Source title and URL pairs.
+	 * @return string
+	 */
+	private static function source_links_html( array $sources ): string {
+		$content = '<ul>';
+		foreach ( $sources as $source ) {
+			$title = (string) ( $source[0] ?? '' );
+			$url   = (string) ( $source[1] ?? '' );
+			if ( '' === $title || '' === $url ) {
+				continue;
+			}
+			$content .= '<li><a href="' . esc_url( $url ) . '" rel="nofollow noopener" target="_blank">' . esc_html( $title ) . '</a></li>';
+		}
+		$content .= '</ul>';
+
+		return $content;
+	}
+
+	/**
+	 * Check if a daily content date has already been seeded.
+	 *
+	 * @param string $date Site-local date in Y-m-d format.
+	 * @return bool
+	 */
+	private static function daily_date_seeded( string $date ): bool {
+		$dates = get_option( self::DAILY_SEEDED_OPTION, array() );
+		return is_array( $dates ) && in_array( $date, $dates, true );
+	}
+
+	/**
+	 * Mark a daily content date as seeded.
+	 *
+	 * @param string $date Site-local date in Y-m-d format.
+	 */
+	private static function mark_daily_date_seeded( string $date ): void {
+		$dates = get_option( self::DAILY_SEEDED_OPTION, array() );
+		$dates = is_array( $dates ) ? array_map( 'strval', $dates ) : array();
+		$dates[] = $date;
+		$dates = array_slice( array_values( array_unique( $dates ) ), -90 );
+
+		update_option( self::DAILY_SEEDED_OPTION, $dates, false );
+	}
+
+	/**
 	 * Build an SEO-friendly demo briefing body.
 	 *
 	 * @param string   $summary Summary paragraph.
@@ -1089,6 +1471,7 @@ final class Demo_Content {
 		$options = options();
 		$options['modules'] = array_merge( Plugin::default_modules(), is_array( $options['modules'] ?? null ) ? $options['modules'] : array() );
 		$options['modules']['cookie_consent'] = false;
+		$options['daily_content_enabled'] = true;
 		$options['newsletter_heading'] = __( 'Get the Daily Cyber Brief', 'infosecnexus' );
 		$options['newsletter_intro'] = __( 'Top stories, critical alerts, and expert analysis delivered to your inbox every morning.', 'infosecnexus' );
 		update_option( OPTION_KEY, $options, false );

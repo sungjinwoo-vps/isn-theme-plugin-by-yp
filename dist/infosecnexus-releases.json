@@ -1,7 +1,7 @@
 {
     "plugin":  {
                    "slug":  "infosecnexus-toolkit",
-                   "version":  "0.1.22",
+                   "version":  "0.1.23",
                    "plugin":  "infosecnexus-toolkit/infosecnexus-toolkit.php",
                    "requires_php":  "8.1",
                    "package":  "https://raw.githubusercontent.com/sungjinwoo-vps/isn-theme-plugin-by-yp/stable/dist/infosecnexus-toolkit.zip",
@@ -9,23 +9,23 @@
                    "homepage":  "https://infosecnexus.com/",
                    "last_updated":  "2026-07-22",
                    "sections":  {
-                                    "changelog":  "Keeps the legacy bridge version aligned with the permanent AdSense Auto ads loader release.",
+                                    "changelog":  "Keeps the legacy bridge version aligned with the theme daily content publisher release.",
                                     "description":  "Legacy bridge for older InfoSecNexus installs. Current toolkit features are bundled into the InfoSecNexus theme."
                                 },
                    "requires":  "6.5"
                },
-    "generatedAt":  "2026-07-22T09:33:48Z",
+    "generatedAt":  "2026-07-22T11:35:03Z",
     "manifestVersion":  1,
     "theme":  {
                   "slug":  "infosecnexus",
-                  "version":  "0.1.22",
+                  "version":  "0.1.23",
                   "requires_php":  "8.1",
                   "package":  "https://raw.githubusercontent.com/sungjinwoo-vps/isn-theme-plugin-by-yp/stable/dist/infosecnexus-theme.zip",
                   "tested":  "7.0",
                   "homepage":  "https://infosecnexus.com/",
                   "last_updated":  "2026-07-22",
                   "sections":  {
-                                   "changelog":  "Adds the permanent Google AdSense Auto ads loader for publisher ca-pub-6550916382964760 on every frontend page.",
+                                   "changelog":  "Adds duplicate-safe daily blog publishing across all categories and makes the homepage pull latest posts dynamically.",
                                    "description":  "Cybersecurity newsroom theme for InfoSecNexus."
                                },
                   "requires":  "6.5"

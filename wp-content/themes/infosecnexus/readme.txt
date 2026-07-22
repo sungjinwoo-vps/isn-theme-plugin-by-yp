@@ -3,7 +3,7 @@ Contributors: infosecnexus
 Requires at least: 6.5
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.1.22
+Stable tag: 0.1.23
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,6 +25,9 @@ InfoSecNexus WordPress Theme, Copyright 2026 InfoSecNexus.
 InfoSecNexus is distributed under the terms of the GNU GPL.
 
 == Changelog ==
+
+= 0.1.23 =
+Adds duplicate-safe daily blog publishing across all categories and makes the homepage pull latest posts dynamically.
 
 = 0.1.22 =
 Adds the permanent Google AdSense Auto ads loader for publisher ca-pub-6550916382964760 on every frontend page.

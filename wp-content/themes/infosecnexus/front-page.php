@@ -24,6 +24,28 @@ $linux_url    = \InfoSecNexus\Theme\Header_Builder\category_url( 'linux-administ
 $ai_url       = \InfoSecNexus\Theme\Header_Builder\category_url( 'artificial-intelligence' );
 $cloud_url    = \InfoSecNexus\Theme\Header_Builder\category_url( 'cloud-security' );
 
+$post_card_data = static function ( \WP_Post $post, string $severity = '', string $fallback_image = 'hero-shield.png' ): array {
+	$categories = get_the_category( $post->ID );
+	$category   = ! empty( $categories ) ? $categories[0]->name : __( 'Cyber Security', 'infosecnexus' );
+	$excerpt    = has_excerpt( $post->ID ) ? get_the_excerpt( $post ) : wp_trim_words( wp_strip_all_tags( (string) $post->post_content ), 18 );
+
+	return array(
+		'post_id'  => (int) $post->ID,
+		'title'    => get_the_title( $post ),
+		'excerpt'  => $excerpt,
+		'category' => $category,
+		'image'    => $fallback_image,
+		'url'      => get_permalink( $post ),
+		'date'     => get_the_date( '', $post ),
+		'read'     => sprintf(
+			/* translators: %d: reading time in minutes. */
+			_n( '%d min read', '%d min read', \InfoSecNexus\Theme\Template_Tags\reading_time( (int) $post->ID ), 'infosecnexus' ),
+			\InfoSecNexus\Theme\Template_Tags\reading_time( (int) $post->ID )
+		),
+		'severity' => $severity,
+	);
+};
+
 $hero_url = (string) \InfoSecNexus\Theme\Customizer\get_value( 'home_hero_button_url' );
 if ( '' === $hero_url ) {
 	$hero_url = $critical_url;
@@ -59,6 +81,25 @@ $latest_cards = array(
 	),
 );
 
+$side_stories = array(
+	array(
+		'title'    => __( 'CVE Triage Checklist for High-Risk Vulnerabilities', 'infosecnexus' ),
+		'excerpt'  => __( 'Rank exploited vulnerabilities by exposure, blast radius, and patch urgency.', 'infosecnexus' ),
+		'image'    => 'lock-chip.png',
+		'url'      => $post_url( 'cve-triage-checklist-high-risk-vulnerabilities', $critical_url ),
+		'date'     => __( 'July 21, 2026', 'infosecnexus' ),
+		'severity' => 'Critical',
+	),
+	array(
+		'title'    => __( 'Linux Kernel Patch Runbook for Production Servers', 'infosecnexus' ),
+		'excerpt'  => __( 'Plan reboot windows, module checks, validation, and visible exceptions.', 'infosecnexus' ),
+		'image'    => 'linux-circuit.png',
+		'url'      => $post_url( 'linux-kernel-patch-runbook-production-servers', $linux_url ),
+		'date'     => __( 'July 21, 2026', 'infosecnexus' ),
+		'severity' => 'High',
+	),
+);
+
 $cves = array(
 	array( 'id' => 'CVE Triage', 'name' => __( 'High-risk vulnerability review workflow', 'infosecnexus' ), 'severity' => 'Critical', 'score' => '9.8' ),
 	array( 'id' => 'Zero-Day', 'name' => __( 'First 24 hours response checklist', 'infosecnexus' ), 'severity' => 'High', 'score' => '8.6' ),
@@ -66,6 +107,64 @@ $cves = array(
 	array( 'id' => 'Patch Ops', 'name' => __( 'Owner, deadline, and verification tracking', 'infosecnexus' ), 'severity' => 'Medium', 'score' => '6.9' ),
 	array( 'id' => 'Exceptions', 'name' => __( 'Temporary mitigation review cadence', 'infosecnexus' ), 'severity' => 'Low', 'score' => '4.2' ),
 );
+
+$latest_posts = get_posts(
+	array(
+		'post_type'           => 'post',
+		'post_status'         => 'publish',
+		'posts_per_page'      => 3,
+		'ignore_sticky_posts' => true,
+	)
+);
+
+if ( ! empty( $latest_posts ) ) {
+	$latest_cards = array_map( $post_card_data, $latest_posts );
+}
+
+$critical_posts = get_posts(
+	array(
+		'post_type'           => 'post',
+		'post_status'         => 'publish',
+		'category_name'       => 'critical-cves',
+		'posts_per_page'      => 5,
+		'ignore_sticky_posts' => true,
+	)
+);
+
+if ( ! empty( $critical_posts ) ) {
+	$cves = array();
+	foreach ( $critical_posts as $index => $post ) {
+		$title  = get_the_title( $post );
+		$match  = array();
+		$label  = preg_match( '/CVE-\d{4}-\d+/i', $title, $match ) ? strtoupper( $match[0] ) : wp_trim_words( $title, 3, '' );
+		if ( false !== stripos( $title, 'Daily CVE Watch' ) ) {
+			$label = 'Daily CVE Watch';
+		}
+		$cves[] = array(
+			'id'       => $label,
+			'name'     => wp_trim_words( $title, 8, '' ),
+			'severity' => 0 === $index ? 'Critical' : ( $index < 3 ? 'High' : 'Medium' ),
+			'score'    => array( '9.8', '8.6', '8.1', '6.9', '5.8' )[ $index ] ?? '5.8',
+			'url'      => get_permalink( $post ),
+		);
+	}
+
+	$side_stories[0] = $post_card_data( $critical_posts[0], 'Critical', 'lock-chip.png' );
+}
+
+$linux_posts = get_posts(
+	array(
+		'post_type'           => 'post',
+		'post_status'         => 'publish',
+		'category_name'       => 'linux-administration',
+		'posts_per_page'      => 1,
+		'ignore_sticky_posts' => true,
+	)
+);
+
+if ( ! empty( $linux_posts ) ) {
+	$side_stories[1] = $post_card_data( $linux_posts[0], 'High', 'linux-circuit.png' );
+}
 ?>
 <main id="primary" class="site-main">
 	<section class="home-hero layout-wide-shell" aria-label="<?php esc_attr_e( 'Featured cybersecurity briefings', 'infosecnexus' ); ?>">
@@ -81,22 +180,20 @@ $cves = array(
 		</a>
 
 		<div class="home-hero__side">
-			<a class="side-story" href="<?php echo esc_url( $post_url( 'cve-triage-checklist-high-risk-vulnerabilities', $critical_url ) ); ?>">
-				<span class="side-story__copy">
-					<strong><?php esc_html_e( 'CVE Triage Checklist for High-Risk Vulnerabilities', 'infosecnexus' ); ?></strong>
-					<span><?php esc_html_e( 'Rank exploited vulnerabilities by exposure, blast radius, and patch urgency.', 'infosecnexus' ); ?></span>
-					<span class="story-meta"><?php esc_html_e( 'July 21, 2026', 'infosecnexus' ); ?> <span class="severity-tag severity-tag--critical"><?php esc_html_e( 'Critical', 'infosecnexus' ); ?></span></span>
-				</span>
-				<?php $asset_image( 'lock-chip.png', array( 'sizes' => '(max-width: 760px) calc(100vw - 32px), (max-width: 1180px) 38vw, 320px' ) ); ?>
-			</a>
-			<a class="side-story" href="<?php echo esc_url( $post_url( 'linux-kernel-patch-runbook-production-servers', $linux_url ) ); ?>">
-				<span class="side-story__copy">
-					<strong><?php esc_html_e( 'Linux Kernel Patch Runbook for Production Servers', 'infosecnexus' ); ?></strong>
-					<span><?php esc_html_e( 'Plan reboot windows, module checks, validation, and visible exceptions.', 'infosecnexus' ); ?></span>
-					<span class="story-meta"><?php esc_html_e( 'July 21, 2026', 'infosecnexus' ); ?> <span class="severity-tag severity-tag--high"><?php esc_html_e( 'High', 'infosecnexus' ); ?></span></span>
-				</span>
-				<?php $asset_image( 'linux-circuit.png', array( 'sizes' => '(max-width: 760px) calc(100vw - 32px), (max-width: 1180px) 38vw, 320px' ) ); ?>
-			</a>
+			<?php foreach ( $side_stories as $story ) : ?>
+				<a class="side-story" href="<?php echo esc_url( $story['url'] ); ?>">
+					<span class="side-story__copy">
+						<strong><?php echo esc_html( $story['title'] ); ?></strong>
+						<span><?php echo esc_html( $story['excerpt'] ); ?></span>
+						<span class="story-meta"><?php echo esc_html( $story['date'] ); ?> <span class="severity-tag severity-tag--<?php echo esc_attr( strtolower( $story['severity'] ) ); ?>"><?php echo esc_html( $story['severity'] ); ?></span></span>
+					</span>
+					<?php if ( ! empty( $story['post_id'] ) && has_post_thumbnail( (int) $story['post_id'] ) ) : ?>
+						<?php echo get_the_post_thumbnail( (int) $story['post_id'], 'medium_large', array( 'loading' => 'lazy', 'decoding' => 'async', 'sizes' => '(max-width: 760px) calc(100vw - 32px), (max-width: 1180px) 38vw, 320px' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+					<?php else : ?>
+						<?php $asset_image( $story['image'], array( 'sizes' => '(max-width: 760px) calc(100vw - 32px), (max-width: 1180px) 38vw, 320px' ) ); ?>
+					<?php endif; ?>
+				</a>
+			<?php endforeach; ?>
 		</div>
 	</section>
 
@@ -109,7 +206,11 @@ $cves = array(
 			<div class="latest-grid">
 				<?php foreach ( $latest_cards as $card ) : ?>
 					<a class="intel-card" href="<?php echo esc_url( $card['url'] ); ?>">
-						<?php $asset_image( $card['image'], array( 'sizes' => '(max-width: 760px) calc(100vw - 32px), (max-width: 1180px) 29vw, 320px' ) ); ?>
+						<?php if ( ! empty( $card['post_id'] ) && has_post_thumbnail( (int) $card['post_id'] ) ) : ?>
+							<?php echo get_the_post_thumbnail( (int) $card['post_id'], 'medium_large', array( 'loading' => 'lazy', 'decoding' => 'async', 'sizes' => '(max-width: 760px) calc(100vw - 32px), (max-width: 1180px) 29vw, 320px' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+						<?php else : ?>
+							<?php $asset_image( $card['image'], array( 'sizes' => '(max-width: 760px) calc(100vw - 32px), (max-width: 1180px) 29vw, 320px' ) ); ?>
+						<?php endif; ?>
 						<span class="intel-card__body">
 							<span class="category-chip"><?php echo esc_html( $card['category'] ); ?></span>
 							<strong><?php echo esc_html( $card['title'] ); ?></strong>
@@ -129,7 +230,7 @@ $cves = array(
 			</header>
 			<div class="cve-list">
 				<?php foreach ( $cves as $cve ) : ?>
-					<a class="cve-row" href="<?php echo esc_url( $critical_url ); ?>">
+					<a class="cve-row" href="<?php echo esc_url( $cve['url'] ?? $critical_url ); ?>">
 						<span>
 							<strong><?php echo esc_html( $cve['id'] ); ?></strong>
 							<small><?php echo esc_html( $cve['name'] ); ?></small>

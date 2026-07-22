@@ -74,6 +74,7 @@ final class Plugin {
 					'maintenance_enabled' => false,
 					'updates_enabled'     => true,
 					'update_manifest_url' => self::DEFAULT_MANIFEST_URL,
+					'daily_content_enabled' => true,
 					'adsense_enabled'     => false,
 					'adsense_side_rails'  => true,
 					'adsense_post_gate'   => true,
