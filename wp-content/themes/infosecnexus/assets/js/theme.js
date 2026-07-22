@@ -221,6 +221,29 @@
     });
   });
 
+  document.querySelectorAll('[data-post-unlock]').forEach((gate) => {
+    const button = gate.querySelector('[data-post-unlock-button]');
+    const content = gate.querySelector('[data-post-unlock-content]');
+
+    if (!button || !content) {
+      return;
+    }
+
+    button.addEventListener('click', () => {
+      content.hidden = false;
+      gate.classList.add('is-unlocked');
+      content.querySelectorAll('h2').forEach((heading, index) => {
+        if (!heading.id) {
+          heading.id = `section-unlocked-${index + 1}`;
+        }
+      });
+      const firstHeading = content.querySelector('h2, h3, p');
+      if (firstHeading) {
+        firstHeading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+
   const scrollTop = document.querySelector('[data-scroll-top]');
   if (scrollTop) {
     scrollTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));

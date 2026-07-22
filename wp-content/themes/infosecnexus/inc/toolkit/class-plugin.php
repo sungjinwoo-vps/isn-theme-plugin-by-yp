@@ -74,6 +74,13 @@ final class Plugin {
 					'maintenance_enabled' => false,
 					'updates_enabled'     => true,
 					'update_manifest_url' => self::DEFAULT_MANIFEST_URL,
+					'adsense_enabled'     => false,
+					'adsense_side_rails'  => true,
+					'adsense_post_gate'   => true,
+					'adsense_client'      => '',
+					'adsense_left_slot'   => '',
+					'adsense_right_slot'  => '',
+					'adsense_inarticle_slot' => '',
 				),
 				'',
 				false

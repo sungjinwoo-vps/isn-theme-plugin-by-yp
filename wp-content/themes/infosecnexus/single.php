@@ -40,9 +40,7 @@ if ( \InfoSecNexus\Theme\Elementor\render_location( 'single' ) ) {
 				</aside>
 				<div class="entry-content-wrap">
 					<?php \InfoSecNexus\Theme\Template_Tags\featured_video(); ?>
-					<div class="entry-content" data-enhance-headings>
-						<?php the_content(); ?>
-					</div>
+					<?php \InfoSecNexus\Theme\AdSense\render_gated_post_content(); ?>
 					<?php
 					wp_link_pages(
 						array(

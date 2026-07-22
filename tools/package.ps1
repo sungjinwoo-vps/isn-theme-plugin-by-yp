@@ -104,7 +104,7 @@ $releaseManifest = @{
         last_updated = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd")
         sections = @{
             description = "Cybersecurity newsroom theme for InfoSecNexus."
-            changelog = "Restores visible WordPress theme updates with a newer release version, moves the updater to GitHub latest releases, fixes mobile submenu hover behavior, and renames Topics to Blogs."
+            changelog = "Adds configurable AdSense slots, desktop sticky side ad rails, and a compliant post-only Read More gate with an in-article ad position."
         }
     }
     plugin = @{
@@ -119,7 +119,7 @@ $releaseManifest = @{
         last_updated = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd")
         sections = @{
             description = "Legacy bridge for older InfoSecNexus installs. Current toolkit features are bundled into the InfoSecNexus theme."
-            changelog = "Keeps the legacy bridge updater aligned with the latest release manifest."
+            changelog = "Keeps the legacy bridge version aligned with the theme AdSense release."
         }
     }
 }

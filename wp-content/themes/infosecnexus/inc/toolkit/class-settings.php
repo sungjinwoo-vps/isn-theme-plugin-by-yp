@@ -73,6 +73,13 @@ final class Settings {
 		$output['maintenance_enabled'] = ! empty( $input['maintenance_enabled'] );
 		$output['updates_enabled']     = ! empty( $input['updates_enabled'] );
 		$output['update_manifest_url'] = esc_url_raw( (string) ( $input['update_manifest_url'] ?? self::default_manifest_url() ) );
+		$output['adsense_enabled']     = ! empty( $input['adsense_enabled'] );
+		$output['adsense_side_rails']  = ! empty( $input['adsense_side_rails'] );
+		$output['adsense_post_gate']   = ! empty( $input['adsense_post_gate'] );
+		$output['adsense_client']      = self::sanitize_adsense_client( (string) ( $input['adsense_client'] ?? '' ) );
+		$output['adsense_left_slot']   = self::sanitize_adsense_slot( (string) ( $input['adsense_left_slot'] ?? '' ) );
+		$output['adsense_right_slot']  = self::sanitize_adsense_slot( (string) ( $input['adsense_right_slot'] ?? '' ) );
+		$output['adsense_inarticle_slot'] = self::sanitize_adsense_slot( (string) ( $input['adsense_inarticle_slot'] ?? '' ) );
 
 		$custom_css = (string) ( $input['custom_css'] ?? '' );
 		$custom_js  = (string) ( $input['custom_js'] ?? '' );
@@ -85,6 +92,26 @@ final class Settings {
 		}
 
 		return $output;
+	}
+
+	/**
+	 * Sanitize an AdSense client ID.
+	 *
+	 * @param string $client Raw client ID.
+	 */
+	private static function sanitize_adsense_client( string $client ): string {
+		$client = trim( sanitize_text_field( $client ) );
+		return preg_match( '/^ca-pub-\d{10,}$/', $client ) ? $client : '';
+	}
+
+	/**
+	 * Sanitize an AdSense slot ID.
+	 *
+	 * @param string $slot Raw slot ID.
+	 */
+	private static function sanitize_adsense_slot( string $slot ): string {
+		$slot = preg_replace( '/\D+/', '', $slot );
+		return is_string( $slot ) ? $slot : '';
 	}
 
 	/**
@@ -137,6 +164,56 @@ final class Settings {
 							<p class="description"><?php esc_html_e( 'Default: https://github.com/sungjinwoo-vps/isn-theme-plugin-by-yp/releases/latest/download/infosecnexus-releases.json', 'infosecnexus' ); ?></p>
 							<p><a class="button" href="<?php echo esc_url( \InfoSecNexus\Theme\Updater\check_now_url() ); ?>"><?php esc_html_e( 'Check Theme Updates Now', 'infosecnexus' ); ?></a></p>
 						</td>
+					</tr>
+				</table>
+				<h2><?php esc_html_e( 'Google AdSense', 'infosecnexus' ); ?></h2>
+				<p><?php esc_html_e( 'Add your approved AdSense publisher and ad unit IDs. The theme will render labelled ad spaces only after valid IDs are saved.', 'infosecnexus' ); ?></p>
+				<table class="form-table" role="presentation">
+					<tr>
+						<th scope="row"><?php esc_html_e( 'Enable AdSense', 'infosecnexus' ); ?></th>
+						<td>
+							<label>
+								<input type="checkbox" name="<?php echo esc_attr( OPTION_KEY ); ?>[adsense_enabled]" value="1" <?php checked( (bool) option( 'adsense_enabled', false ) ); ?>>
+								<?php esc_html_e( 'Render configured AdSense slots on the frontend.', 'infosecnexus' ); ?>
+							</label>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="isnx-adsense-client"><?php esc_html_e( 'Publisher ID', 'infosecnexus' ); ?></label></th>
+						<td>
+							<input id="isnx-adsense-client" class="regular-text code" placeholder="ca-pub-1234567890123456" name="<?php echo esc_attr( OPTION_KEY ); ?>[adsense_client]" value="<?php echo esc_attr( (string) option( 'adsense_client', '' ) ); ?>">
+							<p class="description"><?php esc_html_e( 'Use the ca-pub ID from your AdSense account.', 'infosecnexus' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><?php esc_html_e( 'Sticky Side Ads', 'infosecnexus' ); ?></th>
+						<td>
+							<label>
+								<input type="checkbox" name="<?php echo esc_attr( OPTION_KEY ); ?>[adsense_side_rails]" value="1" <?php checked( (bool) option( 'adsense_side_rails', true ) ); ?>>
+								<?php esc_html_e( 'Show left and right desktop ad rails when there is enough screen width.', 'infosecnexus' ); ?>
+							</label>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="isnx-adsense-left-slot"><?php esc_html_e( 'Left Rail Slot ID', 'infosecnexus' ); ?></label></th>
+						<td><input id="isnx-adsense-left-slot" class="regular-text code" name="<?php echo esc_attr( OPTION_KEY ); ?>[adsense_left_slot]" value="<?php echo esc_attr( (string) option( 'adsense_left_slot', '' ) ); ?>"></td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="isnx-adsense-right-slot"><?php esc_html_e( 'Right Rail Slot ID', 'infosecnexus' ); ?></label></th>
+						<td><input id="isnx-adsense-right-slot" class="regular-text code" name="<?php echo esc_attr( OPTION_KEY ); ?>[adsense_right_slot]" value="<?php echo esc_attr( (string) option( 'adsense_right_slot', '' ) ); ?>"></td>
+					</tr>
+					<tr>
+						<th scope="row"><?php esc_html_e( 'Post Read More Gate', 'infosecnexus' ); ?></th>
+						<td>
+							<label>
+								<input type="checkbox" name="<?php echo esc_attr( OPTION_KEY ); ?>[adsense_post_gate]" value="1" <?php checked( (bool) option( 'adsense_post_gate', true ) ); ?>>
+								<?php esc_html_e( 'Show an in-post ad slot before the Read More unlock button on blog posts.', 'infosecnexus' ); ?>
+							</label>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="isnx-adsense-inarticle-slot"><?php esc_html_e( 'In-Post Slot ID', 'infosecnexus' ); ?></label></th>
+						<td><input id="isnx-adsense-inarticle-slot" class="regular-text code" name="<?php echo esc_attr( OPTION_KEY ); ?>[adsense_inarticle_slot]" value="<?php echo esc_attr( (string) option( 'adsense_inarticle_slot', '' ) ); ?>"></td>
 					</tr>
 				</table>
 				<h2><?php esc_html_e( 'Modules', 'infosecnexus' ); ?></h2>
