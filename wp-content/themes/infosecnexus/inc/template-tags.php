@@ -69,12 +69,74 @@ function asset_url( string $file ): string {
 }
 
 /**
- * Return a category-aware fallback image URL.
+ * Return a responsive srcset for theme image assets.
+ *
+ * @param string $file Asset file name.
+ * @return string
+ */
+function asset_srcset( string $file ): string {
+	$base  = (string) preg_replace( '/\.(png|jpg|jpeg|webp)$/i', '', $file );
+	$items = array();
+	foreach ( array( 480, 960, 1280 ) as $width ) {
+		$candidate = $base . '-' . $width . '.webp';
+		if ( file_exists( get_template_directory() . '/assets/images/' . $candidate ) ) {
+			$items[] = esc_url( get_template_directory_uri() . '/assets/images/' . $candidate ) . ' ' . $width . 'w';
+		}
+	}
+
+	$full = $base . '.webp';
+	if ( file_exists( get_template_directory() . '/assets/images/' . $full ) ) {
+		$items[] = esc_url( get_template_directory_uri() . '/assets/images/' . $full ) . ' 1672w';
+	}
+
+	return implode( ', ', $items );
+}
+
+/**
+ * Render a responsive theme image.
+ *
+ * @param string              $file  Asset file name.
+ * @param array<string,mixed> $attrs Image attributes.
+ * @return string
+ */
+function asset_image( string $file, array $attrs = array() ): string {
+	$attrs = array_merge(
+		array(
+			'alt'      => '',
+			'width'    => '1672',
+			'height'   => '941',
+			'loading'  => 'lazy',
+			'decoding' => 'async',
+			'sizes'    => '(max-width: 760px) calc(100vw - 32px), 480px',
+		),
+		$attrs
+	);
+
+	$attrs['src'] = asset_url( $file );
+	$srcset       = asset_srcset( $file );
+	if ( '' !== $srcset ) {
+		$attrs['srcset'] = $srcset;
+	}
+
+	$output = '<img';
+	foreach ( $attrs as $name => $value ) {
+		if ( false === $value || null === $value || ( '' === $value && 'alt' !== $name ) ) {
+			continue;
+		}
+		$output .= ' ' . esc_attr( (string) $name ) . '="' . esc_attr( (string) $value ) . '"';
+	}
+	$output .= '>';
+
+	return $output;
+}
+
+/**
+ * Return a category-aware fallback image file.
  *
  * @param int|null $post_id Post ID.
  * @return string
  */
-function fallback_image_url( ?int $post_id = null ): string {
+function fallback_image_file( ?int $post_id = null ): string {
 	if ( ! $post_id ) {
 		$post_id = get_the_ID();
 	}
@@ -87,22 +149,43 @@ function fallback_image_url( ?int $post_id = null ): string {
 	);
 
 	if ( in_array( 'critical-cves', $slugs, true ) ) {
-		return asset_url( 'lock-chip.png' );
+		return 'lock-chip.png';
 	}
 
 	if ( in_array( 'linux-administration', $slugs, true ) || in_array( 'devops', $slugs, true ) ) {
-		return asset_url( 'linux-circuit.png' );
+		return 'linux-circuit.png';
 	}
 
 	if ( in_array( 'artificial-intelligence', $slugs, true ) ) {
-		return asset_url( 'data-center.png' );
+		return 'data-center.png';
 	}
 
 	if ( in_array( 'cybersecurity', $slugs, true ) ) {
-		return asset_url( 'cloud-security.png' );
+		return 'cloud-security.png';
 	}
 
-	return asset_url( 'hero-shield.png' );
+	return 'hero-shield.png';
+}
+
+/**
+ * Return a category-aware fallback image URL.
+ *
+ * @param int|null $post_id Post ID.
+ * @return string
+ */
+function fallback_image_url( ?int $post_id = null ): string {
+	return asset_url( fallback_image_file( $post_id ) );
+}
+
+/**
+ * Render a category-aware fallback image.
+ *
+ * @param int|null            $post_id Post ID.
+ * @param array<string,mixed> $attrs   Image attributes.
+ * @return string
+ */
+function fallback_image( ?int $post_id = null, array $attrs = array() ): string {
+	return asset_image( fallback_image_file( $post_id ), $attrs );
 }
 
 /**
@@ -125,14 +208,13 @@ function pagination(): void {
  * @param string $variant Card variant.
  */
 function post_card( string $variant = 'grid' ): void {
-	$image_url = fallback_image_url();
 	?>
 	<article id="post-<?php the_ID(); ?>" <?php post_class( 'post-card post-card--' . sanitize_html_class( $variant ) ); ?>>
 		<a class="post-card__image" href="<?php the_permalink(); ?>" aria-label="<?php the_title_attribute(); ?>">
 			<?php if ( has_post_thumbnail() ) : ?>
-				<?php the_post_thumbnail( 'large', array( 'loading' => 'lazy' ) ); ?>
+				<?php the_post_thumbnail( 'medium_large', array( 'loading' => 'lazy', 'decoding' => 'async', 'sizes' => '(max-width: 760px) calc(100vw - 32px), (max-width: 1180px) 31vw, 360px' ) ); ?>
 			<?php else : ?>
-				<img src="<?php echo esc_url( $image_url ); ?>" alt="" loading="lazy">
+				<?php echo fallback_image( null, array( 'sizes' => '(max-width: 760px) calc(100vw - 32px), (max-width: 1180px) 31vw, 360px' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 			<?php endif; ?>
 		</a>
 		<div class="post-card__body">

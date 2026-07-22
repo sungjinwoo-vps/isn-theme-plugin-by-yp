@@ -27,9 +27,9 @@ if ( \InfoSecNexus\Theme\Elementor\render_location( 'single' ) ) {
 				</div>
 				<div class="single-hero__media">
 					<?php if ( has_post_thumbnail() ) : ?>
-						<?php the_post_thumbnail( 'full' ); ?>
+						<?php the_post_thumbnail( 'large', array( 'loading' => 'eager', 'fetchpriority' => 'high', 'decoding' => 'async', 'sizes' => '(max-width: 1000px) calc(100vw - 32px), 920px' ) ); ?>
 					<?php else : ?>
-						<img src="<?php echo esc_url( \InfoSecNexus\Theme\Template_Tags\fallback_image_url() ); ?>" alt="">
+						<?php echo \InfoSecNexus\Theme\Template_Tags\fallback_image( null, array( 'loading' => 'eager', 'fetchpriority' => 'high', 'sizes' => '(max-width: 1000px) calc(100vw - 32px), 920px' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 					<?php endif; ?>
 				</div>
 			</header>

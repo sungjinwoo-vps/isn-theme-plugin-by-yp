@@ -14,6 +14,7 @@ namespace InfoSecNexus\Theme\Security_Headers;
  */
 function bootstrap(): void {
 	add_filter( 'wp_headers', __NAMESPACE__ . '\\headers' );
+	add_action( 'send_headers', __NAMESPACE__ . '\\send_security_headers', 9 );
 }
 
 /**
@@ -23,15 +24,43 @@ function bootstrap(): void {
  * @return array<string,string>
  */
 function headers( array $headers ): array {
-	if ( is_admin() || is_customize_preview() || wp_doing_ajax() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
+	if ( should_skip_headers() ) {
 		return $headers;
 	}
 
-	$headers['X-Frame-Options']        = 'DENY';
-	$headers['X-Content-Type-Options'] = 'nosniff';
-	$headers['Referrer-Policy']        = 'strict-origin-when-cross-origin';
-	$headers['Permissions-Policy']     = 'camera=(), microphone=(), geolocation=(), payment=(), usb=()';
+	return array_merge( $headers, security_headers() );
+}
 
+/**
+ * Send the same headers for WordPress responses that bypass wp_headers.
+ */
+function send_security_headers(): void {
+	if ( headers_sent() || should_skip_headers() ) {
+		return;
+	}
+
+	foreach ( security_headers() as $name => $value ) {
+		header( $name . ': ' . $value, true );
+	}
+}
+
+/**
+ * Whether frontend security headers should be skipped.
+ */
+function should_skip_headers(): bool {
+	if ( is_admin() || is_customize_preview() || wp_doing_ajax() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
+		return true;
+	}
+
+	return false;
+}
+
+/**
+ * Build the active security header set.
+ *
+ * @return array<string,string>
+ */
+function security_headers(): array {
 	$host        = (string) ( $_SERVER['HTTP_HOST'] ?? '' );
 	$is_local   = (bool) preg_match( '/^(localhost|127\.0\.0\.1)(:\d+)?$/', $host );
 	$dev_source = $is_local ? ' http://localhost:* http://127.0.0.1:*' : '';
@@ -49,15 +78,44 @@ function headers( array $headers ): array {
 		"form-action 'self'",
 	);
 
-	if ( is_ssl() ) {
+	if ( request_is_https() ) {
 		$csp[] = 'upgrade-insecure-requests';
 	}
 
-	$headers['Content-Security-Policy'] = implode( '; ', $csp );
+	$headers = array(
+		'X-Frame-Options'           => 'DENY',
+		'X-Content-Type-Options'    => 'nosniff',
+		'Referrer-Policy'           => 'strict-origin-when-cross-origin',
+		'Permissions-Policy'        => 'camera=(), microphone=(), geolocation=(), payment=(), usb=()',
+		'Content-Security-Policy'   => implode( '; ', $csp ),
+		'X-Permitted-Cross-Domain-Policies' => 'none',
+	);
 
-	if ( is_ssl() ) {
-		$headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains';
+	if ( request_is_https() ) {
+		$headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload';
 	}
 
 	return $headers;
+}
+
+/**
+ * Detect HTTPS reliably behind reverse proxies and CDN layers.
+ */
+function request_is_https(): bool {
+	if ( is_ssl() ) {
+		return true;
+	}
+
+	$forwarded_proto = strtolower( (string) ( $_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '' ) );
+	if ( 'https' === $forwarded_proto ) {
+		return true;
+	}
+
+	$forwarded_ssl = strtolower( (string) ( $_SERVER['HTTP_X_FORWARDED_SSL'] ?? '' ) );
+	if ( 'on' === $forwarded_ssl ) {
+		return true;
+	}
+
+	$cf_visitor = (string) ( $_SERVER['HTTP_CF_VISITOR'] ?? '' );
+	return str_contains( $cf_visitor, '"scheme":"https"' );
 }

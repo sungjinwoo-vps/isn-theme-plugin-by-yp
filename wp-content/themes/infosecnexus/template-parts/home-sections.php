@@ -43,7 +43,7 @@ $sections = array(
 				<div class="featured-story__excerpt"><?php the_excerpt(); ?></div>
 			</div>
 			<?php if ( has_post_thumbnail() ) : ?>
-				<a class="featured-story__media" href="<?php the_permalink(); ?>"><?php the_post_thumbnail( 'large' ); ?></a>
+				<a class="featured-story__media" href="<?php the_permalink(); ?>"><?php the_post_thumbnail( 'large', array( 'loading' => 'eager', 'fetchpriority' => 'high', 'decoding' => 'async', 'sizes' => '(max-width: 1000px) calc(100vw - 32px), 760px' ) ); ?></a>
 			<?php endif; ?>
 			<?php
 		endwhile;

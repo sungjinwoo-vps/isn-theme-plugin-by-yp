@@ -9,13 +9,8 @@ declare(strict_types=1);
 
 get_header();
 
-$asset = static function ( string $file ): string {
-	$webp = preg_replace( '/\.(png|jpg|jpeg)$/', '.webp', $file );
-	if ( is_string( $webp ) && file_exists( get_template_directory() . '/assets/images/' . $webp ) ) {
-		$file = $webp;
-	}
-
-	return get_template_directory_uri() . '/assets/images/' . $file;
+$asset_image = static function ( string $file, array $attrs = array() ): void {
+	echo \InfoSecNexus\Theme\Template_Tags\asset_image( $file, $attrs ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 };
 
 $post_url = static function ( string $slug, string $fallback ): string {
@@ -39,7 +34,7 @@ $latest_cards = array(
 		'title'    => __( 'Security Operations Metrics That Actually Reduce Risk', 'infosecnexus' ),
 		'excerpt'  => __( 'Track owner, exposure, age, and verification so security work becomes measurable.', 'infosecnexus' ),
 		'category' => __( 'Cyber Security', 'infosecnexus' ),
-		'image'    => $asset( 'hero-shield.png' ),
+		'image'    => 'hero-shield.png',
 		'url'      => $post_url( 'security-operations-metrics-that-reduce-risk', $cyber_url ),
 		'date'     => __( 'July 21, 2026', 'infosecnexus' ),
 		'read'     => __( '2 min read', 'infosecnexus' ),
@@ -48,7 +43,7 @@ $latest_cards = array(
 		'title'    => __( 'Cloud Storage Exposure Checklist', 'infosecnexus' ),
 		'excerpt'  => __( 'Public access, encryption, logging, retention, and ownership checks for cloud teams.', 'infosecnexus' ),
 		'category' => __( 'Cloud Security', 'infosecnexus' ),
-		'image'    => $asset( 'cloud-security.png' ),
+		'image'    => 'cloud-security.png',
 		'url'      => $post_url( 'cloud-storage-exposure-checklist', $cloud_url ),
 		'date'     => __( 'July 21, 2026', 'infosecnexus' ),
 		'read'     => __( '2 min read', 'infosecnexus' ),
@@ -57,7 +52,7 @@ $latest_cards = array(
 		'title'    => __( 'AI Data Leakage Controls for Internal Tools', 'infosecnexus' ),
 		'excerpt'  => __( 'Reduce prompt, file, connector, retrieval, and logging exposure in AI workflows.', 'infosecnexus' ),
 		'category' => __( 'AI Security', 'infosecnexus' ),
-		'image'    => $asset( 'data-center.png' ),
+		'image'    => 'data-center.png',
 		'url'      => $post_url( 'ai-data-leakage-controls-internal-tools', $ai_url ),
 		'date'     => __( 'July 21, 2026', 'infosecnexus' ),
 		'read'     => __( '2 min read', 'infosecnexus' ),
@@ -75,7 +70,7 @@ $cves = array(
 <main id="primary" class="site-main">
 	<section class="home-hero layout-wide-shell" aria-label="<?php esc_attr_e( 'Featured cybersecurity briefings', 'infosecnexus' ); ?>">
 		<a class="home-hero__lead" href="<?php echo esc_url( $hero_url ); ?>">
-			<img src="<?php echo esc_url( $asset( 'hero-shield.png' ) ); ?>" alt="" loading="eager">
+			<?php $asset_image( 'hero-shield.png', array( 'loading' => 'eager', 'fetchpriority' => 'high', 'sizes' => '(max-width: 760px) calc(100vw - 32px), (max-width: 1180px) 64vw, 860px' ) ); ?>
 			<span class="home-hero__shade" aria-hidden="true"></span>
 			<span class="home-hero__content">
 				<span class="severity-pill severity-pill--critical"><?php echo esc_html( (string) \InfoSecNexus\Theme\Customizer\get_value( 'home_hero_badge' ) ); ?></span>
@@ -92,7 +87,7 @@ $cves = array(
 					<span><?php esc_html_e( 'Rank exploited vulnerabilities by exposure, blast radius, and patch urgency.', 'infosecnexus' ); ?></span>
 					<span class="story-meta"><?php esc_html_e( 'July 21, 2026', 'infosecnexus' ); ?> <span class="severity-tag severity-tag--critical"><?php esc_html_e( 'Critical', 'infosecnexus' ); ?></span></span>
 				</span>
-				<img src="<?php echo esc_url( $asset( 'lock-chip.png' ) ); ?>" alt="" loading="lazy">
+				<?php $asset_image( 'lock-chip.png', array( 'sizes' => '(max-width: 760px) calc(100vw - 32px), (max-width: 1180px) 38vw, 320px' ) ); ?>
 			</a>
 			<a class="side-story" href="<?php echo esc_url( $post_url( 'linux-kernel-patch-runbook-production-servers', $linux_url ) ); ?>">
 				<span class="side-story__copy">
@@ -100,7 +95,7 @@ $cves = array(
 					<span><?php esc_html_e( 'Plan reboot windows, module checks, validation, and visible exceptions.', 'infosecnexus' ); ?></span>
 					<span class="story-meta"><?php esc_html_e( 'July 21, 2026', 'infosecnexus' ); ?> <span class="severity-tag severity-tag--high"><?php esc_html_e( 'High', 'infosecnexus' ); ?></span></span>
 				</span>
-				<img src="<?php echo esc_url( $asset( 'linux-circuit.png' ) ); ?>" alt="" loading="lazy">
+				<?php $asset_image( 'linux-circuit.png', array( 'sizes' => '(max-width: 760px) calc(100vw - 32px), (max-width: 1180px) 38vw, 320px' ) ); ?>
 			</a>
 		</div>
 	</section>
@@ -114,7 +109,7 @@ $cves = array(
 			<div class="latest-grid">
 				<?php foreach ( $latest_cards as $card ) : ?>
 					<a class="intel-card" href="<?php echo esc_url( $card['url'] ); ?>">
-						<img src="<?php echo esc_url( $card['image'] ); ?>" alt="" loading="lazy">
+						<?php $asset_image( $card['image'], array( 'sizes' => '(max-width: 760px) calc(100vw - 32px), (max-width: 1180px) 29vw, 320px' ) ); ?>
 						<span class="intel-card__body">
 							<span class="category-chip"><?php echo esc_html( $card['category'] ); ?></span>
 							<strong><?php echo esc_html( $card['title'] ); ?></strong>

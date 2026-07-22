@@ -87,11 +87,11 @@ final class Related_Posts {
 	private static function render_image( int $post_id ): void {
 		echo '<a class="post-card__image" href="' . esc_url( get_permalink( $post_id ) ) . '" aria-label="' . esc_attr( get_the_title( $post_id ) ) . '">';
 		if ( has_post_thumbnail( $post_id ) ) {
-			echo get_the_post_thumbnail( $post_id, 'large', array( 'loading' => 'lazy' ) );
+			echo get_the_post_thumbnail( $post_id, 'medium_large', array( 'loading' => 'lazy', 'decoding' => 'async', 'sizes' => '(max-width: 760px) calc(100vw - 32px), (max-width: 1180px) 31vw, 360px' ) );
 		} else {
 			$image_url = self::fallback_image_url( $post_id );
 			if ( $image_url ) {
-				echo '<img src="' . esc_url( $image_url ) . '" alt="" loading="lazy">';
+				echo '<img src="' . esc_url( $image_url ) . '" alt="" loading="lazy" decoding="async">';
 			}
 		}
 		echo '</a>';

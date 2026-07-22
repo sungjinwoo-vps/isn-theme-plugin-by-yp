@@ -54,7 +54,7 @@ final class Featured_Story extends Query_Widget {
 			echo '<article class="isnx-featured-widget">';
 			echo '<div><h2><a href="' . esc_url( get_permalink() ) . '">' . esc_html( get_the_title() ) . '</a></h2><p>' . esc_html( wp_trim_words( get_the_excerpt(), 32 ) ) . '</p></div>';
 			if ( has_post_thumbnail() ) {
-				echo get_the_post_thumbnail( get_the_ID(), 'large', array( 'loading' => 'lazy' ) );
+				echo get_the_post_thumbnail( get_the_ID(), 'large', array( 'loading' => 'lazy', 'decoding' => 'async', 'sizes' => '(max-width: 1000px) calc(100vw - 32px), 760px' ) );
 			}
 			echo '</article>';
 		}

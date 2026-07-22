@@ -102,7 +102,7 @@ abstract class Query_Widget extends Widget_Base {
 			$query->the_post();
 			echo '<article class="isnx-widget-card">';
 			if ( has_post_thumbnail() ) {
-				echo '<a class="isnx-widget-card__image" href="' . esc_url( get_permalink() ) . '">' . get_the_post_thumbnail( get_the_ID(), 'medium_large', array( 'loading' => 'lazy' ) ) . '</a>';
+				echo '<a class="isnx-widget-card__image" href="' . esc_url( get_permalink() ) . '">' . get_the_post_thumbnail( get_the_ID(), 'medium_large', array( 'loading' => 'lazy', 'decoding' => 'async', 'sizes' => '(max-width: 760px) calc(100vw - 32px), 360px' ) ) . '</a>';
 			}
 			echo '<h3><a href="' . esc_url( get_permalink() ) . '">' . esc_html( get_the_title() ) . '</a></h3>';
 			echo '<time datetime="' . esc_attr( get_the_date( DATE_W3C ) ) . '">' . esc_html( get_the_date() ) . '</time>';
