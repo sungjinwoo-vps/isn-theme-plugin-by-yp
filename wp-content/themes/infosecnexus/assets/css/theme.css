@@ -7,7 +7,7 @@
   --isnx-soft: #f6f9fe;
   --isnx-surface: #fff;
   --isnx-border: #dce6f5;
-  --isnx-red: #ee162a;
+  --isnx-red: #d80b23;
   --isnx-orange: #ff7a1a;
   --isnx-yellow: #ffc928;
   --isnx-green: #17b45b;
@@ -804,6 +804,7 @@ textarea::placeholder {
 }
 
 .severity-tag--high {
+  color: #171100;
   background: var(--isnx-orange);
 }
 
@@ -1206,7 +1207,7 @@ textarea::placeholder {
   align-items: center;
   gap: 0.35rem;
   padding: 0.45rem 0.75rem;
-  color: var(--isnx-blue);
+  color: #075ed8;
   font-weight: 850;
   text-decoration: none;
   background: #eef5ff;
@@ -2612,6 +2613,16 @@ textarea::placeholder {
 
 :root[data-color-mode="dark"] .severity-tag--medium {
   color: #211800;
+}
+
+:root[data-color-mode="dark"] .side-story .severity-tag,
+.side-story .severity-tag {
+  color: #fff;
+}
+
+:root[data-color-mode="dark"] .side-story .severity-tag--high,
+.side-story .severity-tag--high {
+  color: #171100;
 }
 
 :root[data-color-mode="dark"] .entry-content .isnx-alert-note {

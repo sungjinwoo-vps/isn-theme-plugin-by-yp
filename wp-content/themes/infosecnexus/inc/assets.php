@@ -17,6 +17,7 @@ use function InfoSecNexus\Theme\Customizer\get_value;
  */
 function bootstrap(): void {
 	add_action( 'wp_enqueue_scripts', __NAMESPACE__ . '\\enqueue' );
+	add_action( 'wp_enqueue_scripts', __NAMESPACE__ . '\\dequeue_unused_front_page_styles', 100 );
 	add_action( 'enqueue_block_editor_assets', __NAMESPACE__ . '\\enqueue_editor' );
 	add_action( 'wp_head', __NAMESPACE__ . '\\preload_critical_image', 1 );
 }
@@ -41,6 +42,20 @@ function enqueue(): void {
 			'homeUrl'          => esc_url_raw( home_url( '/' ) ),
 		)
 	);
+}
+
+/**
+ * The custom homepage contains no Gutenberg blocks, so core block CSS is waste.
+ */
+function dequeue_unused_front_page_styles(): void {
+	if ( ! is_front_page() ) {
+		return;
+	}
+
+	wp_dequeue_style( 'wp-block-library' );
+	wp_dequeue_style( 'wp-block-library-theme' );
+	wp_dequeue_style( 'classic-theme-styles' );
+	wp_dequeue_style( 'global-styles' );
 }
 
 /**

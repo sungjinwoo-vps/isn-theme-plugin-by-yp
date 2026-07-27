@@ -17,7 +17,7 @@ final class Assets {
 	 * Register hooks.
 	 */
 	public static function boot(): void {
-		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue' ) );
+		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue' ), 20 );
 	}
 
 	/**
@@ -25,7 +25,13 @@ final class Assets {
 	 */
 	public static function enqueue(): void {
 		$needs_js = module_enabled( 'live_search' ) || module_enabled( 'newsletter' ) || module_enabled( 'cookie_consent' ) || module_enabled( 'content_blocks' ) || module_enabled( 'snippets' );
-		wp_enqueue_style( 'infosecnexus-toolkit', INFOSECNEXUS_THEME_TOOLKIT_URL . 'assets/css/toolkit.css', array( 'infosecnexus-style' ), INFOSECNEXUS_THEME_TOOLKIT_VERSION );
+		$css_file = INFOSECNEXUS_THEME_TOOLKIT_DIR . 'assets/css/toolkit.css';
+		if ( is_readable( $css_file ) ) {
+			$css = file_get_contents( $css_file );
+			if ( is_string( $css ) && '' !== trim( $css ) ) {
+				wp_add_inline_style( 'infosecnexus-style', $css );
+			}
+		}
 
 		if ( $needs_js ) {
 			wp_enqueue_script( 'infosecnexus-toolkit', INFOSECNEXUS_THEME_TOOLKIT_URL . 'assets/js/toolkit.js', array(), INFOSECNEXUS_THEME_TOOLKIT_VERSION, true );

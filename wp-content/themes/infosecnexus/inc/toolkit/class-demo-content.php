@@ -934,7 +934,7 @@ final class Demo_Content {
 	 * @param array<int,int> $post_ids Changed post IDs.
 	 */
 	private static function purge_public_cache( array $post_ids ): void {
-		$urls          = array( home_url( '/' ) );
+		$urls          = array( home_url( '/' ), home_url( '/llms.txt' ) );
 		$posts_page_id = (int) get_option( 'page_for_posts' );
 
 		if ( $posts_page_id > 0 ) {

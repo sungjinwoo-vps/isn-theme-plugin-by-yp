@@ -104,7 +104,7 @@ $releaseManifest = @{
         last_updated = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd")
         sections = @{
             description = "Cybersecurity newsroom theme for InfoSecNexus."
-            changelog = "Purges stale anonymous page caches immediately after each installed theme version changes."
+            changelog = "Improves Lighthouse performance, accessibility, SEO, agent discovery, responsive images, and consent-aware AdSense loading."
         }
     }
     plugin = @{
@@ -119,7 +119,7 @@ $releaseManifest = @{
         last_updated = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd")
         sections = @{
             description = "Legacy bridge for older InfoSecNexus installs. Current toolkit features are bundled into the InfoSecNexus theme."
-            changelog = "Keeps the legacy bridge version aligned with the theme post-update cache purge release."
+            changelog = "Keeps the legacy bridge aligned with the theme performance, accessibility, SEO, and agent-discovery release."
         }
     }
 }

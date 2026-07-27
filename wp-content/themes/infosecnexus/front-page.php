@@ -183,7 +183,7 @@ if ( ! empty( $linux_posts ) ) {
 
 		<div class="home-hero__side">
 			<?php foreach ( $side_stories as $story ) : ?>
-				<a class="side-story" href="<?php echo esc_url( $story['url'] ); ?>" aria-label="<?php echo esc_attr( $story['full_title'] ?? $story['title'] ); ?>">
+				<a class="side-story" href="<?php echo esc_url( $story['url'] ); ?>">
 					<span class="side-story__copy">
 						<strong><?php echo esc_html( $story['title'] ); ?></strong>
 						<span><?php echo esc_html( $story['excerpt'] ); ?></span>
@@ -207,7 +207,7 @@ if ( ! empty( $linux_posts ) ) {
 			</header>
 			<div class="latest-grid">
 				<?php foreach ( $latest_cards as $card ) : ?>
-					<a class="intel-card" href="<?php echo esc_url( $card['url'] ); ?>" aria-label="<?php echo esc_attr( $card['full_title'] ?? $card['title'] ); ?>">
+					<a class="intel-card" href="<?php echo esc_url( $card['url'] ); ?>">
 						<?php if ( ! empty( $card['post_id'] ) && has_post_thumbnail( (int) $card['post_id'] ) ) : ?>
 							<?php echo get_the_post_thumbnail( (int) $card['post_id'], 'medium_large', array( 'loading' => 'lazy', 'decoding' => 'async', 'sizes' => '(max-width: 760px) calc(100vw - 32px), (max-width: 1180px) 29vw, 320px' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 						<?php else : ?>

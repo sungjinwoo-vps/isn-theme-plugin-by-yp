@@ -31,9 +31,20 @@ test('header controls are keyboard reachable', async ({ page }, testInfo) => {
 
 test('axe smoke check has no serious violations', async ({ page }) => {
   await page.goto(baseURL, { waitUntil: 'networkidle' });
-  const results = await new AxeBuilder({ page })
-    .disableRules(['color-contrast'])
-    .analyze();
+  const results = await new AxeBuilder({ page }).analyze();
   const serious = results.violations.filter((violation) => ['serious', 'critical'].includes(violation.impact));
   expect(serious).toEqual([]);
+});
+
+test('SEO, agent discovery, and deferred ads are present', async ({ page, request }) => {
+  await page.goto(baseURL, { waitUntil: 'networkidle' });
+
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', /cybersecurity/i);
+  await expect(page.locator('#infosecnexus-adsense-config')).toHaveCount(1);
+  await expect(page.locator('script[data-infosecnexus-adsense]')).toHaveCount(0);
+
+  const llms = await request.get(`${baseURL}/llms.txt`);
+  expect(llms.ok()).toBeTruthy();
+  expect(llms.headers()['content-type']).toContain('text/plain');
+  expect(await llms.text()).toMatch(/^# InfoSecNexus/m);
 });

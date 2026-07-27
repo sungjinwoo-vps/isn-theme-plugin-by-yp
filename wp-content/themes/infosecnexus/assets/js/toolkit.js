@@ -102,15 +102,27 @@
   });
 
   const cookie = document.querySelector('[data-isnx-cookie]');
-  if (cookie && localStorage.getItem('infosecnexus-cookie-ok') !== '1') {
+  const cookieAccepted = () => {
+    try {
+      return localStorage.getItem('infosecnexus-cookie-ok') === '1';
+    } catch {
+      return false;
+    }
+  };
+  if (cookie && !cookieAccepted()) {
     cookie.hidden = false;
   }
   document.addEventListener('click', (event) => {
     if (event.target.closest('[data-isnx-cookie-accept]')) {
-      localStorage.setItem('infosecnexus-cookie-ok', '1');
+      try {
+        localStorage.setItem('infosecnexus-cookie-ok', '1');
+      } catch {
+        document.documentElement.dataset.cookiePreference = 'accepted';
+      }
       if (cookie) {
         cookie.hidden = true;
       }
+      document.dispatchEvent(new CustomEvent('infosecnexus:ads-consent'));
     }
   });
 

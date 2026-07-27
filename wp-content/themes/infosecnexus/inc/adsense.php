@@ -58,7 +58,10 @@ function should_show_side_rails(): bool {
 }
 
 /**
- * Output the official AdSense loader for Auto ads and manual slots.
+ * Output the AdSense loader configuration.
+ *
+ * The external script is loaded after stored consent or an explicit ad
+ * interaction so it does not compete with the initial page render.
  */
 function render_adsense_script(): void {
 	$client = client_id();
@@ -66,7 +69,13 @@ function render_adsense_script(): void {
 		return;
 	}
 
-	echo '<script async src="' . esc_url( 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' . rawurlencode( $client ) ) . '" crossorigin="anonymous"></script>' . "\n";
+	$config = array(
+		'client'          => $client,
+		'src'             => 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' . rawurlencode( $client ),
+		'consentRequired' => function_exists( '\InfoSecNexus\Theme\Toolkit\module_enabled' )
+			&& \InfoSecNexus\Theme\Toolkit\module_enabled( 'cookie_consent' ),
+	);
+	echo '<script id="infosecnexus-adsense-config">window.infosecnexusAdSense=' . wp_json_encode( $config, JSON_UNESCAPED_SLASHES ) . ';</script>' . "\n";
 }
 
 /**

@@ -1,7 +1,7 @@
 {
     "plugin":  {
                    "slug":  "infosecnexus-toolkit",
-                   "version":  "0.1.26",
+                   "version":  "0.1.27",
                    "plugin":  "infosecnexus-toolkit/infosecnexus-toolkit.php",
                    "requires_php":  "8.1",
                    "package":  "https://raw.githubusercontent.com/sungjinwoo-vps/isn-theme-plugin-by-yp/stable/dist/infosecnexus-toolkit.zip",
@@ -9,23 +9,23 @@
                    "homepage":  "https://infosecnexus.com/",
                    "last_updated":  "2026-07-27",
                    "sections":  {
-                                    "changelog":  "Keeps the legacy bridge version aligned with the theme post-update cache purge release.",
+                                    "changelog":  "Keeps the legacy bridge aligned with the theme performance, accessibility, SEO, and agent-discovery release.",
                                     "description":  "Legacy bridge for older InfoSecNexus installs. Current toolkit features are bundled into the InfoSecNexus theme."
                                 },
                    "requires":  "6.5"
                },
-    "generatedAt":  "2026-07-27T11:05:04Z",
+    "generatedAt":  "2026-07-27T12:09:58Z",
     "manifestVersion":  1,
     "theme":  {
                   "slug":  "infosecnexus",
-                  "version":  "0.1.26",
+                  "version":  "0.1.27",
                   "requires_php":  "8.1",
                   "package":  "https://raw.githubusercontent.com/sungjinwoo-vps/isn-theme-plugin-by-yp/stable/dist/infosecnexus-theme.zip",
                   "tested":  "7.0",
                   "homepage":  "https://infosecnexus.com/",
                   "last_updated":  "2026-07-27",
                   "sections":  {
-                                   "changelog":  "Purges stale anonymous page caches immediately after each installed theme version changes.",
+                                   "changelog":  "Improves Lighthouse performance, accessibility, SEO, agent discovery, responsive images, and consent-aware AdSense loading.",
                                    "description":  "Cybersecurity newsroom theme for InfoSecNexus."
                                },
                   "requires":  "6.5"

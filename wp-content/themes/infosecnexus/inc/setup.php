@@ -13,11 +13,28 @@ namespace InfoSecNexus\Theme\Setup;
  * Register WordPress hooks.
  */
 function bootstrap(): void {
+	disable_frontend_emoji_assets();
 	add_action( 'after_setup_theme', __NAMESPACE__ . '\\setup_theme' );
 	add_action( 'init', __NAMESPACE__ . '\\register_block_enhancements' );
 	add_action( 'widgets_init', __NAMESPACE__ . '\\register_widget_areas' );
 	add_filter( 'body_class', __NAMESPACE__ . '\\body_classes' );
 	add_filter( 'excerpt_more', __NAMESPACE__ . '\\excerpt_more' );
+}
+
+/**
+ * Remove the legacy emoji loader from the public frontend.
+ *
+ * Modern browsers render the emoji used by the theme without this extra
+ * script, stylesheet, and network request.
+ */
+function disable_frontend_emoji_assets(): void {
+	remove_action( 'wp_head', 'print_emoji_detection_script', 7 );
+	remove_action( 'wp_print_styles', 'print_emoji_styles' );
+	remove_action( 'wp_enqueue_scripts', 'wp_enqueue_emoji_styles' );
+	remove_filter( 'the_content_feed', 'wp_staticize_emoji' );
+	remove_filter( 'comment_text_rss', 'wp_staticize_emoji' );
+	remove_filter( 'wp_mail', 'wp_staticize_emoji_for_email' );
+	add_filter( 'emoji_svg_url', '__return_false' );
 }
 
 /**

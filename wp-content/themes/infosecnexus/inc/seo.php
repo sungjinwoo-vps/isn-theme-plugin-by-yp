@@ -17,23 +17,23 @@ function bootstrap(): void {
 }
 
 /**
- * Print article metadata when another SEO plugin is not responsible for it.
+ * Print public metadata when another SEO plugin is not responsible for it.
  */
 function render_metadata(): void {
-	if ( is_admin() || ! is_singular() || seo_plugin_active() ) {
+	if ( is_admin() || is_feed() || seo_plugin_active() ) {
 		return;
 	}
 
-	$post = get_post();
-	if ( ! $post ) {
-		return;
-	}
-
+	$post        = is_singular() ? get_post() : null;
 	$title       = wp_get_document_title();
-	$description = description( (int) $post->ID );
-	$url         = get_permalink( $post );
-	$image       = image_url( (int) $post->ID );
-	$type        = 'post' === $post->post_type ? 'article' : 'website';
+	$description = current_description( $post instanceof \WP_Post ? (int) $post->ID : 0 );
+	$url         = current_url();
+	$image       = $post instanceof \WP_Post ? image_url( (int) $post->ID ) : default_image_url();
+	$type        = $post instanceof \WP_Post && 'post' === $post->post_type ? 'article' : 'website';
+
+	if ( '' === $description ) {
+		return;
+	}
 
 	echo '<meta name="description" content="' . esc_attr( $description ) . '">' . "\n";
 	echo '<meta property="og:type" content="' . esc_attr( $type ) . '">' . "\n";
@@ -50,7 +50,7 @@ function render_metadata(): void {
 		echo '<meta name="twitter:image" content="' . esc_url( $image ) . '">' . "\n";
 	}
 
-	if ( 'post' !== $post->post_type ) {
+	if ( ! $post instanceof \WP_Post || 'post' !== $post->post_type ) {
 		return;
 	}
 
@@ -82,6 +82,80 @@ function render_metadata(): void {
 }
 
 /**
+ * Return metadata text for the current public request.
+ *
+ * @param int $post_id Singular post ID, or zero.
+ */
+function current_description( int $post_id = 0 ): string {
+	if ( $post_id > 0 ) {
+		return description( $post_id );
+	}
+
+	if ( is_category() || is_tag() || is_tax() ) {
+		$term = get_queried_object();
+		if ( $term instanceof \WP_Term ) {
+			$value = wp_strip_all_tags( term_description( $term->term_id ), true );
+			if ( '' !== trim( $value ) ) {
+				return concise_text( $value );
+			}
+
+			return concise_text(
+				sprintf(
+					/* translators: %s: archive name. */
+					__( 'Latest %s cybersecurity briefings, practical analysis, risk context, and defensive actions from InfoSecNexus.', 'infosecnexus' ),
+					$term->name
+				)
+			);
+		}
+	}
+
+	if ( is_search() ) {
+		return concise_text(
+			sprintf(
+				/* translators: %s: search query. */
+				__( 'InfoSecNexus cybersecurity articles matching %s, including vulnerability analysis, operational guidance, and security updates.', 'infosecnexus' ),
+				get_search_query()
+			)
+		);
+	}
+
+	if ( is_404() ) {
+		return __( 'The requested InfoSecNexus page could not be found. Search the latest cybersecurity briefings, vulnerability analysis, and defensive guidance.', 'infosecnexus' );
+	}
+
+	$tagline = trim( (string) get_bloginfo( 'description' ) );
+	if ( strlen( $tagline ) >= 70 ) {
+		return concise_text( $tagline );
+	}
+
+	return __( 'InfoSecNexus publishes practical cybersecurity briefings, critical CVE analysis, Linux and DevOps updates, AI security news, and defensive guidance.', 'infosecnexus' );
+}
+
+/**
+ * Return the canonical public URL for the current request.
+ */
+function current_url(): string {
+	if ( is_singular() ) {
+		return (string) get_permalink();
+	}
+
+	$request_path = (string) wp_parse_url( (string) ( $_SERVER['REQUEST_URI'] ?? '/' ), PHP_URL_PATH );
+	return home_url( '/' . ltrim( $request_path, '/' ) );
+}
+
+/**
+ * Normalize metadata text to a useful search snippet.
+ *
+ * @param string $value Raw description.
+ */
+function concise_text( string $value ): string {
+	$value = wp_strip_all_tags( strip_shortcodes( $value ), true );
+	$value = preg_replace( '/\s+/u', ' ', $value );
+	$value = is_string( $value ) ? trim( $value ) : '';
+	return wp_html_excerpt( $value, 158, '...' );
+}
+
+/**
  * Whether a common SEO plugin is already active.
  */
 function seo_plugin_active(): bool {
@@ -105,11 +179,7 @@ function description( int $post_id ): string {
 		$value = (string) get_post_field( 'post_content', $post_id );
 	}
 
-	$value = wp_strip_all_tags( strip_shortcodes( $value ), true );
-	$value = preg_replace( '/\s+/u', ' ', $value );
-	$value = is_string( $value ) ? trim( $value ) : '';
-
-	return wp_html_excerpt( $value, 158, '...' );
+	return concise_text( $value );
 }
 
 /**
@@ -125,6 +195,17 @@ function image_url( int $post_id ): string {
 
 	if ( function_exists( '\InfoSecNexus\Theme\Template_Tags\fallback_image_url' ) ) {
 		return \InfoSecNexus\Theme\Template_Tags\fallback_image_url( $post_id );
+	}
+
+	return '';
+}
+
+/**
+ * Return a reliable social preview for non-singular requests.
+ */
+function default_image_url(): string {
+	if ( function_exists( '\InfoSecNexus\Theme\Template_Tags\asset_url' ) ) {
+		return \InfoSecNexus\Theme\Template_Tags\asset_url( 'hero-shield.png' );
 	}
 
 	return '';

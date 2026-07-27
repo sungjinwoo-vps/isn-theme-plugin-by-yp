@@ -7,6 +7,66 @@
   const colorModeStorageKey = 'infosecnexus-color-mode';
   const defaultColorMode = root.dataset.defaultColorMode || 'light';
   const colorSchemeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+  const adsenseConfig = window.infosecnexusAdSense || null;
+  let adsensePromise = null;
+
+  function loadAdSense() {
+    if (!adsenseConfig || !adsenseConfig.src) {
+      return Promise.resolve(false);
+    }
+
+    if (adsensePromise) {
+      return adsensePromise;
+    }
+
+    const existing = document.querySelector('script[data-infosecnexus-adsense]');
+    if (existing) {
+      adsensePromise = Promise.resolve(true);
+      return adsensePromise;
+    }
+
+    adsensePromise = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.async = true;
+      script.src = adsenseConfig.src;
+      script.crossOrigin = 'anonymous';
+      script.dataset.infosecnexusAdsense = 'true';
+      script.addEventListener('load', () => resolve(true), { once: true });
+      script.addEventListener('error', () => reject(new Error('AdSense failed to load')), { once: true });
+      document.head.appendChild(script);
+    });
+
+    return adsensePromise;
+  }
+
+  window.infosecnexusLoadAdSense = loadAdSense;
+  document.addEventListener('infosecnexus:ads-consent', () => {
+    loadAdSense().catch(() => {});
+  });
+
+  const scheduleAdSense = () => {
+    const schedule = window.requestIdleCallback || ((callback) => window.setTimeout(callback, 500));
+    schedule(() => loadAdSense().catch(() => {}), { timeout: 2500 });
+  };
+
+  try {
+    if (localStorage.getItem('infosecnexus-cookie-ok') === '1') {
+      window.addEventListener('load', scheduleAdSense, { once: true });
+    } else if (!adsenseConfig?.consentRequired) {
+      const interactionEvents = ['pointerdown', 'keydown', 'touchstart'];
+      const loadAfterInteraction = () => {
+        interactionEvents.forEach((eventName) => {
+          document.removeEventListener(eventName, loadAfterInteraction);
+        });
+        scheduleAdSense();
+      };
+      interactionEvents.forEach((eventName) => {
+        document.addEventListener(eventName, loadAfterInteraction, { passive: true });
+      });
+    }
+  } catch {
+    root.dataset.adStorage = 'unavailable';
+  }
 
   function readStoredColorMode() {
     try {
@@ -253,11 +313,13 @@
       ad.hidden = false;
       ad.dataset.loaded = 'true';
 
-      try {
-        (window.adsbygoogle = window.adsbygoogle || []).push({});
-      } catch {
-        ad.dataset.loadError = 'true';
-      }
+      loadAdSense()
+        .then(() => {
+          (window.adsbygoogle = window.adsbygoogle || []).push({});
+        })
+        .catch(() => {
+          ad.dataset.loadError = 'true';
+        });
 
       return ad;
     };

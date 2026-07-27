@@ -77,7 +77,7 @@ function asset_url( string $file ): string {
 function asset_srcset( string $file ): string {
 	$base  = (string) preg_replace( '/\.(png|jpg|jpeg|webp)$/i', '', $file );
 	$items = array();
-	foreach ( array( 480, 960, 1280 ) as $width ) {
+	foreach ( array( 480, 720, 960, 1280 ) as $width ) {
 		$candidate = $base . '-' . $width . '.webp';
 		if ( file_exists( get_template_directory() . '/assets/images/' . $candidate ) ) {
 			$items[] = esc_url( get_template_directory_uri() . '/assets/images/' . $candidate ) . ' ' . $width . 'w';
