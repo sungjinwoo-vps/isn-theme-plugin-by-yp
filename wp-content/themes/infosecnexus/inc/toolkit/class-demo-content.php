@@ -54,6 +54,9 @@ final class Demo_Content {
 		$import_url = wp_nonce_url( admin_url( 'themes.php?page=infosecnexus-setup&infosecnexus_import_demo=1' ), 'infosecnexus_import_demo' );
 		$daily_url  = wp_nonce_url( admin_url( 'themes.php?page=infosecnexus-setup&infosecnexus_add_daily_content=1' ), 'infosecnexus_add_daily_content' );
 		$reset_url  = wp_nonce_url( admin_url( 'themes.php?page=infosecnexus-setup&infosecnexus_reset_demo_settings=1' ), 'infosecnexus_reset_demo_settings' );
+		$status     = Live_Intelligence::status();
+		$checked_at = (string) ( $status['checked_at'] ?? '' );
+		$source_rows = is_array( $status['sources'] ?? null ) ? $status['sources'] : array();
 		?>
 		<div class="wrap">
 			<h1><?php esc_html_e( 'InfoSecNexus Setup', 'infosecnexus' ); ?></h1>
@@ -61,7 +64,7 @@ final class Demo_Content {
 				<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Demo content repaired. Your existing theme settings were not reset.', 'infosecnexus' ); ?></p></div>
 			<?php endif; ?>
 			<?php if ( ! empty( $_GET['infosecnexus_daily_added'] ) ) : ?>
-				<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Today\'s category blog batch was added or repaired without deleting old posts.', 'infosecnexus' ); ?></p></div>
+				<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Live sources were checked and today\'s category briefings were refreshed without deleting old posts.', 'infosecnexus' ); ?></p></div>
 			<?php endif; ?>
 			<?php if ( ! empty( $_GET['infosecnexus_settings_reset'] ) ) : ?>
 				<div class="notice notice-warning is-dismissible"><p><?php esc_html_e( 'Recommended demo settings were reset.', 'infosecnexus' ); ?></p></div>
@@ -70,9 +73,36 @@ final class Demo_Content {
 			<p><a class="button button-primary" href="<?php echo esc_url( $import_url ); ?>"><?php esc_html_e( 'Import / Repair Demo Content', 'infosecnexus' ); ?></a></p>
 			<p><?php esc_html_e( 'This content repair is non-destructive for your Customizer and feature settings.', 'infosecnexus' ); ?></p>
 			<hr>
-			<h2><?php esc_html_e( 'Daily Blog Batch', 'infosecnexus' ); ?></h2>
-			<p><?php esc_html_e( 'Add one fresh SEO briefing for every blog category using duplicate-safe date slugs. Existing posts remain published.', 'infosecnexus' ); ?></p>
-			<p><a class="button button-primary" href="<?php echo esc_url( $daily_url ); ?>"><?php esc_html_e( 'Add Today\'s Blog Batch', 'infosecnexus' ); ?></a></p>
+			<h2><?php esc_html_e( 'Live Cybersecurity Briefings', 'infosecnexus' ); ?></h2>
+			<p><?php esc_html_e( 'Build long, source-backed posts from current CISA KEV, NIST NVD, GitHub, Ubuntu, Microsoft, OpenAI, and official security feeds. The automatic refresh runs near 6:30 AM and 6:30 PM in the WordPress site timezone.', 'infosecnexus' ); ?></p>
+			<p><a class="button button-primary" href="<?php echo esc_url( $daily_url ); ?>"><?php esc_html_e( 'Refresh Live Briefings Now', 'infosecnexus' ); ?></a></p>
+			<?php if ( '' !== $checked_at ) : ?>
+				<p>
+					<strong><?php esc_html_e( 'Last source check:', 'infosecnexus' ); ?></strong>
+					<?php echo esc_html( get_date_from_gmt( $checked_at, 'F j, Y g:i a T' ) ); ?>
+					<?php if ( ! empty( $status['stale'] ) ) : ?>
+						<span class="notice-inline"><?php esc_html_e( '(showing the last good source set)', 'infosecnexus' ); ?></span>
+					<?php endif; ?>
+				</p>
+				<p>
+					<strong><?php esc_html_e( 'Verified items:', 'infosecnexus' ); ?></strong>
+					<?php echo esc_html( (string) (int) ( $status['item_count'] ?? 0 ) ); ?>
+				</p>
+			<?php endif; ?>
+			<?php if ( ! empty( $source_rows ) ) : ?>
+				<table class="widefat striped" style="max-width: 820px">
+					<thead><tr><th><?php esc_html_e( 'Source', 'infosecnexus' ); ?></th><th><?php esc_html_e( 'Status', 'infosecnexus' ); ?></th><th><?php esc_html_e( 'Items', 'infosecnexus' ); ?></th></tr></thead>
+					<tbody>
+					<?php foreach ( $source_rows as $source ) : ?>
+						<tr>
+							<td><?php echo esc_html( (string) ( $source['label'] ?? '' ) ); ?></td>
+							<td><?php echo ! empty( $source['ok'] ) ? esc_html__( 'Connected', 'infosecnexus' ) : esc_html__( 'Unavailable', 'infosecnexus' ); ?></td>
+							<td><?php echo esc_html( (string) (int) ( $source['count'] ?? 0 ) ); ?></td>
+						</tr>
+					<?php endforeach; ?>
+					</tbody>
+				</table>
+			<?php endif; ?>
 			<hr>
 			<h2><?php esc_html_e( 'Reset Settings', 'infosecnexus' ); ?></h2>
 			<p><?php esc_html_e( 'Use this only when you intentionally want to restore the recommended InfoSecNexus theme and feature settings.', 'infosecnexus' ); ?></p>
@@ -98,8 +128,7 @@ final class Demo_Content {
 
 		if ( ! empty( $_GET['infosecnexus_add_daily_content'] ) ) {
 			check_admin_referer( 'infosecnexus_add_daily_content' );
-			$categories = self::create_categories();
-			self::create_daily_posts( $categories, true );
+			self::publish_daily_content( true );
 			wp_safe_redirect( admin_url( 'themes.php?page=infosecnexus-setup&infosecnexus_daily_added=1' ) );
 			exit;
 		}
@@ -162,30 +191,51 @@ final class Demo_Content {
 	 * Schedule or unschedule the daily content event.
 	 */
 	public static function schedule_daily_content(): void {
-		$timestamp = wp_next_scheduled( self::DAILY_CRON_HOOK );
-
 		if ( ! (bool) option( 'daily_content_enabled', true ) ) {
-			if ( $timestamp ) {
-				wp_unschedule_event( $timestamp, self::DAILY_CRON_HOOK );
-			}
+			wp_clear_scheduled_hook( self::DAILY_CRON_HOOK );
 			return;
 		}
 
-		if ( ! $timestamp ) {
-			wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', self::DAILY_CRON_HOOK );
+		$event = wp_get_scheduled_event( self::DAILY_CRON_HOOK );
+		if ( $event && 'twicedaily' !== (string) $event->schedule ) {
+			wp_clear_scheduled_hook( self::DAILY_CRON_HOOK );
+			$event = false;
+		}
+
+		if ( ! $event ) {
+			$now     = current_datetime();
+			$morning = $now->setTime( 6, 30, 0 );
+			$evening = $now->setTime( 18, 30, 0 );
+
+			if ( $now < $morning ) {
+				$next = $morning;
+			} elseif ( $now < $evening ) {
+				$next = $evening;
+			} else {
+				$next = $morning->modify( '+1 day' );
+			}
+
+			wp_schedule_event( $next->getTimestamp(), 'twicedaily', self::DAILY_CRON_HOOK );
 		}
 	}
 
 	/**
 	 * Publish today's daily blog batch.
+	 *
+	 * @param bool $force Force a fresh source request and rewrite changed posts.
 	 */
-	public static function publish_daily_content(): void {
-		if ( ! (bool) option( 'daily_content_enabled', true ) ) {
+	public static function publish_daily_content( bool $force = false ): void {
+		if ( ! $force && ! (bool) option( 'daily_content_enabled', true ) ) {
+			return;
+		}
+
+		$live_data = Live_Intelligence::collect( $force );
+		if ( empty( $live_data['items'] ) ) {
 			return;
 		}
 
 		$categories = self::create_categories();
-		self::create_daily_posts( $categories );
+		self::create_daily_posts( $categories, $force, $live_data );
 	}
 
 	/**
@@ -778,11 +828,15 @@ final class Demo_Content {
 	 * Create one current briefing per category for the active site date.
 	 *
 	 * @param array<string,int> $categories Category IDs by slug.
-	 * @param bool              $force      Whether to repair today's posts even if the date was marked complete.
+	 * @param bool              $force      Whether to request fresh source data.
+	 * @param array<string,mixed> $live_data Optional pre-collected source data.
 	 */
-	private static function create_daily_posts( array $categories, bool $force = false ): void {
+	private static function create_daily_posts( array $categories, bool $force = false, array $live_data = array() ): void {
 		$date = current_time( 'Y-m-d' );
-		if ( ! $force && self::daily_date_seeded( $date ) ) {
+		if ( empty( $live_data ) ) {
+			$live_data = Live_Intelligence::collect( $force );
+		}
+		if ( empty( $live_data['items'] ) ) {
 			return;
 		}
 
@@ -790,8 +844,9 @@ final class Demo_Content {
 		$human_date = $timestamp ? wp_date( 'F j, Y', $timestamp ) : $date;
 		$post_date  = current_time( 'mysql' );
 		$date_slug  = sanitize_title( $date );
+		$changed    = 0;
 
-		foreach ( self::daily_post_blueprints( $human_date ) as $post ) {
+		foreach ( Live_Intelligence::daily_posts( $human_date, $live_data ) as $post ) {
 			$term_ids = array();
 			foreach ( $post['categories'] as $slug ) {
 				if ( isset( $categories[ $slug ] ) ) {
@@ -799,28 +854,54 @@ final class Demo_Content {
 				}
 			}
 
-			self::upsert_post(
+			$post_slug = $date_slug . '-' . $post['slug'];
+			$existing  = get_page_by_path( $post_slug, OBJECT, 'post' );
+			if (
+				$existing
+				&& hash_equals(
+					(string) get_post_meta( $existing->ID, '_infosecnexus_live_fingerprint', true ),
+					(string) $post['fingerprint']
+				)
+			) {
+				continue;
+			}
+
+			$published_date     = $existing ? (string) $existing->post_date : $post_date;
+			$published_date_gmt = $existing ? (string) $existing->post_date_gmt : get_gmt_from_date( $post_date );
+			$post_id = self::upsert_post(
 				'post',
-				$date_slug . '-' . $post['slug'],
+				$post_slug,
 				array(
 					'post_title'    => $post['title'],
 					'post_excerpt'  => $post['excerpt'],
-					'post_content'  => self::daily_brief_content( $post['summary'], $post['checks'], $post['source_note'], $post['sources'], $post['next_step'] ),
+					'post_content'  => $post['content'],
 					'post_status'   => 'publish',
-					'post_date'     => $post_date,
-					'post_date_gmt' => get_gmt_from_date( $post_date ),
+					'post_date'     => $published_date,
+					'post_date_gmt' => $published_date_gmt,
 					'comment_status' => 'closed',
 					'ping_status'   => 'closed',
 					'post_category' => $term_ids,
 					'meta_input'    => array(
-						'_infosecnexus_daily_content' => $date,
-						'_infosecnexus_source_urls'   => wp_json_encode( $post['sources'] ),
+						'_infosecnexus_daily_content'     => $date,
+						'_infosecnexus_source_urls'       => wp_json_encode( $post['sources'] ),
+						'_infosecnexus_live_source_ids'   => wp_json_encode( $post['source_ids'] ),
+						'_infosecnexus_live_fingerprint'  => $post['fingerprint'],
+						'_infosecnexus_live_checked_at'   => (string) ( $live_data['checked_at'] ?? '' ),
+						'_infosecnexus_seo_description'   => $post['excerpt'],
+						'_yoast_wpseo_metadesc'           => $post['excerpt'],
+						'rank_math_description'           => $post['excerpt'],
+						'_seopress_titles_desc'           => $post['excerpt'],
 					),
 				)
 			);
+			if ( $post_id > 0 ) {
+				++$changed;
+			}
 		}
 
-		self::mark_daily_date_seeded( $date );
+		if ( $changed > 0 || ! empty( $live_data['items'] ) ) {
+			self::mark_daily_date_seeded( $date );
+		}
 	}
 
 	/**

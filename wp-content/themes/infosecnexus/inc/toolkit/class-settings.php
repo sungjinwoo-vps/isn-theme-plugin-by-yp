@@ -168,16 +168,16 @@ final class Settings {
 					</tr>
 				</table>
 				<h2><?php esc_html_e( 'Daily Blog Publisher', 'infosecnexus' ); ?></h2>
-				<p><?php esc_html_e( 'Automatically add one short SEO briefing per category each day. Existing posts are preserved and duplicate date slugs are skipped.', 'infosecnexus' ); ?></p>
+				<p><?php esc_html_e( 'Automatically refresh long, source-backed cybersecurity briefings from current CISA, NIST NVD, GitHub, Ubuntu, Microsoft, OpenAI, and official advisory feeds. Existing posts are preserved and source IDs are deduplicated.', 'infosecnexus' ); ?></p>
 				<table class="form-table" role="presentation">
 					<tr>
 						<th scope="row"><?php esc_html_e( 'Enable Daily Content', 'infosecnexus' ); ?></th>
 						<td>
 							<label>
 								<input type="checkbox" name="<?php echo esc_attr( OPTION_KEY ); ?>[daily_content_enabled]" value="1" <?php checked( (bool) option( 'daily_content_enabled', true ) ); ?>>
-								<?php esc_html_e( 'Publish today\'s category briefing batch automatically.', 'infosecnexus' ); ?>
+								<?php esc_html_e( 'Refresh today\'s live category briefings near 6:30 AM and 6:30 PM in the WordPress site timezone.', 'infosecnexus' ); ?>
 							</label>
-							<p class="description"><?php esc_html_e( 'Use Appearance > InfoSecNexus Setup to add or repair today\'s batch immediately.', 'infosecnexus' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Use Appearance > InfoSecNexus Setup to force a source refresh immediately. WordPress cron runs when the site receives traffic, so the exact minute can vary.', 'infosecnexus' ); ?></p>
 						</td>
 					</tr>
 				</table>

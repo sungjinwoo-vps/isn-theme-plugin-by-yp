@@ -1,31 +1,31 @@
 {
     "plugin":  {
                    "slug":  "infosecnexus-toolkit",
-                   "version":  "0.1.23",
+                   "version":  "0.1.24",
                    "plugin":  "infosecnexus-toolkit/infosecnexus-toolkit.php",
                    "requires_php":  "8.1",
                    "package":  "https://raw.githubusercontent.com/sungjinwoo-vps/isn-theme-plugin-by-yp/stable/dist/infosecnexus-toolkit.zip",
                    "tested":  "7.0",
                    "homepage":  "https://infosecnexus.com/",
-                   "last_updated":  "2026-07-22",
+                   "last_updated":  "2026-07-27",
                    "sections":  {
-                                    "changelog":  "Keeps the legacy bridge version aligned with the theme daily content publisher release.",
+                                    "changelog":  "Keeps the legacy bridge version aligned with the theme live-intelligence publisher release.",
                                     "description":  "Legacy bridge for older InfoSecNexus installs. Current toolkit features are bundled into the InfoSecNexus theme."
                                 },
                    "requires":  "6.5"
                },
-    "generatedAt":  "2026-07-22T11:35:03Z",
+    "generatedAt":  "2026-07-27T07:23:41Z",
     "manifestVersion":  1,
     "theme":  {
                   "slug":  "infosecnexus",
-                  "version":  "0.1.23",
+                  "version":  "0.1.24",
                   "requires_php":  "8.1",
                   "package":  "https://raw.githubusercontent.com/sungjinwoo-vps/isn-theme-plugin-by-yp/stable/dist/infosecnexus-theme.zip",
                   "tested":  "7.0",
                   "homepage":  "https://infosecnexus.com/",
-                  "last_updated":  "2026-07-22",
+                  "last_updated":  "2026-07-27",
                   "sections":  {
-                                   "changelog":  "Adds duplicate-safe daily blog publishing across all categories and makes the homepage pull latest posts dynamically.",
+                                   "changelog":  "Adds twice-daily, source-backed live cybersecurity briefings, long-form operational analysis, source status, duplicate-safe refreshes, and native SEO metadata.",
                                    "description":  "Cybersecurity newsroom theme for InfoSecNexus."
                                },
                   "requires":  "6.5"
