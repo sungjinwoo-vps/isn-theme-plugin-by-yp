@@ -3,7 +3,7 @@ Contributors: infosecnexus
 Requires at least: 6.5
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.1.25
+Stable tag: 0.1.26
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,6 +25,9 @@ InfoSecNexus WordPress Theme, Copyright 2026 InfoSecNexus.
 InfoSecNexus is distributed under the terms of the GNU GPL.
 
 == Changelog ==
+
+= 0.1.26 =
+Purges stale anonymous page caches immediately after each installed theme version changes.
 
 = 0.1.25 =
 Purges host-level public caches after live briefings change, includes scheduled WordPress update checks, and compacts long live-news titles and cards on the homepage.

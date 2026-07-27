@@ -16,6 +16,7 @@ final class Demo_Content {
 	private const SEEDED_OPTION = 'infosecnexus_demo_seeded_version';
 	private const DAILY_SEEDED_OPTION = 'infosecnexus_daily_content_seeded_dates';
 	private const DAILY_CRON_HOOK = 'infosecnexus_publish_daily_content';
+	private const PUBLIC_CACHE_RELEASE_OPTION = 'infosecnexus_public_cache_release';
 	private const CONTENT_REFRESH_VERSION = '0.1.17';
 
 	/**
@@ -27,6 +28,7 @@ final class Demo_Content {
 		add_action( 'admin_init', array( __CLASS__, 'maybe_auto_seed' ) );
 		add_action( 'admin_init', array( __CLASS__, 'maybe_seed_daily_content' ) );
 		add_action( 'init', array( __CLASS__, 'schedule_daily_content' ) );
+		add_action( 'init', array( __CLASS__, 'maybe_purge_release_cache' ), 99 );
 		add_action( self::DAILY_CRON_HOOK, array( __CLASS__, 'publish_daily_content' ) );
 	}
 
@@ -236,6 +238,19 @@ final class Demo_Content {
 
 		$categories = self::create_categories();
 		self::create_daily_posts( $categories, $force, $live_data );
+	}
+
+	/**
+	 * Purge stale public HTML once after each installed theme release changes.
+	 */
+	public static function maybe_purge_release_cache(): void {
+		$version = defined( 'INFOSECNEXUS_VERSION' ) ? (string) INFOSECNEXUS_VERSION : '';
+		if ( '' === $version || $version === (string) get_option( self::PUBLIC_CACHE_RELEASE_OPTION, '' ) ) {
+			return;
+		}
+
+		update_option( self::PUBLIC_CACHE_RELEASE_OPTION, $version, false );
+		self::purge_public_cache( array() );
 	}
 
 	/**
