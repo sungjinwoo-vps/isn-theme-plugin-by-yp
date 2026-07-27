@@ -30,6 +30,7 @@ final class Demo_Content {
 		add_action( 'init', array( __CLASS__, 'schedule_daily_content' ) );
 		add_action( 'init', array( __CLASS__, 'maybe_purge_release_cache' ), 99 );
 		add_action( self::DAILY_CRON_HOOK, array( __CLASS__, 'publish_daily_content' ) );
+		add_action( 'infosecnexus_post_artwork_changed', array( __CLASS__, 'purge_artwork_cache' ) );
 	}
 
 	/**
@@ -251,6 +252,15 @@ final class Demo_Content {
 
 		update_option( self::PUBLIC_CACHE_RELEASE_OPTION, $version, false );
 		self::purge_public_cache( array() );
+	}
+
+	/**
+	 * Purge anonymous page caches after generated artwork changes.
+	 *
+	 * @param array<int,int> $post_ids Posts that received featured artwork.
+	 */
+	public static function purge_artwork_cache( array $post_ids ): void {
+		self::purge_public_cache( $post_ids );
 	}
 
 	/**
@@ -911,6 +921,7 @@ final class Demo_Content {
 				)
 			);
 			if ( $post_id > 0 ) {
+				Post_Artwork::ensure( $post_id );
 				++$changed;
 				$changed_ids[] = $post_id;
 			}

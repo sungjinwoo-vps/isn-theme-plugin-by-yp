@@ -10,6 +10,17 @@ test('home page renders header, content, and footer', async ({ page }) => {
   await expect(page.locator('.site-footer')).toBeVisible();
 });
 
+test('homepage post cards use distinct generated artwork', async ({ page }) => {
+  await page.goto(baseURL, { waitUntil: 'networkidle' });
+
+  const artwork = page.locator('img[src*="/infosecnexus-artwork/"]');
+  const count = await artwork.count();
+  expect(count).toBeGreaterThanOrEqual(3);
+
+  const sources = await artwork.evaluateAll((images) => images.map((image) => image.currentSrc || image.src));
+  expect(new Set(sources).size).toBe(count);
+});
+
 test('header controls are keyboard reachable', async ({ page }, testInfo) => {
   await page.goto(baseURL);
 

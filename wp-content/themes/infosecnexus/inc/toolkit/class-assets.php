@@ -34,7 +34,16 @@ final class Assets {
 		}
 
 		if ( $needs_js ) {
-			wp_enqueue_script( 'infosecnexus-toolkit', INFOSECNEXUS_THEME_TOOLKIT_URL . 'assets/js/toolkit.js', array(), INFOSECNEXUS_THEME_TOOLKIT_VERSION, true );
+			wp_enqueue_script(
+				'infosecnexus-toolkit',
+				INFOSECNEXUS_THEME_TOOLKIT_URL . 'assets/js/toolkit.js',
+				array(),
+				INFOSECNEXUS_THEME_TOOLKIT_VERSION,
+				array(
+					'in_footer' => true,
+					'strategy'  => 'defer',
+				)
+			);
 			wp_localize_script(
 				'infosecnexus-toolkit',
 				'infosecnexusToolkit',

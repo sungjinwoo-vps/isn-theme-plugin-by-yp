@@ -105,6 +105,7 @@ final class Plugin {
 		Newsletter::boot();
 		Cookie_Consent::boot();
 		Related_Posts::boot();
+		Post_Artwork::boot();
 		Demo_Content::boot();
 		Snippets::boot();
 		Maintenance::boot();
