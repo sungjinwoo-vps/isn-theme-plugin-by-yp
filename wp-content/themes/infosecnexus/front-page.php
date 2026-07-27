@@ -25,24 +25,26 @@ $ai_url       = \InfoSecNexus\Theme\Header_Builder\category_url( 'artificial-int
 $cloud_url    = \InfoSecNexus\Theme\Header_Builder\category_url( 'cloud-security' );
 
 $post_card_data = static function ( \WP_Post $post, string $severity = '', string $fallback_image = 'hero-shield.png' ): array {
-	$categories = get_the_category( $post->ID );
-	$category   = ! empty( $categories ) ? $categories[0]->name : __( 'Cyber Security', 'infosecnexus' );
-	$excerpt    = has_excerpt( $post->ID ) ? get_the_excerpt( $post ) : wp_trim_words( wp_strip_all_tags( (string) $post->post_content ), 18 );
+	$categories  = get_the_category( $post->ID );
+	$category    = ! empty( $categories ) ? $categories[0]->name : __( 'Cyber Security', 'infosecnexus' );
+	$full_title  = get_the_title( $post );
+	$raw_excerpt = has_excerpt( $post->ID ) ? get_the_excerpt( $post ) : wp_strip_all_tags( (string) $post->post_content );
 
 	return array(
-		'post_id'  => (int) $post->ID,
-		'title'    => get_the_title( $post ),
-		'excerpt'  => $excerpt,
-		'category' => $category,
-		'image'    => $fallback_image,
-		'url'      => get_permalink( $post ),
-		'date'     => get_the_date( '', $post ),
-		'read'     => sprintf(
+		'post_id'    => (int) $post->ID,
+		'title'      => wp_trim_words( $full_title, 10, '...' ),
+		'full_title' => $full_title,
+		'excerpt'    => wp_trim_words( $raw_excerpt, 18, '...' ),
+		'category'   => $category,
+		'image'      => $fallback_image,
+		'url'        => get_permalink( $post ),
+		'date'       => get_the_date( '', $post ),
+		'read'       => sprintf(
 			/* translators: %d: reading time in minutes. */
 			_n( '%d min read', '%d min read', \InfoSecNexus\Theme\Template_Tags\reading_time( (int) $post->ID ), 'infosecnexus' ),
 			\InfoSecNexus\Theme\Template_Tags\reading_time( (int) $post->ID )
 		),
-		'severity' => $severity,
+		'severity'   => $severity,
 	);
 };
 
@@ -181,7 +183,7 @@ if ( ! empty( $linux_posts ) ) {
 
 		<div class="home-hero__side">
 			<?php foreach ( $side_stories as $story ) : ?>
-				<a class="side-story" href="<?php echo esc_url( $story['url'] ); ?>">
+				<a class="side-story" href="<?php echo esc_url( $story['url'] ); ?>" aria-label="<?php echo esc_attr( $story['full_title'] ?? $story['title'] ); ?>">
 					<span class="side-story__copy">
 						<strong><?php echo esc_html( $story['title'] ); ?></strong>
 						<span><?php echo esc_html( $story['excerpt'] ); ?></span>
@@ -205,7 +207,7 @@ if ( ! empty( $linux_posts ) ) {
 			</header>
 			<div class="latest-grid">
 				<?php foreach ( $latest_cards as $card ) : ?>
-					<a class="intel-card" href="<?php echo esc_url( $card['url'] ); ?>">
+					<a class="intel-card" href="<?php echo esc_url( $card['url'] ); ?>" aria-label="<?php echo esc_attr( $card['full_title'] ?? $card['title'] ); ?>">
 						<?php if ( ! empty( $card['post_id'] ) && has_post_thumbnail( (int) $card['post_id'] ) ) : ?>
 							<?php echo get_the_post_thumbnail( (int) $card['post_id'], 'medium_large', array( 'loading' => 'lazy', 'decoding' => 'async', 'sizes' => '(max-width: 760px) calc(100vw - 32px), (max-width: 1180px) 29vw, 320px' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 						<?php else : ?>

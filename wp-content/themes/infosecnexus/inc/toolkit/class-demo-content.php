@@ -844,7 +844,8 @@ final class Demo_Content {
 		$human_date = $timestamp ? wp_date( 'F j, Y', $timestamp ) : $date;
 		$post_date  = current_time( 'mysql' );
 		$date_slug  = sanitize_title( $date );
-		$changed    = 0;
+		$changed     = 0;
+		$changed_ids = array();
 
 		foreach ( Live_Intelligence::daily_posts( $human_date, $live_data ) as $post ) {
 			$term_ids = array();
@@ -896,12 +897,99 @@ final class Demo_Content {
 			);
 			if ( $post_id > 0 ) {
 				++$changed;
+				$changed_ids[] = $post_id;
 			}
 		}
 
 		if ( $changed > 0 || ! empty( $live_data['items'] ) ) {
 			self::mark_daily_date_seeded( $date );
 		}
+
+		if ( $changed > 0 || $force ) {
+			self::purge_public_cache( $changed_ids );
+		}
+	}
+
+	/**
+	 * Purge public page caches after live briefings change.
+	 *
+	 * Logged-in administrators commonly bypass host-level caches, so explicitly
+	 * purge the public homepage and affected archives for anonymous readers.
+	 *
+	 * @param array<int,int> $post_ids Changed post IDs.
+	 */
+	private static function purge_public_cache( array $post_ids ): void {
+		$urls          = array( home_url( '/' ) );
+		$posts_page_id = (int) get_option( 'page_for_posts' );
+
+		if ( $posts_page_id > 0 ) {
+			$urls[] = get_permalink( $posts_page_id );
+		}
+
+		$blog_page = get_page_by_path( 'blog' );
+		if ( $blog_page instanceof \WP_Post ) {
+			$urls[] = get_permalink( $blog_page );
+		}
+
+		foreach ( array_unique( array_map( 'absint', $post_ids ) ) as $post_id ) {
+			if ( $post_id <= 0 ) {
+				continue;
+			}
+
+			$urls[] = get_permalink( $post_id );
+			foreach ( wp_get_post_categories( $post_id ) as $category_id ) {
+				$category_url = get_category_link( $category_id );
+				if ( ! is_wp_error( $category_url ) ) {
+					$urls[] = $category_url;
+				}
+			}
+		}
+
+		/**
+		 * Filter public URLs purged after a live briefing refresh.
+		 *
+		 * @param array<int,string> $urls     URLs queued for purge.
+		 * @param array<int,int>    $post_ids Changed post IDs.
+		 */
+		$urls = (array) apply_filters( 'infosecnexus_daily_cache_purge_urls', $urls, $post_ids );
+		$urls = array_slice( array_values( array_unique( array_filter( array_map( 'strval', $urls ) ) ) ), 0, 30 );
+
+		wp_cache_flush();
+
+		if ( function_exists( 'rocket_clean_domain' ) ) {
+			rocket_clean_domain();
+		}
+		if ( function_exists( 'w3tc_flush_all' ) ) {
+			w3tc_flush_all();
+		}
+		if ( function_exists( 'wp_cache_clear_cache' ) ) {
+			wp_cache_clear_cache();
+		}
+		do_action( 'litespeed_purge_all' );
+		do_action( 'rt_nginx_helper_purge_all' );
+
+		$home_host = strtolower( (string) wp_parse_url( home_url( '/' ), PHP_URL_HOST ) );
+		foreach ( $urls as $url ) {
+			$url_host = strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) );
+			if ( '' === $home_host || $home_host !== $url_host ) {
+				continue;
+			}
+
+			wp_remote_request(
+				$url,
+				array(
+					'method'      => 'PURGE',
+					'timeout'     => 3,
+					'redirection' => 0,
+					'headers'     => array(
+						'Cache-Control' => 'no-cache',
+						'X-Purge-Reason' => 'infosecnexus-daily-content',
+					),
+				)
+			);
+		}
+
+		do_action( 'infosecnexus_daily_cache_purged', $urls, $post_ids );
 	}
 
 	/**

@@ -18,7 +18,8 @@ const UPDATE_URI           = 'https://github.com/sungjinwoo-vps/isn-theme-plugin
  * Register update hooks.
  */
 function bootstrap(): void {
-	if ( ! is_admin() && ! ( defined( 'WP_CLI' ) && WP_CLI ) ) {
+	$is_cron = function_exists( 'wp_doing_cron' ) && wp_doing_cron();
+	if ( ! is_admin() && ! $is_cron && ! ( defined( 'WP_CLI' ) && WP_CLI ) ) {
 		return;
 	}
 
