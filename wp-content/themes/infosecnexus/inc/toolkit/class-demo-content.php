@@ -17,7 +17,9 @@ final class Demo_Content {
 	private const DAILY_SEEDED_OPTION = 'infosecnexus_daily_content_seeded_dates';
 	private const DAILY_CRON_HOOK = 'infosecnexus_publish_daily_content';
 	private const PUBLIC_CACHE_RELEASE_OPTION = 'infosecnexus_public_cache_release';
-	private const CONTENT_REFRESH_VERSION = '0.1.17';
+	private const CONTENT_REFRESH_VERSION = '0.1.29';
+	private const DAILY_SCHEMA_OPTION = 'infosecnexus_daily_content_schema';
+	private const DAILY_SCHEMA_HOOK = 'infosecnexus_upgrade_daily_content_schema';
 
 	/**
 	 * Register hooks.
@@ -27,9 +29,12 @@ final class Demo_Content {
 		add_action( 'admin_init', array( __CLASS__, 'handle_import' ) );
 		add_action( 'admin_init', array( __CLASS__, 'maybe_auto_seed' ) );
 		add_action( 'admin_init', array( __CLASS__, 'maybe_seed_daily_content' ) );
+		add_action( 'admin_init', array( __CLASS__, 'maybe_upgrade_daily_content' ), 30 );
 		add_action( 'init', array( __CLASS__, 'schedule_daily_content' ) );
+		add_action( 'init', array( __CLASS__, 'schedule_daily_content_upgrade' ), 40 );
 		add_action( 'init', array( __CLASS__, 'maybe_purge_release_cache' ), 99 );
 		add_action( self::DAILY_CRON_HOOK, array( __CLASS__, 'publish_daily_content' ) );
+		add_action( self::DAILY_SCHEMA_HOOK, array( __CLASS__, 'maybe_upgrade_daily_content' ) );
 		add_action( 'infosecnexus_post_artwork_changed', array( __CLASS__, 'purge_artwork_cache' ) );
 	}
 
@@ -188,6 +193,83 @@ final class Demo_Content {
 		}
 
 		self::publish_daily_content();
+	}
+
+	/**
+	 * Schedule a one-time cleanup whenever the reader-facing article schema changes.
+	 */
+	public static function schedule_daily_content_upgrade(): void {
+		$version = Live_Intelligence::content_schema_version();
+		if ( $version === (string) get_option( self::DAILY_SCHEMA_OPTION, '' ) ) {
+			return;
+		}
+
+		if ( ! wp_next_scheduled( self::DAILY_SCHEMA_HOOK ) ) {
+			wp_schedule_single_event( time() + 5, self::DAILY_SCHEMA_HOOK );
+		}
+	}
+
+	/**
+	 * Remove old generator notes and refresh today's generated briefings.
+	 */
+	public static function maybe_upgrade_daily_content(): void {
+		$version = Live_Intelligence::content_schema_version();
+		if ( $version === (string) get_option( self::DAILY_SCHEMA_OPTION, '' ) ) {
+			return;
+		}
+
+		if ( ! wp_doing_cron() && ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		self::create_posts( self::create_categories() );
+
+		$query = new \WP_Query(
+			array(
+				'post_type'      => 'post',
+				'post_status'    => 'publish',
+				'posts_per_page' => -1,
+				'fields'         => 'ids',
+				'no_found_rows'  => true,
+				'meta_query'     => array(
+					array(
+						'key'     => '_infosecnexus_daily_content',
+						'compare' => 'EXISTS',
+					),
+				),
+			)
+		);
+		$changed_ids = array();
+		foreach ( array_map( 'intval', $query->posts ) as $post_id ) {
+			$existing = (string) get_post_field( 'post_content', $post_id );
+			$cleaned  = Live_Intelligence::clean_legacy_article( $existing );
+			$cleaned  = self::modernize_short_daily_content( $cleaned );
+			if ( $cleaned === $existing ) {
+				continue;
+			}
+
+			$result = wp_update_post(
+				wp_slash(
+					array(
+						'ID'           => $post_id,
+						'post_content' => $cleaned,
+					)
+				),
+				true
+			);
+			if ( ! is_wp_error( $result ) ) {
+				$changed_ids[] = $post_id;
+			}
+		}
+
+		if ( (bool) option( 'daily_content_enabled', true ) ) {
+			self::publish_daily_content();
+		}
+
+		update_option( self::DAILY_SCHEMA_OPTION, $version, false );
+		if ( ! empty( $changed_ids ) ) {
+			self::purge_public_cache( $changed_ids );
+		}
 	}
 
 	/**
@@ -1305,35 +1387,378 @@ final class Demo_Content {
 	 * @return string
 	 */
 	private static function brief_content( string $summary, array $checks, string $next_step ): string {
-		$content  = '<p>' . $summary . '</p><!--more-->';
-		$content .= '<h2>Operational context</h2>';
-		$content .= '<p>Security teams need guidance that connects risk to real systems, owners, and response work. A useful briefing should explain what changed, which environments are most likely to be affected, and what action can reduce exposure without creating unnecessary noise.</p>';
-		$content .= '<p>Use this article as a practical security review note for engineering, infrastructure, cloud, and operations teams. The focus is not only awareness. The goal is to turn a security topic into a short list of checks, decisions, and evidence that can be tracked during weekly review or urgent response.</p>';
-		$content .= '<h2>Risk signals to review</h2><ul>';
+		$profile = self::brief_profile( $summary . ' ' . implode( ' ', $checks ) . ' ' . $next_step );
+		$content  = '<p>' . esc_html( $summary ) . '</p><!--more-->';
+		$content .= '<h2>' . esc_html( $profile['context_heading'] ) . '</h2>';
+		$content .= '<p>' . esc_html( $profile['context'] ) . '</p>';
+		$content .= '<p>' . esc_html( $profile['scope'] ) . '</p>';
+		$content .= '<h2>' . esc_html( $profile['review_heading'] ) . '</h2>';
 
-		foreach ( $checks as $check ) {
-			$content .= '<li>' . $check . '</li>';
+		foreach ( $checks as $index => $check ) {
+			$note = $profile['check_notes'][ $index % count( $profile['check_notes'] ) ];
+			$content .= '<h3>' . esc_html( (string) $check ) . '</h3>';
+			$content .= '<p>' . esc_html( (string) $note ) . '</p>';
 		}
 
+		$content .= '<h2>' . esc_html( $profile['workflow_heading'] ) . '</h2>';
+		$content .= '<p>' . esc_html( $profile['workflow'] ) . '</p>';
+		$content .= '<ul>';
+		foreach ( $profile['workflow_steps'] as $step ) {
+			$content .= '<li>' . esc_html( (string) $step ) . '</li>';
+		}
 		$content .= '</ul>';
-		$content .= '<h2>How to prioritize the work</h2>';
-		$content .= '<p>Start with systems that are internet-facing, business-critical, privileged, or difficult to recover. These assets usually deserve faster review because a single gap can affect customers, data, production availability, or administrative control.</p>';
-		$content .= '<p>Next, separate confirmed exposure from theoretical risk. Inventory matches, version evidence, access logs, security tool alerts, and ownership records help teams avoid wasting time on systems that are not reachable or not affected. Keep exceptions visible with a clear owner and expiry date.</p>';
-		$content .= '<h2>Implementation checklist</h2>';
-		$content .= '<ul><li>Assign one accountable owner for the review and one backup owner for follow-up.</li><li>Capture affected assets, business impact, current control status, and expected remediation date.</li><li>Document temporary mitigations so they can be removed or replaced after the permanent fix.</li><li>Verify completion with evidence such as version output, configuration export, log entry, or screenshot from a trusted system.</li></ul>';
-		$content .= '<h2>Common mistakes to avoid</h2>';
-		$content .= '<p>The most common mistake is treating a security issue as only a ticket count. A long backlog can hide the few items that actually matter. Review exposure, identity impact, data sensitivity, and operational dependency before deciding priority.</p>';
-		$content .= '<p>Another mistake is closing work before validation. A patch may be installed but not loaded, a policy may be written but not enforced, and a log source may be enabled but not collected centrally. Always confirm the control from the system that will matter during an incident.</p>';
-		$content .= '<h2>Validation and reporting</h2>';
-		$content .= '<p>After changes are complete, validate that the intended control is active and that monitoring still works. For technical teams, this may mean checking package versions, cloud policy state, firewall rules, endpoint alerts, or CI/CD logs. For leadership, report the remaining risk in plain language: what was fixed, what is still exposed, who owns it, and when it will be reviewed again.</p>';
-		$content .= '<p>Good security content should make the next decision easier. Keep the notes short enough to use during operations, but detailed enough that another engineer can repeat the review later.</p>';
-		$content .= '<h2>Frequently asked questions</h2>';
-		$content .= '<h3>Who should own this review?</h3><p>The asset owner should own remediation, while security should provide priority, evidence requirements, and validation support. Shared ownership works only when the next action and deadline are written down.</p>';
-		$content .= '<h3>How often should this be checked?</h3><p>Review high-risk items weekly and urgent exposure daily until the risk is reduced. Lower-risk work can follow the normal operational cadence, but exceptions should never remain open without a review date.</p>';
-		$content .= '<h3>What evidence should be kept?</h3><p>Keep the minimum evidence needed to prove the issue was reviewed and the action was completed. Useful evidence includes asset IDs, affected versions, ticket links, screenshots, configuration exports, log queries, and owner approval notes.</p>';
-		$content .= '<h2>Next step</h2><p>' . $next_step . '</p>';
+		$expansion = self::brief_expansion( (string) $profile['closing_heading'] );
+		$content .= '<h2>' . esc_html( $expansion['priority_heading'] ) . '</h2>';
+		$content .= '<p>' . esc_html( $expansion['priority'] ) . '</p>';
+		$content .= '<h3>' . esc_html( $expansion['pitfall_heading'] ) . '</h3>';
+		$content .= '<p>' . esc_html( $expansion['pitfall'] ) . '</p>';
+		$content .= '<h2>' . esc_html( $profile['validation_heading'] ) . '</h2>';
+		$content .= '<p>' . esc_html( $profile['validation'] ) . '</p>';
+		$content .= '<p>' . esc_html( $profile['reporting'] ) . '</p>';
+		$content .= '<h2>' . esc_html( $profile['closing_heading'] ) . '</h2>';
+		$content .= '<p>' . esc_html( $next_step ) . '</p>';
 
 		return $content;
+	}
+
+	/**
+	 * Rebuild only short legacy daily posts with the current desk structure.
+	 *
+	 * @param string $content Existing article HTML.
+	 */
+	private static function modernize_short_daily_content( string $content ): string {
+		if ( strlen( wp_strip_all_tags( $content ) ) >= 2600 ) {
+			return $content;
+		}
+
+		$summary = '';
+		if ( preg_match( '#<p[^>]*>(.*?)</p>#is', $content, $summary_match ) ) {
+			$summary = trim( wp_strip_all_tags( (string) $summary_match[1] ) );
+		}
+
+		$checks = array();
+		if ( preg_match_all( '#<li[^>]*>(.*?)</li>#is', $content, $check_matches ) ) {
+			foreach ( (array) $check_matches[1] as $check_html ) {
+				if ( false !== stripos( (string) $check_html, '<a ' ) ) {
+					continue;
+				}
+				$check = trim( wp_strip_all_tags( (string) $check_html ) );
+				if ( strlen( $check ) >= 28 ) {
+					$checks[] = $check;
+				}
+				if ( count( $checks ) >= 4 ) {
+					break;
+				}
+			}
+		}
+
+		$next_step = '';
+		if ( preg_match( '#<h2>Next step</h2>\s*<p[^>]*>(.*?)</p>#is', $content, $next_match ) ) {
+			$next_step = trim( wp_strip_all_tags( (string) $next_match[1] ) );
+		}
+
+		if ( '' === $summary || count( $checks ) < 2 || '' === $next_step ) {
+			return $content;
+		}
+
+		$rebuilt = self::brief_content( $summary, $checks, $next_step );
+		if ( preg_match( '#<details class="isnx-references">.*?</details>#is', $content, $references ) ) {
+			$rebuilt .= (string) $references[0];
+		} elseif ( preg_match( '#<h2>Source watch</h2>.*?(<ul>.*?</ul>)#is', $content, $references ) ) {
+			$rebuilt .= '<details class="isnx-references"><summary>References used in this briefing</summary>' . (string) $references[1] . '</details>';
+		}
+
+		return $rebuilt;
+	}
+
+	/**
+	 * Add category-specific prioritization depth without generic filler.
+	 *
+	 * @return array{priority_heading:string,priority:string,pitfall_heading:string,pitfall:string}
+	 */
+	private static function brief_expansion( string $closing_heading ): array {
+		$sets = array(
+			'Application team action' => array(
+				'priority_heading' => 'Choose the first route to fix',
+				'priority'         => 'Prioritize an application path when it is reachable without strong authentication, exposes another user or tenant, performs a privileged action, handles payment or identity data, or depends on a component with active exploitation. Use production request evidence and role testing to rank work. A broad scanner label should not move ahead of a confirmed authorization failure on a sensitive route. Where several endpoints share the same middleware or plugin, fix the common cause and test representative routes from every role.',
+				'pitfall_heading'  => 'Avoid a cosmetic scanner fix',
+				'pitfall'          => 'Changing an error message, blocking one payload, or hiding a version string can make a scan quiet while leaving the vulnerable code path available. Confirm the server-side authorization or component update, test alternate methods and encodings, and check that caching or a reverse proxy does not serve an older response. Keep any emergency WAF rule only until the application fix is deployed and independently verified.',
+			),
+			'Windows team action' => array(
+				'priority_heading' => 'Order the Windows rollout',
+				'priority'         => 'Move domain controllers, federation and certificate services, exposed Windows servers, administrator workstations, and systems carrying reusable credentials ahead of ordinary endpoint rings. Then consider exploit evidence, affected build, restart need, recovery readiness, and service criticality. Unsupported systems require a separate containment or retirement decision because deployment success cannot be assumed. Keep identity-control changes and operating-system updates coordinated so a rushed rollout does not create an unmonitored authentication gap.',
+				'pitfall_heading'  => 'Do not trust deployment status alone',
+				'pitfall'          => 'A management console can report success while a device is awaiting restart, a service still uses an old binary, or the endpoint sensor is unhealthy. Verify a representative sample directly and investigate systems that have not checked in. Avoid closing broad remediation from a percentage without identifying the unpatched privileged and public systems hidden inside the remainder.',
+			),
+			'Linux operations action' => array(
+				'priority_heading' => 'Rank hosts by service impact',
+				'priority'         => 'Patch public services, bastions, orchestration nodes, authentication infrastructure, and hosts with privileged workloads before low-impact internal systems. Use the distribution advisory for the fixed package, but confirm which process or kernel is active on each host. For clustered services, sequence nodes around capacity and failover tests. For immutable images and containers, rebuild and redeploy from a fixed base rather than changing a short-lived instance that will be replaced by the vulnerable image.',
+				'pitfall_heading'  => 'Avoid package-installed false confidence',
+				'pitfall'          => 'Installing an update is not the same as loading it. Kernels await reboot, long-running processes retain old libraries, and containers may continue from stale layers. Verify the runtime and service state after the maintenance window. Also make sure rollback packages, snapshots, and golden images do not silently reintroduce the vulnerable version during recovery.',
+			),
+			'DevSecOps action' => array(
+				'priority_heading' => 'Prioritize paths to production',
+				'priority'         => 'Start with workflows triggered by pull requests or external input that can reach organization secrets, persistent runners, package publishing, cloud roles, or production deployment. A medium-severity dependency in an isolated test job may be less urgent than a workflow design that hands a write token to untrusted code. Review inherited reusable workflows and organization defaults because the dangerous permission may not be visible in the repository where the finding appears.',
+				'pitfall_heading'  => 'Do not secure only the YAML',
+				'pitfall'          => 'Pipeline policy can look correct while a shared runner retains another job workspace, an artifact can be replaced after scanning, or a secret appears in debugging output. Validate the runtime boundary, artifact handoff, and target environment. Remove obsolete tokens and caches after the change so old exposure does not survive a corrected workflow.',
+			),
+			'AI security action' => array(
+				'priority_heading' => 'Rank AI workflows by capability',
+				'priority'         => 'Prioritize agents and assistants that can read private repositories, customer records, email, tickets, or cloud resources, especially when they can also write, execute, send, approve, or purchase. The model name is less important than the combination of untrusted context and tool authority. Reduce service-account scope and connector reach before relying on prompt controls. A workflow with no consequential tools can tolerate a different review cadence from one that changes production.',
+				'pitfall_heading'  => 'Avoid treating a refusal as enforcement',
+				'pitfall'          => 'A model refusing one obvious prompt does not prove that encoded, indirect, retrieved, or multi-step instructions are contained. Enforcement should sit outside the model at data and tool boundaries. Test whether a malicious document, web page, code comment, or retrieved record can influence a sensitive call, and preserve the complete trace rather than only the final natural-language answer.',
+			),
+			'Cloud team action' => array(
+				'priority_heading' => 'Rank cloud resources by reach and privilege',
+				'priority'         => 'Start with public control planes, exposed storage, privileged identities, production clusters, security tooling, and resources holding regulated or customer data. Check whether a provider-side change is automatic or still requires tenant action. A finding in an unused region may be lower priority than the same issue behind a public load balancer. Use tags and billing ownership to find the responsible team, but validate ownership when old projects or acquisitions have incomplete metadata.',
+				'pitfall_heading'  => 'Do not stop at the provider bulletin',
+				'pitfall'          => 'A provider may patch infrastructure while customer images, policies, service accounts, or deployed components remain exposed. Conversely, teams can spend time patching a layer the provider already owns. Record the shared-responsibility boundary, verify final tenant state, and reconcile infrastructure code so the next deployment does not restore the weak configuration.',
+			),
+			'Network operations action' => array(
+				'priority_heading' => 'Rank the reachable edge',
+				'priority'         => 'Move public VPNs, firewalls, routers, gateways, DNS infrastructure, and shared management platforms ahead of isolated access switches. Consider whether the interface is internet-reachable, whether authentication can be bypassed, what trust zones the device connects, and whether configuration backup and replacement hardware are ready. Devices with unsupported firmware need isolation or replacement, not an indefinite exception based on low scanner confidence.',
+				'pitfall_heading'  => 'Avoid configuration-only validation',
+				'pitfall'          => 'A rule base or network diagram cannot prove the real path is blocked. NAT, temporary exceptions, alternate interfaces, IPv6, and out-of-band management may create unexpected reachability. Test from representative zones and inspect independent flow or DNS logs. After firmware changes, verify that logging, routing, high availability, and backup synchronization still work.',
+			),
+			'Put it into practice' => array(
+				'priority_heading' => 'Keep the first version small',
+				'priority'         => 'Begin with the highest-value systems or a limited set of urgent findings, then improve the workflow after people use it. A compact register with reliable owners and dates is more useful than a large form filled with unknown values. Decide which fields change a security decision and remove decorative reporting. Automate collection only after the team agrees on meanings, otherwise automation simply produces a larger inconsistent backlog.',
+				'pitfall_heading'  => 'Avoid process without decisions',
+				'pitfall'          => 'Meetings and forms can become a substitute for remediation when every item is discussed but no owner, deadline, or proof is recorded. End each review with explicit decisions and carry unresolved research as assigned work. Periodically remove stale fields and labels so the workflow remains fast enough for teams to maintain during real incidents.',
+			),
+			'Vulnerability team action' => array(
+				'priority_heading' => 'Move beyond the severity score',
+				'priority'         => 'Rank active exploitation, public reachability, authentication requirements, privilege gained, asset value, and recovery difficulty before using score as a tie-breaker. Match exact versions and enabled components so unaffected inventory does not crowd the emergency queue. For each confirmed asset, decide patch, mitigation, isolation, investigation, or documented non-applicability. Keep catalog deadlines and business maintenance windows visible together so urgency is not lost between security and operations.',
+				'pitfall_heading'  => 'Avoid patching without compromise review',
+				'pitfall'          => 'When exploitation is known and the system was reachable, updating software removes future exposure but does not answer whether the asset was already used. Review authentication, process, network, and configuration evidence for the relevant period. Rotate credentials or rebuild when trust cannot be restored confidently. Record this investigation separately from patch deployment so neither task is mistaken for the other.',
+			),
+			'Security operations action' => array(
+				'priority_heading' => 'Choose signals that change action',
+				'priority'         => 'Prioritize information that maps to owned technology, a reachable path, sensitive identity or data, or a credible campaign affecting your sector. Validate the signal before creating broad work, then assign the smallest response that changes exposure. This can be a detection query, a configuration review, a patch, an isolation decision, or a communication to a specific owner. Retire stale indicators and low-value alerts so analysts can see changes that matter.',
+				'pitfall_heading'  => 'Avoid measuring queue activity as risk reduction',
+				'pitfall'          => 'Ticket volume, alert count, and dashboard color can improve without changing attacker opportunity. Track validation time, containment, verified remediation, repeat causes, and aging high-impact exceptions. Make sure metrics do not reward teams for splitting one issue into many tickets or closing findings before the enforcing control has been tested.',
+			),
+		);
+
+		return $sets[ $closing_heading ] ?? $sets['Security operations action'];
+	}
+
+	/**
+	 * Return desk-specific editorial structure for seeded articles.
+	 *
+	 * @param string $text Article text used for desk detection.
+	 * @return array<string,mixed>
+	 */
+	private static function brief_profile( string $text ): array {
+		$text = strtolower( $text );
+
+		if ( preg_match( '/wordpress|web application|api |security headers|login security/', $text ) ) {
+			return array(
+				'context_heading'    => 'Application attack surface',
+				'context'            => 'Web risk lives at the point where routes, sessions, plugins, browser controls, and public requests meet. A useful review starts with the exact feature that is reachable, the identity required to use it, and the data or action exposed when authorization fails.',
+				'scope'              => 'Map the issue to production URLs, API methods, active components, user roles, and deployment versions. Staging evidence is useful, but it cannot replace a check against the code and configuration serving real traffic.',
+				'review_heading'     => 'Controls to inspect',
+				'check_notes'        => array(
+					'Test this control with an authenticated low-privilege account and an unauthenticated request where appropriate. Record the expected response, the actual response, and any proxy or application log evidence.',
+					'Confirm the permanent fix in the application or component rather than relying only on a WAF rule. Temporary filtering should have an owner, an expiry date, and a test that proves the protected route still works.',
+					'Review adjacent routes and roles after the first fix. Authorization and session mistakes often repeat across similar endpoints because they share middleware, helpers, or plugin code.',
+				),
+				'workflow_heading'   => 'From request to remediation',
+				'workflow'           => 'Reproduce the safe failure mode, identify the responsible component, deploy the smallest compatible fix, and then repeat the test through the same public path. Preserve enough request detail for another engineer to verify the result.',
+				'workflow_steps'     => array( 'Capture the affected route, role, component version, and response code.', 'Patch or reconfigure the application and clear only the caches required for validation.', 'Review web, authentication, and administrative logs for attempted abuse before closure.' ),
+				'validation_heading' => 'Proof the web control works',
+				'validation'         => 'A completed review includes the fixed component version, a denied unauthorized request, a successful authorized request, and confirmation that browser headers or session controls are present on the final response.',
+				'reporting'          => 'Report public reachability, exposed data or action, affected users, and remaining exceptions in plain language. Avoid marking the issue complete merely because a scanner no longer recognizes the original response.',
+				'closing_heading'    => 'Application team action',
+			);
+		}
+
+		if ( preg_match( '/windows|active directory|powershell|microsoft|endpoint/', $text ) ) {
+			return array(
+				'context_heading'    => 'Windows estate exposure',
+				'context'            => 'Windows security work crosses endpoint builds, server roles, identity, remote administration, and endpoint detection. Priority should reflect privilege and business role as well as the update severity shown in a vendor bulletin.',
+				'scope'              => 'Build the review from supported operating-system versions, installed product builds, domain roles, exposure paths, and restart requirements. Domain controllers, public servers, and administrator workstations need a tighter window than ordinary user devices.',
+				'review_heading'     => 'Windows checks that matter',
+				'check_notes'        => array(
+					'Verify the setting or update on a representative system from the affected deployment ring. Use build output, policy results, and endpoint telemetry instead of assuming that central deployment status proves activation.',
+					'Review the identity path around this control, including local administrators, service accounts, delegated rights, and remote-management groups. Privilege can change the impact of an otherwise routine weakness.',
+					'Plan for restart and recovery before broad rollout. A successful installation that leaves the old binary loaded or disables EDR coverage is not a completed security change.',
+				),
+				'workflow_heading'   => 'Deployment and rollback plan',
+				'workflow'           => 'Start with an inventory-backed pilot, validate critical applications, expand through deployment rings, and keep every deferred host attached to an owner and maintenance date.',
+				'workflow_steps'     => array( 'Confirm affected builds, server roles, and privileged endpoints.', 'Deploy to a controlled ring and verify restart, application, and EDR health.', 'Escalate failed or unreachable devices before the exception becomes stale.' ),
+				'validation_heading' => 'Post-change evidence',
+				'validation'         => 'Record the running build, installed update, last restart, policy result, and endpoint protection state. For identity changes, also verify authentication logs and the effective membership of privileged groups.',
+				'reporting'          => 'Summaries should separate fully protected systems, systems awaiting restart, unsupported assets, and accepted exceptions. This gives operations a usable queue instead of one misleading completion percentage.',
+				'closing_heading'    => 'Windows team action',
+			);
+		}
+
+		if ( preg_match( '/linux|kernel|ubuntu|ssh|systemd|sudo/', $text ) ) {
+			return array(
+				'context_heading'    => 'Linux service and package context',
+				'context'            => 'Linux security depends on what is actually running: kernel, packages, loaded libraries, services, modules, containers, and administrative access. Distribution guidance should be mapped to the exact release and package stream used by each workload.',
+				'scope'              => 'Separate internet-facing hosts, privileged jump systems, orchestration nodes, and business-critical services from lower-impact fleets. Include reboot tolerance and clustered failover in the plan before applying changes.',
+				'review_heading'     => 'Administrator review',
+				'check_notes'        => array(
+					'Run this check on the host or image that serves the workload. Package inventory from a management console may lag behind the running process, loaded library, or kernel that still carries the exposure.',
+					'Preserve service logs and current configuration before changing the system. This gives the administrator a rollback reference and protects evidence if suspicious activity appears during review.',
+					'Test the operational dependency after remediation, including service status, ports, storage, scheduled work, monitoring, and cluster membership. Security completion includes healthy production behavior.',
+				),
+				'workflow_heading'   => 'Maintenance-window runbook',
+				'workflow'           => 'Group systems by role and redundancy, update one safe target first, validate the running state, and then continue through the fleet. Keep non-rebooted or pinned systems visible as exceptions.',
+				'workflow_steps'     => array( 'Capture package, kernel, process, and service versions before change.', 'Apply the distribution-supported update with rollback and capacity prepared.', 'Verify logs, listening services, monitoring, and workload health after restart.' ),
+				'validation_heading' => 'Running-state verification',
+				'validation'         => 'Use uname, package-manager output, process maps, service state, and application checks to prove the fixed code is active. A downloaded package or pending reboot does not reduce the live exposure.',
+				'reporting'          => 'Record host groups completed, hosts deferred, the reason for each exception, and the next maintenance date. Include any temporary network restriction or live-patching control that remains in place.',
+				'closing_heading'    => 'Linux operations action',
+			);
+		}
+
+		if ( preg_match( '/ci\\/cd|pipeline|container|infrastructure as code|runner|build job|deployment/', $text ) ) {
+			return array(
+				'context_heading'    => 'Software delivery trust boundary',
+				'context'            => 'DevOps security follows the path from source changes and dependencies through runners, artifacts, registries, credentials, and production approval. The highest-risk weakness is often the one that lets untrusted input inherit a powerful automation identity.',
+				'scope'              => 'Review the workflow file, trigger conditions, runner isolation, token permissions, dependency resolution, artifact integrity, and target environment together. A clean repository scan does not prove the delivery chain is safe.',
+				'review_heading'     => 'Pipeline controls to review',
+				'check_notes'        => array(
+					'Inspect the effective permission at the exact pipeline stage where this control matters. Repository defaults, inherited organization policy, and reusable workflows can grant more access than the visible job suggests.',
+					'Use a short-lived test credential and a non-production runner while validating changes. Build logs, caches, and artifacts should be checked for accidental secret or source disclosure afterward.',
+					'Trace the artifact that reaches production back to reviewed source and an isolated build. Record hashes or attestations where the platform supports them so replacement and tampering are visible.',
+				),
+				'workflow_heading'   => 'Secure release workflow',
+				'workflow'           => 'Reduce permissions first, isolate untrusted builds, pin or review dependencies, and require explicit approval before an artifact reaches a protected environment.',
+				'workflow_steps'     => array( 'Map workflow triggers, identities, secrets, runners, and deployment targets.', 'Test changes in an isolated runner with production credentials unavailable.', 'Verify the promoted artifact and retain the logs needed to reconstruct the release.' ),
+				'validation_heading' => 'Release evidence',
+				'validation'         => 'A complete change shows the effective token scope, runner boundary, dependency result, artifact identity, and approval record. Also verify that old credentials, caches, and superseded artifacts were removed.',
+				'reporting'          => 'Describe which release paths were protected and which repositories or environments remain outside the control. Assign each exception to the team that owns the affected workflow.',
+				'closing_heading'    => 'DevSecOps action',
+			);
+		}
+
+		if ( preg_match( '/\\bai\\b|model|prompt|llm|connector|retrieval/', $text ) ) {
+			return array(
+				'context_heading'    => 'Model, data, and tool boundaries',
+				'context'            => 'AI application risk comes from the whole system around the model: prompts, retrieved data, connectors, tools, logs, human approvals, and external providers. Impact grows when untrusted context can influence an action with broad permissions.',
+				'scope'              => 'Document what the workflow can read, what it can change, where its output goes, and which identity performs each tool call. Include model and dependency versions so a later review can reproduce the behavior.',
+				'review_heading'     => 'AI controls to test',
+				'check_notes'        => array(
+					'Exercise this control with realistic untrusted input while sensitive tools use test data and minimum permissions. Log both the model decision and the enforcement result outside the model context.',
+					'Review every connector and retrieval source involved in the workflow. Access inherited from a user, service account, or shared index can expose information the prompt alone does not reveal.',
+					'Test failure and refusal behavior as well as the happy path. A guardrail must still hold when content is encoded, indirect, retrieved from a document, or combined across several steps.',
+				),
+				'workflow_heading'   => 'Constrain before expanding',
+				'workflow'           => 'Begin with read-only access and narrow data, require approval for consequential actions, and expand only after logs show that policy decisions and tool calls can be audited reliably.',
+				'workflow_steps'     => array( 'Inventory models, prompts, data stores, connectors, tools, and service identities.', 'Run abuse cases in an isolated environment with secrets and production writes blocked.', 'Review logs for data exposure, unsafe tool use, policy bypass, and unexplained model behavior.' ),
+				'validation_heading' => 'AI assurance evidence',
+				'validation'         => 'Keep the test prompt or document, model and policy version, retrieved sources, tool-call record, enforcement result, and reviewer decision. This separates a repeatable control test from a one-time demo.',
+				'reporting'          => 'State the permitted capability and remaining limitation plainly. Avoid claiming that prompt filtering alone makes an agent safe when connectors or service identities still provide broad access.',
+				'closing_heading'    => 'AI security action',
+			);
+		}
+
+		if ( preg_match( '/cloud|iam|storage bucket|account|project|security group/', $text ) ) {
+			return array(
+				'context_heading'    => 'Cloud ownership and exposure',
+				'context'            => 'Cloud findings sit across provider-managed services and tenant-managed identity, networking, data, workloads, and logging. The response must establish which side owns the fix and whether the affected resource is public, privileged, or linked to sensitive data.',
+				'scope'              => 'Map the issue to accounts, projects, subscriptions, regions, resource IDs, service versions, and workload owners. Check infrastructure code and deployed state because manual drift may be the real source of exposure.',
+				'review_heading'     => 'Tenant controls to inspect',
+				'check_notes'        => array(
+					'Query the cloud control plane for this condition across every production account and region. Samples and console screenshots can miss resources created through automation or old projects.',
+					'Review the identity and network path together. A private resource with an overpowered role, or a restricted role attached to a public service, can still create serious exposure.',
+					'Confirm that audit records are centralized outside the workload account and retained long enough for investigation. The fix should not disable the telemetry used to prove it.',
+				),
+				'workflow_heading'   => 'Cloud remediation sequence',
+				'workflow'           => 'Contain public or privileged exposure, apply the provider or tenant fix, reconcile infrastructure code, and verify the final resource state through an independent query.',
+				'workflow_steps'     => array( 'Identify affected resource IDs, owners, regions, identities, and public paths.', 'Apply the change through reviewed infrastructure code where possible.', 'Re-scan deployed state and inspect control-plane logs for prior abuse or drift.' ),
+				'validation_heading' => 'Control-plane proof',
+				'validation'         => 'Capture the final policy, resource configuration, software or image version, network reachability, and audit event. Provider status alone is not proof that tenant configuration is protected.',
+				'reporting'          => 'Separate resources fixed automatically, resources changed by the tenant, and resources awaiting an owner. Include costs or availability constraints when they explain a temporary exception.',
+				'closing_heading'    => 'Cloud team action',
+			);
+		}
+
+		if ( preg_match( '/network|vpn|dns|segmentation|router|firewall/', $text ) ) {
+			return array(
+				'context_heading'    => 'Network path and management plane',
+				'context'            => 'Network security is determined by reachable paths, device firmware, management access, identity, configuration, and independent telemetry. Internet-edge and administrative interfaces deserve priority because one device can bridge several trust zones.',
+				'scope'              => 'Inventory the exact model, firmware, public address, management source networks, authentication method, and zones connected to the device. Include backup and out-of-band access before scheduling disruptive work.',
+				'review_heading'     => 'Edge and traffic checks',
+				'check_notes'        => array(
+					'Validate this condition from both the device configuration and an external connectivity test. Documentation or diagrams may not reflect temporary rules, NAT paths, or shadow administration services.',
+					'Preserve configuration and logs before firmware or policy changes. Rotate management credentials when compromise cannot be excluded, especially for public or shared administration paths.',
+					'Compare traffic before and after the change for new denies, unexpected routes, DNS anomalies, or broken dependencies. A secure rule that silently disrupts recovery or monitoring needs correction.',
+				),
+				'workflow_heading'   => 'Contain, update, and observe',
+				'workflow'           => 'Restrict management exposure first, back up the configuration, deploy supported firmware or policy, and observe traffic from an independent logging system.',
+				'workflow_steps'     => array( 'Record model, firmware, interfaces, routes, rules, zones, and administrators.', 'Apply temporary access restriction before disruptive remediation where risk is active.', 'Verify segmentation, management reachability, traffic, and logs after the change.' ),
+				'validation_heading' => 'Network evidence',
+				'validation'         => 'Keep the running firmware, configuration diff, authorized management path, connectivity test, and centralized log event. Test from low-trust and administrative zones rather than trusting a single device view.',
+				'reporting'          => 'List protected devices and remaining unsupported or unreachable appliances separately. Every exception needs a replacement, isolation, or maintenance decision.',
+				'closing_heading'    => 'Network operations action',
+			);
+		}
+
+		if ( preg_match( '/weekly vulnerability|temporary security exception|asset exposure register|standup|document/', $text ) ) {
+			return array(
+				'context_heading'    => 'Goal and expected outcome',
+				'context'            => 'This workflow is designed to turn scattered security information into a small, repeatable decision record. The useful output is not another dashboard; it is a clear owner, affected scope, action, deadline, and proof requirement.',
+				'scope'              => 'Choose one manageable group of assets or findings for the first pass. Define the fields and decisions before collecting data so the process stays usable when the backlog grows.',
+				'review_heading'     => 'Walk through the process',
+				'check_notes'        => array(
+					'Complete this step with a real asset or finding and write the result in the shared record. Avoid placeholder values that hide missing ownership or unresolved scope.',
+					'Keep the decision language consistent so another reviewer can compare entries without reopening every source. Link evidence instead of pasting sensitive logs or credentials into the record.',
+					'Set a review time while completing the step. Temporary decisions become unmanaged risk when no one knows when to revisit them.',
+				),
+				'workflow_heading'   => 'Make the workflow repeatable',
+				'workflow'           => 'Use the same compact fields, assign one facilitator, time-box research, and move unresolved questions into owned follow-up rather than extending the meeting indefinitely.',
+				'workflow_steps'     => array( 'Define scope, source of truth, required fields, and decision labels.', 'Run one real example from intake through validation.', 'Review the result with the asset owner and adjust only fields that improve action.' ),
+				'validation_heading' => 'Quality check',
+				'validation'         => 'A new team member should be able to read the record and understand what was reviewed, why the decision was made, what evidence supports it, and when the next action happens.',
+				'reporting'          => 'Track overdue owners, expired exceptions, missing evidence, and repeated causes. These measures show whether the workflow reduces risk without turning the process into a reporting exercise.',
+				'closing_heading'    => 'Put it into practice',
+			);
+		}
+
+		if ( preg_match( '/cve|zero-day|exploit|vulnerabilit/', $text ) ) {
+			return array(
+				'context_heading'    => 'Exploit-led vulnerability priority',
+				'context'            => 'Vulnerability priority should combine exploitation evidence, reachable attack paths, privilege, business impact, affected versions, and the availability of a reliable fix. A score is useful context, but it cannot describe your exposure on its own.',
+				'scope'              => 'Match the advisory to internet-facing and administrative assets first. Confirm product and version with the vendor record, then separate affected systems from scanner matches that are unreachable, disabled, or already fixed.',
+				'review_heading'     => 'Triage decisions',
+				'check_notes'        => array(
+					'Record the evidence used for this decision: asset ID, version, reachability, privilege, exploit status, and owner. This makes urgent work defensible and keeps false positives out of the emergency queue.',
+					'Where a patch is not immediately possible, choose a temporary control that blocks the vulnerable path and can be tested. Give that control an expiry date tied to permanent remediation.',
+					'Review detection evidence while patching. Exploited systems may need containment, credential rotation, or incident response even after the vulnerable software is updated.',
+				),
+				'workflow_heading'   => 'Patch queue workflow',
+				'workflow'           => 'Start with exploited and reachable systems, contain where necessary, deploy the supported fix, and validate both the running version and business service before closure.',
+				'workflow_steps'     => array( 'Match vendor-affected versions to owned and reachable assets.', 'Assign patch, mitigation, or not-affected decisions with deadlines.', 'Verify the fixed version and investigate exposure that existed before remediation.' ),
+				'validation_heading' => 'Remediation proof',
+				'validation'         => 'Keep version output, deployment or configuration evidence, service health, and the detection review result. A closed scanner finding without a running-state check is not sufficient proof.',
+				'reporting'          => 'Report the number of truly affected assets, those remediated, those contained, and those deferred. Include the reason and next decision date for every remaining exception.',
+				'closing_heading'    => 'Vulnerability team action',
+			);
+		}
+
+		return array(
+			'context_heading'    => 'Security operations context',
+			'context'            => 'Security operations improves when threat information is connected to real assets, identities, owners, and response decisions. Volume alone is not a useful measure; the goal is to identify the few signals that can change exposure or defensive action.',
+			'scope'              => 'Define the systems, users, data, and business service covered by the review. Separate confirmed evidence from assumptions so teams can move quickly without presenting speculation as fact.',
+			'review_heading'     => 'Operational checks',
+			'check_notes'        => array(
+				'Assign this check to the team that owns the affected control and agree on the evidence required for closure. Shared awareness without a named action does not reduce risk.',
+				'Compare the result with authentication, endpoint, network, and application telemetry where relevant. Independent evidence helps distinguish a real event from an inventory or alerting error.',
+				'Document the decision and next review time. This keeps lower-priority work visible without allowing it to compete indefinitely with confirmed, high-impact exposure.',
+			),
+			'workflow_heading'   => 'Turn signals into owned work',
+			'workflow'           => 'Validate the signal, establish affected scope, choose containment or remediation, and confirm the result with evidence from the system that enforces the control.',
+			'workflow_steps'     => array( 'Identify the affected asset, identity, data, and business owner.', 'Choose the smallest action that materially reduces the confirmed risk.', 'Validate completion and record what remains uncertain or deferred.' ),
+			'validation_heading' => 'Evidence and communication',
+			'validation'         => 'Keep the alert or source, investigation notes, control change, technical validation, owner, and deadline. Reports should explain what changed and what decision is required rather than repeating raw alerts.',
+			'reporting'          => 'A concise update should state impact, scope, completed action, remaining risk, and the next review time. This supports both engineering follow-through and accurate leadership communication.',
+			'closing_heading'    => 'Security operations action',
+		);
 	}
 
 	/**

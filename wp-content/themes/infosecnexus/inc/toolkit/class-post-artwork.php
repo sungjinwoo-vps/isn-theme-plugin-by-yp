@@ -1,6 +1,6 @@
 <?php
 /**
- * Original featured artwork for posts without uploaded media.
+ * Topic-matched editorial photography for posts without uploaded media.
  *
  * @package InfoSecNexus
  */
@@ -10,14 +10,15 @@ declare(strict_types=1);
 namespace InfoSecNexus\Theme\Toolkit;
 
 /**
- * Generate deterministic, lightweight WebP artwork and attach it to posts.
+ * Download licensed editorial photography, optimize it to WebP, and attach it.
  */
 final class Post_Artwork {
-	private const VERSION              = '1';
+	private const VERSION              = '7';
 	private const BACKFILL_HOOK        = 'infosecnexus_backfill_post_artwork';
 	private const BACKFILL_OPTION      = 'infosecnexus_post_artwork_backfill_version';
 	private const GENERATED_META       = '_infosecnexus_generated_artwork';
 	private const ATTACHMENT_POST_META = '_infosecnexus_artwork_post_id';
+	private const ATTACHMENT_SOURCE_META = '_infosecnexus_artwork_source';
 	private const BATCH_SIZE           = 6;
 
 	/**
@@ -51,8 +52,11 @@ final class Post_Artwork {
 			'publish' !== $post->post_status
 			|| wp_is_post_revision( $post_id )
 			|| wp_is_post_autosave( $post_id )
-			|| has_post_thumbnail( $post_id )
 		) {
+			return;
+		}
+
+		if ( has_post_thumbnail( $post_id ) && '' === (string) get_post_meta( $post_id, self::GENERATED_META, true ) ) {
 			return;
 		}
 
@@ -83,7 +87,7 @@ final class Post_Artwork {
 	 * Generate a limited number of missing images per cron request.
 	 */
 	public static function backfill_batch(): void {
-		$post_ids = self::posts_missing_artwork( self::BATCH_SIZE );
+		$post_ids = self::posts_requiring_artwork( self::BATCH_SIZE );
 		if ( empty( $post_ids ) ) {
 			update_option( self::BACKFILL_OPTION, self::VERSION, false );
 			return;
@@ -102,7 +106,7 @@ final class Post_Artwork {
 			self::queue_cache_purge( $generated_ids );
 		}
 
-		if ( empty( self::posts_missing_artwork( 1 ) ) ) {
+		if ( empty( self::posts_requiring_artwork( 1 ) ) ) {
 			update_option( self::BACKFILL_OPTION, self::VERSION, false );
 			return;
 		}
@@ -145,30 +149,20 @@ final class Post_Artwork {
 	 */
 	public static function ensure( int $post_id ): int {
 		$thumbnail_id = get_post_thumbnail_id( $post_id );
-		if ( $thumbnail_id > 0 ) {
+		$generated    = (string) get_post_meta( $post_id, self::GENERATED_META, true );
+		if ( $thumbnail_id > 0 && '' === $generated ) {
 			return $thumbnail_id;
+		}
+		if ( $thumbnail_id > 0 && str_starts_with( $generated, self::VERSION . ':' ) ) {
+			$thumbnail_path = get_attached_file( $thumbnail_id );
+			if ( is_string( $thumbnail_path ) && file_exists( $thumbnail_path ) ) {
+				return $thumbnail_id;
+			}
 		}
 
 		$post = get_post( $post_id );
 		if ( ! $post instanceof \WP_Post || 'post' !== $post->post_type || ! self::supported() ) {
 			return 0;
-		}
-
-		$existing = get_posts(
-			array(
-				'post_type'      => 'attachment',
-				'post_status'    => 'inherit',
-				'posts_per_page' => 1,
-				'fields'         => 'ids',
-				'meta_key'       => self::ATTACHMENT_POST_META,
-				'meta_value'     => (string) $post_id,
-				'no_found_rows'  => true,
-			)
-		);
-		if ( ! empty( $existing ) ) {
-			$attachment_id = (int) $existing[0];
-			set_post_thumbnail( $post_id, $attachment_id );
-			return $attachment_id;
 		}
 
 		$upload = wp_upload_dir();
@@ -181,30 +175,60 @@ final class Post_Artwork {
 			return 0;
 		}
 
-		$signature = substr( hash( 'sha256', $post_id . '|' . $post->post_title ), 0, 12 );
-		$filename  = 'briefing-' . $post_id . '-' . $signature . '.webp';
+		$photo = self::select_photo( $post );
+		if ( empty( $photo['id'] ) ) {
+			return 0;
+		}
+		$provider    = sanitize_text_field( (string) ( $photo['provider'] ?? 'Unsplash' ) );
+		$license     = sanitize_text_field( (string) ( $photo['license'] ?? 'Unsplash License' ) );
+		$creator     = sanitize_text_field( (string) ( $photo['creator'] ?? '' ) );
+		$credit      = '' !== $creator ? $creator . ' via ' . $provider : $provider;
+		$description = 'Editorial photo by ' . $credit . '. Source: ' . esc_url_raw( (string) $photo['page'] );
+
+		$signature = substr( hash( 'sha256', self::VERSION . '|' . $post_id . '|' . $post->post_title . '|' . $photo['id'] ), 0, 12 );
+		$filename  = 'editorial-' . $post_id . '-' . $signature . '.webp';
 		$path      = trailingslashit( $directory ) . $filename;
 
-		if ( ! file_exists( $path ) && ! self::render( $path, $post ) ) {
+		if ( ! file_exists( $path ) && ! self::download_and_render_photo( $path, $photo ) ) {
 			return 0;
 		}
 
-		$attachment_id = wp_insert_attachment(
-			array(
-				'guid'           => trailingslashit( (string) $upload['baseurl'] ) . 'infosecnexus-artwork/' . $filename,
-				'post_mime_type' => 'image/webp',
-				'post_title'     => sanitize_text_field( $post->post_title . ' featured artwork' ),
-				'post_content'   => '',
-				'post_excerpt'   => '',
-				'post_status'    => 'inherit',
-				'post_parent'    => $post_id,
-			),
-			$path,
-			$post_id,
-			true
-		);
-		if ( is_wp_error( $attachment_id ) ) {
-			return 0;
+		$old_thumbnail_path = $thumbnail_id > 0 ? get_attached_file( $thumbnail_id ) : '';
+		$reuse_attachment   = $thumbnail_id > 0
+			&& is_string( $old_thumbnail_path )
+			&& wp_normalize_path( $old_thumbnail_path ) === wp_normalize_path( $path );
+
+		if ( $reuse_attachment ) {
+			$attachment_id = $thumbnail_id;
+			wp_update_post(
+				wp_slash(
+					array(
+						'ID'           => $attachment_id,
+						'post_title'   => sanitize_text_field( $post->post_title . ' featured photo' ),
+						'post_content' => $description,
+						'post_excerpt' => 'Editorial photo by ' . $credit . '.',
+						'post_parent'  => $post_id,
+					)
+				)
+			);
+		} else {
+			$attachment_id = wp_insert_attachment(
+				array(
+					'guid'           => trailingslashit( (string) $upload['baseurl'] ) . 'infosecnexus-artwork/' . $filename,
+					'post_mime_type' => 'image/webp',
+					'post_title'     => sanitize_text_field( $post->post_title . ' featured photo' ),
+					'post_content'   => $description,
+					'post_excerpt'   => 'Editorial photo by ' . $credit . '.',
+					'post_status'    => 'inherit',
+					'post_parent'    => $post_id,
+				),
+				$path,
+				$post_id,
+				true
+			);
+			if ( is_wp_error( $attachment_id ) ) {
+				return 0;
+			}
 		}
 
 		require_once ABSPATH . 'wp-admin/includes/image.php';
@@ -215,19 +239,36 @@ final class Post_Artwork {
 
 		update_post_meta( $attachment_id, '_wp_attachment_image_alt', sanitize_text_field( $post->post_title ) );
 		update_post_meta( $attachment_id, self::ATTACHMENT_POST_META, $post_id );
+		update_post_meta( $attachment_id, self::ATTACHMENT_SOURCE_META, sanitize_text_field( (string) $photo['id'] ) );
+		update_post_meta( $attachment_id, '_infosecnexus_artwork_source_url', esc_url_raw( (string) $photo['page'] ) );
+		update_post_meta( $attachment_id, '_infosecnexus_artwork_license', $license );
+		update_post_meta( $attachment_id, '_infosecnexus_artwork_creator', $creator );
+		update_post_meta( $attachment_id, '_infosecnexus_artwork_provider', $provider );
 		update_post_meta( $post_id, self::GENERATED_META, self::VERSION . ':' . $signature );
 		set_post_thumbnail( $post_id, $attachment_id );
+
+		if (
+			$thumbnail_id > 0
+			&& $thumbnail_id !== $attachment_id
+			&& (int) get_post_meta( $thumbnail_id, self::ATTACHMENT_POST_META, true ) === $post_id
+			&& (
+				! is_string( $old_thumbnail_path )
+				|| wp_normalize_path( $old_thumbnail_path ) !== wp_normalize_path( $path )
+			)
+		) {
+			wp_delete_attachment( $thumbnail_id, true );
+		}
 
 		return $attachment_id;
 	}
 
 	/**
-	 * Query published posts that still have no featured image.
+	 * Query published posts missing an image or carrying older generated artwork.
 	 *
 	 * @param int $limit Maximum IDs.
 	 * @return int[]
 	 */
-	private static function posts_missing_artwork( int $limit ): array {
+	private static function posts_requiring_artwork( int $limit ): array {
 		$query = new \WP_Query(
 			array(
 				'post_type'      => 'post',
@@ -248,6 +289,11 @@ final class Post_Artwork {
 						'value'   => '0',
 						'compare' => '=',
 					),
+					array(
+						'key'     => self::GENERATED_META,
+						'value'   => self::VERSION . ':',
+						'compare' => 'NOT LIKE',
+					),
 				),
 			)
 		);
@@ -259,7 +305,624 @@ final class Post_Artwork {
 	 * Whether this server can create WebP images.
 	 */
 	private static function supported(): bool {
-		return function_exists( 'imagecreatetruecolor' ) && function_exists( 'imagewebp' );
+		return function_exists( 'wp_get_image_editor' );
+	}
+
+	/**
+	 * Pick an unused real photo that fits the article topic.
+	 *
+	 * @return array<string,string>
+	 */
+	private static function select_photo( \WP_Post $post ): array {
+		$pools      = self::photo_library();
+		$categories = wp_get_post_categories( $post->ID, array( 'fields' => 'slugs' ) );
+		$category   = '';
+		if ( is_array( $categories ) ) {
+			foreach ( $categories as $category_slug ) {
+				if ( isset( $pools[ $category_slug ] ) ) {
+					$category = (string) $category_slug;
+					break;
+				}
+			}
+		}
+		$context    = strtolower(
+			$post->post_title . ' ' .
+			wp_strip_all_tags( $post->post_excerpt ) . ' ' .
+			wp_trim_words( wp_strip_all_tags( $post->post_content ), 90, '' )
+		);
+
+		$keyword_pools = array(
+			'windows-security'        => array( 'windows', 'microsoft', 'sharepoint', 'exchange', 'active directory', 'vmswitch' ),
+			'linux-administration'    => array( 'linux', 'ubuntu', 'kernel', 'gnu', 'inetutils', 'snap-confine' ),
+			'artificial-intelligence' => array( ' ai ', 'agent', 'model', 'prompt', 'langflow', 'openai', 'hugging face' ),
+			'network-security'        => array( 'network', 'router', 'firewall', 'vpn', 'edge device', 'dns', 'fortinet', 'cisco', 'check point', 'd-link' ),
+			'cloud-security'          => array( 'cloud', 'azure', 'aws', 'kubernetes', 'cluster', 'managed service' ),
+			'devops'                  => array( 'devops', 'pipeline', 'github', 'docker', 'container', 'runner' ),
+			'web-security'            => array( 'web', 'wordpress', 'api', 'application', 'browser', 'apache', 'nginx', 'php' ),
+			'critical-cves'           => array( 'cve-', 'vulnerability', 'exploit', 'zero-day' ),
+			'tutorials'               => array( 'tutorial', 'guide', 'checklist', 'runbook', 'how to' ),
+		);
+
+		if ( '' === $category ) {
+			$padded_context = ' ' . $context . ' ';
+			foreach ( $keyword_pools as $pool => $keywords ) {
+				foreach ( $keywords as $keyword ) {
+					if ( false !== strpos( $padded_context, $keyword ) ) {
+						$category = $pool;
+						break 2;
+					}
+				}
+			}
+		}
+
+		if ( '' === $category ) {
+			$category = 'cybersecurity';
+		}
+
+		$index        = self::photo_index( $pools );
+		$preferred    = self::preferred_photo_ids( $category, strtolower( $post->post_title ) );
+		$reserved     = self::reserved_photo_ids();
+		foreach ( $preferred as $photo_id ) {
+			if ( isset( $index[ $photo_id ] ) && ! self::photo_in_use( $photo_id, $post->ID ) ) {
+				return $index[ $photo_id ];
+			}
+		}
+
+		$candidates = $pools[ $category ] ?? $pools['cybersecurity'];
+		$offset     = self::seed( $post->ID, $post->post_title ) % max( 1, count( $candidates ) );
+		$candidates = array_merge( array_slice( $candidates, $offset ), array_slice( $candidates, 0, $offset ) );
+
+		foreach ( $candidates as $candidate ) {
+			$photo_id = (string) $candidate['id'];
+			if ( in_array( $photo_id, $reserved, true ) || self::photo_in_use( $photo_id, $post->ID ) ) {
+				continue;
+			}
+			return $candidate;
+		}
+
+		foreach ( $candidates as $candidate ) {
+			$photo_id = (string) $candidate['id'];
+			if ( ! self::photo_in_use( $photo_id, $post->ID ) ) {
+				return $candidate;
+			}
+		}
+
+		$openverse = self::find_openverse_photo( $post, $category );
+		if ( ! empty( $openverse ) ) {
+			return $openverse;
+		}
+
+		return $candidates[0] ?? array();
+	}
+
+	/**
+	 * Flatten the curated library by source ID.
+	 *
+	 * @param array<string,array<int,array<string,string>>> $pools Photo pools.
+	 * @return array<string,array<string,string>>
+	 */
+	private static function photo_index( array $pools ): array {
+		$index = array();
+		foreach ( $pools as $photos ) {
+			foreach ( $photos as $photo ) {
+				$photo_id = (string) ( $photo['id'] ?? '' );
+				if ( '' !== $photo_id ) {
+					$index[ $photo_id ] = $photo;
+				}
+			}
+		}
+
+		return $index;
+	}
+
+	/**
+	 * Reserve strong title-to-photo matches before generic daily posts are migrated.
+	 *
+	 * @return string[]
+	 */
+	private static function preferred_photo_ids( string $category, string $title ): array {
+		$matches = array(
+			'critical-cves' => array(
+				'critical cve live watch' => '347I_P4ZQ0M',
+				'cve triage checklist'  => 'TB7aNN4blTQ',
+				'zero-day response'     => 'KdCJ1nIkgOU',
+				'exploitability signals' => '9SoCnyQmkzI',
+			),
+			'cybersecurity' => array(
+				'live cybersecurity news brief' => 'Bd7gNnWJBkU',
+				'security operations metrics' => 'Fa9b57hffnM',
+				'phishing defense'            => 'LPZy4da9aRo',
+				'threat intelligence triage'  => '0aRycsfH57A',
+			),
+			'linux-administration' => array(
+				'live linux security brief' => '4Mw7nkQDByk',
+				'linux kernel patch runbook' => 'M5tzZtFCOfs',
+				'ssh hardening'              => 'vII7qKAk-9A',
+				'linux log review'           => 'Qpj1LAgh4bY',
+			),
+			'devops' => array(
+				'ci/cd secrets'          => 'EHn4lNPnsbA',
+				'container image scanning' => 'zUrEj_OwLQM',
+				'infrastructure as code' => '2ruZpB0SkbU',
+			),
+			'artificial-intelligence' => array(
+				'prompt injection monitoring' => 'Sz5vOCNCDMg',
+				'model dependency'            => 'sNt81Whsncg',
+				'ai data leakage'             => 'FO7JIlwjOtU',
+			),
+			'tutorials' => array(
+				'weekly vulnerability review' => 'VKnmszzzTig',
+				'temporary security exceptions' => 'xjyHDnA93Pk',
+				'asset exposure register'      => 'l_pGKO3rVx4',
+			),
+			'cloud-security' => array(
+				'iam least privilege'     => '3Nwt6w-KU3E',
+				'cloud storage exposure'  => 'vSprjjDbu60',
+				'cloud logging baseline'  => '2JJ3wBHu4_0',
+			),
+			'windows-security' => array(
+				'live windows security brief' => 'commons:windows-bsod-dell',
+				'windows endpoint hardening' => 'hcjoTJMWCzs',
+				'active directory review'    => 'FlPc9_VocJ4',
+				'powershell logging'          => '-Z8cI1gs4zk',
+			),
+			'network-security' => array(
+				'network segmentation checks' => 'y4GHs9GEFdM',
+				'vpn access review'            => 'vE5AKQRUs7c',
+				'dns monitoring ideas'         => 'w0aMCZIW6Qc',
+			),
+			'web-security' => array(
+				'api authentication mistakes'   => 'edMu3cQKrho',
+				'web application security headers' => 'gEtJoCN1qpM',
+				'login security checklist'       => 'IXHNBGTKJfw',
+			),
+		);
+
+		$preferred = array();
+		foreach ( $matches[ $category ] ?? array() as $needle => $photo_id ) {
+			if ( false !== strpos( $title, $needle ) ) {
+				$preferred[] = $photo_id;
+			}
+		}
+
+		return $preferred;
+	}
+
+	/**
+	 * List all source IDs held for known title-specific articles.
+	 *
+	 * @return string[]
+	 */
+	private static function reserved_photo_ids(): array {
+		$categories = array(
+			'critical-cves',
+			'cybersecurity',
+			'linux-administration',
+			'devops',
+			'artificial-intelligence',
+			'tutorials',
+			'cloud-security',
+			'windows-security',
+			'network-security',
+			'web-security',
+		);
+		$ids = array();
+		foreach ( $categories as $category ) {
+			$ids = array_merge( $ids, self::preferred_photo_ids( $category, implode( ' ', array(
+				'cve triage checklist',
+				'critical cve live watch',
+				'zero-day response',
+				'exploitability signals',
+				'live cybersecurity news brief',
+				'security operations metrics',
+				'phishing defense',
+				'threat intelligence triage',
+				'live linux security brief',
+				'linux kernel patch runbook',
+				'ssh hardening',
+				'linux log review',
+				'ci/cd secrets',
+				'container image scanning',
+				'infrastructure as code',
+				'prompt injection monitoring',
+				'model dependency',
+				'ai data leakage',
+				'weekly vulnerability review',
+				'temporary security exceptions',
+				'asset exposure register',
+				'iam least privilege',
+				'cloud storage exposure',
+				'cloud logging baseline',
+				'live windows security brief',
+				'windows endpoint hardening',
+				'active directory review',
+				'powershell logging',
+				'network segmentation checks',
+				'vpn access review',
+				'dns monitoring ideas',
+				'api authentication mistakes',
+				'web application security headers',
+				'login security checklist',
+			) ) ) );
+		}
+
+		return array_values( array_unique( $ids ) );
+	}
+
+	/**
+	 * Find a new wide real-world photograph when the curated category pool is full.
+	 *
+	 * @return array<string,string>
+	 */
+	private static function find_openverse_photo( \WP_Post $post, string $category ): array {
+		$queries = array(
+			'critical-cves'           => 'software update checklist laptop',
+			'cybersecurity'           => 'security analyst computer office',
+			'linux-administration'    => 'server room maintenance',
+			'devops'                  => 'software developer coding laptop',
+			'artificial-intelligence' => 'artificial intelligence computer lab',
+			'tutorials'               => 'technology checklist notebook',
+			'cloud-security'          => 'data center server room',
+			'windows-security'        => 'desktop computer office',
+			'network-security'        => 'network cables server rack',
+			'web-security'            => 'web developer laptop office',
+		);
+		$query = (string) ( $queries[ $category ] ?? 'cybersecurity computer office' );
+		$page  = 1 + ( self::seed( $post->ID, $post->post_title ) % 3 );
+		$key   = 'isnx_openverse_' . md5( $query . '|' . $page );
+		$items = get_transient( $key );
+
+		if ( ! is_array( $items ) ) {
+			$url = add_query_arg(
+				array(
+					'q'            => $query,
+					'page'         => $page,
+					'page_size'    => 30,
+					'category'     => 'photograph',
+					'aspect_ratio' => 'wide',
+					'size'         => 'large',
+					'license'      => 'cc0,pdm,by,by-sa',
+					'mature'       => 'false',
+				),
+				'https://api.openverse.org/v1/images/'
+			);
+			$response = wp_safe_remote_get(
+				$url,
+				array(
+					'timeout'     => 10,
+					'redirection' => 3,
+				)
+			);
+			if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
+				return array();
+			}
+
+			$decoded = json_decode( wp_remote_retrieve_body( $response ), true );
+			$items   = is_array( $decoded['results'] ?? null ) ? $decoded['results'] : array();
+			set_transient( $key, $items, 12 * HOUR_IN_SECONDS );
+		}
+
+		foreach ( $items as $item ) {
+			if ( ! is_array( $item ) ) {
+				continue;
+			}
+			$raw_id   = sanitize_text_field( (string) ( $item['id'] ?? '' ) );
+			$download = esc_url_raw( (string) ( $item['url'] ?? '' ) );
+			$page_url = esc_url_raw( (string) ( $item['foreign_landing_url'] ?? '' ) );
+			$width    = (int) ( $item['width'] ?? 0 );
+			$height   = (int) ( $item['height'] ?? 0 );
+			$label    = strtolower( (string) ( $item['title'] ?? '' ) . ' ' . (string) ( $item['description'] ?? '' ) );
+			$source_id = 'openverse:' . $raw_id;
+
+			if (
+				'' === $raw_id
+				|| '' === $download
+				|| '' === $page_url
+				|| $width < 1200
+				|| $height < 600
+				|| $width / max( 1, $height ) < 1.25
+				|| preg_match( '/illustration|vector|render|generated|clipart|wallpaper/', $label )
+				|| self::photo_in_use( $source_id, $post->ID )
+			) {
+				continue;
+			}
+
+			$license = strtoupper( sanitize_text_field( (string) ( $item['license'] ?? 'CC' ) ) );
+			$version = sanitize_text_field( (string) ( $item['license_version'] ?? '' ) );
+			if ( '' !== $version ) {
+				$license .= ' ' . $version;
+			}
+
+			return array(
+				'id'       => $source_id,
+				'page'     => $page_url,
+				'download' => $download,
+				'provider' => 'Openverse',
+				'creator'  => sanitize_text_field( (string) ( $item['creator'] ?? '' ) ),
+				'license'  => $license,
+			);
+		}
+
+		return array();
+	}
+
+	/**
+	 * Check whether another published post already uses a source photo.
+	 */
+	private static function photo_in_use( string $source_id, int $post_id ): bool {
+		$attachments = get_posts(
+			array(
+				'post_type'      => 'attachment',
+				'post_status'    => 'inherit',
+				'posts_per_page' => -1,
+				'post_parent__not_in' => array( $post_id ),
+				'meta_key'       => self::ATTACHMENT_SOURCE_META,
+				'meta_value'     => $source_id,
+				'no_found_rows'  => true,
+			)
+		);
+
+		foreach ( $attachments as $attachment ) {
+			$parent_id = $attachment instanceof \WP_Post ? (int) $attachment->post_parent : 0;
+			$version   = $parent_id > 0 ? (string) get_post_meta( $parent_id, self::GENERATED_META, true ) : '';
+			if ( str_starts_with( $version, self::VERSION . ':' ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Download one source photo and create a consistently cropped local WebP.
+	 *
+	 * @param array<string,string> $photo Photo record.
+	 */
+	private static function download_and_render_photo( string $path, array $photo ): bool {
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+		require_once ABSPATH . 'wp-admin/includes/image.php';
+
+		$url = (string) $photo['download'];
+		if ( false !== strpos( $url, 'images.unsplash.com/' ) ) {
+			$url = add_query_arg(
+				array(
+					'auto' => 'format',
+					'fit'  => 'crop',
+					'w'    => 1600,
+					'q'    => 82,
+				),
+				$url
+			);
+		} elseif ( false !== strpos( $url, 'unsplash.com/photos/' ) ) {
+			$url = add_query_arg(
+				array(
+					'force' => 'true',
+					'w'     => 1600,
+				),
+				$url
+			);
+		}
+
+		$temporary = download_url( $url, 15 );
+		if ( is_wp_error( $temporary ) ) {
+			return false;
+		}
+
+		$editor = wp_get_image_editor( $temporary );
+		if ( is_wp_error( $editor ) ) {
+			wp_delete_file( $temporary );
+			return false;
+		}
+
+		$resized = $editor->resize( 1280, 720, true );
+		if ( is_wp_error( $resized ) ) {
+			wp_delete_file( $temporary );
+			return false;
+		}
+
+		$saved = $editor->save( $path, 'image/webp' );
+		wp_delete_file( $temporary );
+
+		return ! is_wp_error( $saved ) && file_exists( $path ) && filesize( $path ) > 0;
+	}
+
+	/**
+	 * Curated free-to-use Unsplash photographs grouped by editorial topic.
+	 *
+	 * @return array<string,array<int,array<string,string>>>
+	 */
+	private static function photo_library(): array {
+		$downloads = array(
+			'8hcIIZ8SoyU' => 'https://images.unsplash.com/photo-1684430598409-750ae3284704',
+			'W4lcqyH9r8c' => 'https://images.unsplash.com/photo-1555589228-5dc844368071',
+			'UjqhyXs504o' => 'https://images.unsplash.com/photo-1662819202032-d3f07430724a',
+			'jXd2FSvcRr8' => 'https://images.unsplash.com/photo-1562408590-e32931084e23',
+			'lVF2HLzjopw' => 'https://images.unsplash.com/photo-1620825937374-87fc7d6bddc2',
+			'k27hkqXuveo' => 'https://images.unsplash.com/photo-1775519520461-6b6e068d9250',
+			'vII7qKAk-9A' => 'https://images.unsplash.com/photo-1532522750741-628fde798c73',
+			'hI08TetYw0g' => 'https://images.unsplash.com/photo-1771189958069-a6b00817825c',
+			'N4pwMINNNL8' => 'https://images.unsplash.com/photo-1774901128275-dcba96786383',
+			'Qpj1LAgh4bY' => 'https://images.unsplash.com/photo-1763568258672-7f0b6d2aeaf2',
+			'ZOS4XDaMjR0' => 'https://images.unsplash.com/photo-1672307974995-cd253f7f7eeb',
+			'oYzjGQ7LCVE' => 'https://images.unsplash.com/photo-1778146476147-5f8d4bd03c79',
+			'xaWYIbNIOdw' => 'https://images.unsplash.com/photo-1780253256194-34e5867ccb8c',
+			'2ruZpB0SkbU' => 'https://images.unsplash.com/photo-1764182130428-01fcf5f1b068',
+			'sNt81Whsncg' => 'https://images.unsplash.com/photo-1749006590639-e749e6b7d84c',
+			'Sz5vOCNCDMg' => 'https://images.unsplash.com/photo-1751887687443-ec4dc66e230d',
+			'FO7JIlwjOtU' => 'https://images.unsplash.com/photo-1518770660439-4636190af475',
+			'V_LLeXrAhpQ' => 'https://images.unsplash.com/photo-1651720602149-7789f159b028',
+			'HNjWq8WPyoY' => 'https://images.unsplash.com/photo-1769794371055-54436b54577e',
+			'2w0IdiEI-hg' => 'https://images.unsplash.com/photo-1701889297494-16eb5bc8dca6',
+			'l_pGKO3rVx4' => 'https://images.unsplash.com/photo-1758611971270-89ce7ed506e1',
+			'xjyHDnA93Pk' => 'https://images.unsplash.com/photo-1758640920659-0bb864175983',
+			'2JJ3wBHu4_0' => 'https://images.unsplash.com/photo-1695668548342-c0c1ad479aee',
+			'lVZjvw-u9V8' => 'https://images.unsplash.com/photo-1584169417032-d34e8d805e8b',
+			'T-IN5o3kxyA' => 'https://images.unsplash.com/photo-1682559736721-c2e77ff4c650',
+			'-jCY4oEMA3o' => 'https://images.unsplash.com/photo-1620843002805-05a08cb72f57',
+			'fvl0zO_q0_k' => 'https://images.unsplash.com/photo-1633113088092-3460c3c9b13f',
+			'FlPc9_VocJ4' => 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3',
+			'hcjoTJMWCzs' => 'https://images.unsplash.com/photo-1759752394516-f3d0e9524f7f',
+			'w0aMCZIW6Qc' => 'https://images.unsplash.com/photo-1578016980868-197203ff4b02',
+			'KzUCuqTTAVw' => 'https://images.unsplash.com/photo-1750710583720-8b3bdd0f658a',
+			'oZgzVU_B3sE' => 'https://images.unsplash.com/photo-1750711158632-5273ec9b9b86',
+			'pPbz6dFruuo' => 'https://images.unsplash.com/photo-1688561807381-05137151978f',
+			'1p_o11Fly9o' => 'https://images.unsplash.com/photo-1700654063682-2ab9ceef93e5',
+			'ma3ypTuD88Y' => 'https://images.unsplash.com/photo-1742811631376-6e6a72f29181',
+			'ISP9CdRYS28' => 'https://images.unsplash.com/photo-1752742111841-f490c48aa668',
+			'edMu3cQKrho' => 'https://images.unsplash.com/photo-1535341000823-01aa350a4fbb',
+			'IXHNBGTKJfw' => 'https://images.unsplash.com/photo-1461988625982-7e46a099bf4f',
+			'wGlgRXVax5c' => 'https://images.unsplash.com/photo-1758873272808-5580ed7deb44',
+			'ohxs8oPgQ9k' => 'https://images.unsplash.com/photo-1764755932155-dabbee87df7e',
+			'KdCJ1nIkgOU' => 'https://images.unsplash.com/photo-1768839721176-2fa91fdce725',
+			'lD1nt9ePX0s' => 'https://images.unsplash.com/photo-1739168283356-d1b9bd1c0954',
+			'S4jSvcHYcOs' => 'https://images.unsplash.com/photo-1494083306499-e22e4a457632',
+			'Qqb7MJuGp0k' => 'https://images.unsplash.com/photo-1657875984407-55472ee47990',
+			'AaEQmoufHLk' => 'https://images.unsplash.com/photo-1504164996022-09080787b6b3',
+			'Ek9Znm8lQ1U' => 'https://images.unsplash.com/photo-1542831371-d531d36971e6',
+			'EHn4lNPnsbA' => 'https://images.unsplash.com/photo-1778370183481-ee9755da50e0',
+			'zUrEj_OwLQM' => 'https://images.unsplash.com/photo-1753998943918-dd2dfc4ee6ed',
+			'v-jFS1AsHXo' => 'https://images.unsplash.com/photo-1754039984985-ef607d80113a',
+			'A9jp72Owzvs' => 'https://images.unsplash.com/photo-1774901128281-a884cd447af5',
+			'w69Z8K-HGQU' => 'https://images.unsplash.com/photo-1744640326166-433469d102f2',
+			'weJ7qyjHYwk' => 'https://images.unsplash.com/photo-1754039985008-a15410211b67',
+			'VKnmszzzTig' => 'https://images.unsplash.com/photo-1753715613651-749ef230482c',
+			'vSprjjDbu60' => 'https://images.unsplash.com/photo-1680992044138-ce4864c2b962',
+			'3Nwt6w-KU3E' => 'https://images.unsplash.com/photo-1667264501379-c1537934c7ab',
+			'-Z8cI1gs4zk' => 'https://images.unsplash.com/photo-1770681381576-fe1ca0178da1',
+			'1H0zGBPOiDY' => 'https://images.unsplash.com/photo-1759752393718-7b57f6da3caa',
+			'y4GHs9GEFdM' => 'https://images.unsplash.com/photo-1783683783819-e6cb806bba69',
+			'vE5AKQRUs7c' => 'https://images.unsplash.com/photo-1750711731797-25c3f2551ff8',
+			'TfzeRFtlkFA' => 'https://images.unsplash.com/photo-1719253480609-579ad1622c65',
+			'gEtJoCN1qpM' => 'https://images.unsplash.com/photo-1773349807434-374473797148',
+			'LPZy4da9aRo' => 'https://images.unsplash.com/photo-1596526131083-e8c633c948d2',
+			'0aRycsfH57A' => 'https://images.unsplash.com/photo-1584438784894-089d6a62b8fa',
+			'9SoCnyQmkzI' => 'https://unsplash.com/photos/9SoCnyQmkzI/download',
+			'Fa9b57hffnM' => 'https://unsplash.com/photos/Fa9b57hffnM/download',
+			'M5tzZtFCOfs' => 'https://unsplash.com/photos/M5tzZtFCOfs/download',
+			'TB7aNN4blTQ' => 'https://unsplash.com/photos/TB7aNN4blTQ/download',
+			'347I_P4ZQ0M' => 'https://unsplash.com/photos/347I_P4ZQ0M/download',
+			'Bd7gNnWJBkU' => 'https://unsplash.com/photos/Bd7gNnWJBkU/download',
+			'4Mw7nkQDByk' => 'https://unsplash.com/photos/4Mw7nkQDByk/download',
+		);
+		$creators = array(
+			'LPZy4da9aRo' => 'Brett Jordan',
+			'0aRycsfH57A' => 'Maxim Ilyahov',
+			'9SoCnyQmkzI' => 'Jefferson Santos',
+			'Fa9b57hffnM' => 'Compagnons',
+			'M5tzZtFCOfs' => 'Taylor Vick',
+			'347I_P4ZQ0M' => 'Herry Sucahya',
+			'Bd7gNnWJBkU' => 'Andras Vas',
+			'4Mw7nkQDByk' => 'Gabriel Heinzer',
+		);
+		$photo = static fn( string $id ): array => array(
+			'id'       => $id,
+			'page'     => 'https://unsplash.com/photos/' . $id,
+			'download' => (string) ( $downloads[ $id ] ?? '' ),
+			'provider' => 'Unsplash',
+			'creator'  => (string) ( $creators[ $id ] ?? '' ),
+			'license'  => 'Unsplash License',
+		);
+		$windows_bsod = array(
+			'id'       => 'commons:windows-bsod-dell',
+			'page'     => 'https://commons.wikimedia.org/wiki/File:Blue_screen_of_death_on_a_Dell_laptop.jpg',
+			'download' => 'https://commons.wikimedia.org/wiki/Special:Redirect/file/Blue_screen_of_death_on_a_Dell_laptop.jpg?width=1600',
+			'provider' => 'Wikimedia Commons',
+			'creator'  => 'QueenBarenziah',
+			'license'  => 'CC BY-SA 4.0',
+		);
+
+		return array(
+			'critical-cves' => array(
+				$photo( '347I_P4ZQ0M' ),
+				$photo( 'TB7aNN4blTQ' ),
+				$photo( '9SoCnyQmkzI' ),
+				$photo( '8hcIIZ8SoyU' ),
+				$photo( 'W4lcqyH9r8c' ),
+				$photo( 'UjqhyXs504o' ),
+				$photo( 'jXd2FSvcRr8' ),
+				$photo( 'KdCJ1nIkgOU' ),
+				$photo( 'lD1nt9ePX0s' ),
+			),
+			'cybersecurity' => array(
+				$photo( 'Bd7gNnWJBkU' ),
+				$photo( 'Fa9b57hffnM' ),
+				$photo( 'LPZy4da9aRo' ),
+				$photo( '0aRycsfH57A' ),
+				$photo( 'lVF2HLzjopw' ),
+				$photo( 'hI08TetYw0g' ),
+				$photo( '1p_o11Fly9o' ),
+				$photo( 'ma3ypTuD88Y' ),
+				$photo( 'S4jSvcHYcOs' ),
+				$photo( 'Qqb7MJuGp0k' ),
+			),
+			'linux-administration' => array(
+				$photo( '4Mw7nkQDByk' ),
+				$photo( 'M5tzZtFCOfs' ),
+				$photo( 'vII7qKAk-9A' ),
+				$photo( 'N4pwMINNNL8' ),
+				$photo( 'Qpj1LAgh4bY' ),
+				$photo( 'ZOS4XDaMjR0' ),
+				$photo( 'AaEQmoufHLk' ),
+				$photo( 'Ek9Znm8lQ1U' ),
+			),
+			'devops' => array(
+				$photo( 'oYzjGQ7LCVE' ),
+				$photo( 'xaWYIbNIOdw' ),
+				$photo( '2ruZpB0SkbU' ),
+				$photo( 'EHn4lNPnsbA' ),
+				$photo( 'zUrEj_OwLQM' ),
+				$photo( 'v-jFS1AsHXo' ),
+			),
+			'artificial-intelligence' => array(
+				$photo( 'sNt81Whsncg' ),
+				$photo( 'Sz5vOCNCDMg' ),
+				$photo( 'FO7JIlwjOtU' ),
+				$photo( 'V_LLeXrAhpQ' ),
+				$photo( 'A9jp72Owzvs' ),
+				$photo( 'w69Z8K-HGQU' ),
+			),
+			'tutorials' => array(
+				$photo( 'HNjWq8WPyoY' ),
+				$photo( '2w0IdiEI-hg' ),
+				$photo( 'l_pGKO3rVx4' ),
+				$photo( 'xjyHDnA93Pk' ),
+				$photo( 'weJ7qyjHYwk' ),
+				$photo( 'VKnmszzzTig' ),
+			),
+			'cloud-security' => array(
+				$photo( '2JJ3wBHu4_0' ),
+				$photo( 'lVZjvw-u9V8' ),
+				$photo( 'k27hkqXuveo' ),
+				$photo( 'ISP9CdRYS28' ),
+				$photo( 'vSprjjDbu60' ),
+				$photo( '3Nwt6w-KU3E' ),
+			),
+			'windows-security' => array(
+				$windows_bsod,
+				$photo( '-jCY4oEMA3o' ),
+				$photo( 'fvl0zO_q0_k' ),
+				$photo( 'FlPc9_VocJ4' ),
+				$photo( 'hcjoTJMWCzs' ),
+				$photo( '-Z8cI1gs4zk' ),
+				$photo( '1H0zGBPOiDY' ),
+			),
+			'network-security' => array(
+				$photo( 'w0aMCZIW6Qc' ),
+				$photo( 'KzUCuqTTAVw' ),
+				$photo( 'oZgzVU_B3sE' ),
+				$photo( 'T-IN5o3kxyA' ),
+				$photo( 'y4GHs9GEFdM' ),
+				$photo( 'vE5AKQRUs7c' ),
+			),
+			'web-security' => array(
+				$photo( 'edMu3cQKrho' ),
+				$photo( 'IXHNBGTKJfw' ),
+				$photo( 'wGlgRXVax5c' ),
+				$photo( 'ohxs8oPgQ9k' ),
+				$photo( 'TfzeRFtlkFA' ),
+				$photo( 'gEtJoCN1qpM' ),
+			),
+		);
 	}
 
 	/**

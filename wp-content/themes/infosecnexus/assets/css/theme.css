@@ -1528,6 +1528,24 @@ textarea::placeholder {
   font-weight: 800;
 }
 
+.entry-content .isnx-references {
+  margin-top: 36px;
+  padding: 16px 18px;
+  background: var(--isnx-soft);
+  border: 1px solid var(--isnx-border);
+  border-radius: var(--isnx-radius);
+}
+
+.entry-content .isnx-references summary {
+  color: var(--isnx-navy);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.entry-content .isnx-references ul {
+  margin: 14px 0 0;
+}
+
 .entry-content--gated {
   display: grid;
   gap: 1.35rem;

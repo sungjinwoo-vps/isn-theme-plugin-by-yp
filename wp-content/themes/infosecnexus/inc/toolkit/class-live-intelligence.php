@@ -19,6 +19,27 @@ final class Live_Intelligence {
 	private const CACHE_TTL = 4 * HOUR_IN_SECONDS;
 	private const LOOKBACK_DAYS = 10;
 	private const MAX_ITEMS = 260;
+	private const CONTENT_SCHEMA_VERSION = '7';
+
+	/**
+	 * Hide retired generator notes immediately while the database migration runs.
+	 */
+	public static function boot(): void {
+		add_filter( 'the_content', array( __CLASS__, 'filter_reader_content' ), 8 );
+	}
+
+	/**
+	 * Keep internal collection and validation notes out of reader-facing posts.
+	 *
+	 * @param string $content Filtered post content.
+	 */
+	public static function filter_reader_content( string $content ): string {
+		if ( is_admin() || ! is_singular( 'post' ) ) {
+			return $content;
+		}
+
+		return self::clean_legacy_article( $content );
+	}
 
 	/**
 	 * Collect and normalize current source data.
@@ -182,6 +203,13 @@ final class Live_Intelligence {
 	}
 
 	/**
+	 * Return the reader-facing article schema version.
+	 */
+	public static function content_schema_version(): string {
+		return self::CONTENT_SCHEMA_VERSION;
+	}
+
+	/**
 	 * Build long-form, source-backed posts for every newsroom category.
 	 *
 	 * @param string              $date Human-readable site date.
@@ -212,12 +240,12 @@ final class Live_Intelligence {
 				)
 			);
 			$excerpt = sprintf(
-				'Live %1$s intelligence for %2$s, verified from current public advisories and official security feeds. Top items include %3$s.',
-				(string) $config['label'],
+				'%1$s Updated for %2$s. Lead coverage includes %3$s.',
+				(string) $config['intro'],
 				$date,
 				implode( ' and ', $top_titles )
 			);
-			$excerpt = wp_trim_words( $excerpt, 34, '.' );
+			$excerpt = wp_trim_words( $excerpt, 38, '.' );
 
 			$item_ids = array_map(
 				static fn( array $item ): string => (string) ( $item['id'] ?? '' ),
@@ -225,7 +253,7 @@ final class Live_Intelligence {
 			);
 			$fingerprint = hash(
 				'sha256',
-				(string) ( $data['fingerprint'] ?? '' ) . '|' . $slug . '|' . implode( '|', $item_ids )
+				self::CONTENT_SCHEMA_VERSION . '|' . (string) ( $data['fingerprint'] ?? '' ) . '|' . $slug . '|' . implode( '|', $item_ids )
 			);
 
 			$posts[] = array(
@@ -839,6 +867,22 @@ final class Live_Intelligence {
 				$relevant[] = $item;
 			}
 		}
+		usort(
+			$relevant,
+			static function ( array $left, array $right ) use ( $category ): int {
+				$score = self::category_relevance_score( $right, $category ) <=> self::category_relevance_score( $left, $category );
+				if ( 0 !== $score ) {
+					return $score;
+				}
+
+				$priority = (int) ( $right['priority'] ?? 0 ) <=> (int) ( $left['priority'] ?? 0 );
+				if ( 0 !== $priority ) {
+					return $priority;
+				}
+
+				return strtotime( (string) ( $right['published'] ?? '' ) ) <=> strtotime( (string) ( $left['published'] ?? '' ) );
+			}
+		);
 
 		$buckets = array(
 			'kev'   => array(),
@@ -863,6 +907,22 @@ final class Live_Intelligence {
 				'kev'  => min( 4, $limit ),
 				'risk' => max( 1, $limit - min( 4, $limit ) - 1 ),
 				'news' => 1,
+			);
+		} elseif ( 'cybersecurity' === $category ) {
+			$news_quota = min( 4, $limit );
+			$kev_quota  = min( 1, max( 0, $limit - $news_quota ) );
+			$quotas     = array(
+				'news' => $news_quota,
+				'kev'  => $kev_quota,
+				'risk' => max( 0, $limit - $news_quota - $kev_quota ),
+			);
+		} elseif ( 'tutorials' === $category ) {
+			$risk_quota = min( 3, $limit );
+			$news_quota = min( 2, max( 0, $limit - $risk_quota ) );
+			$quotas     = array(
+				'risk' => $risk_quota,
+				'news' => $news_quota,
+				'kev'  => max( 0, $limit - $risk_quota - $news_quota ),
 			);
 		} else {
 			$news_quota = max( 2, (int) ceil( $limit * 0.35 ) );
@@ -892,21 +952,85 @@ final class Live_Intelligence {
 			}
 		}
 
-		if ( count( $selected ) < min( $limit, 6 ) ) {
-			foreach ( $items as $item ) {
-				$id = (string) ( $item['id'] ?? '' );
-				if ( in_array( $id, $selected_ids, true ) ) {
-					continue;
-				}
-				$selected[]    = $item;
-				$selected_ids[] = $id;
-				if ( count( $selected ) >= min( $limit, 6 ) ) {
-					break;
-				}
+		return array_slice( $selected, 0, $limit );
+	}
+
+	/**
+	 * Rank records by the desk they genuinely belong to instead of feed order.
+	 *
+	 * @param array<string,mixed> $item Source item.
+	 */
+	private static function category_relevance_score( array $item, string $category ): int {
+		$text = strtolower(
+			implode(
+				' ',
+				array(
+					(string) ( $item['title'] ?? '' ),
+					(string) ( $item['description'] ?? '' ),
+					(string) ( $item['vendor'] ?? '' ),
+					(string) ( $item['product'] ?? '' ),
+					(string) ( $item['source'] ?? '' ),
+				)
+			)
+		);
+		$patterns = array(
+			'linux-administration' => array(
+				'/\b(linux kernel|ubuntu|debian|red hat|rhel|gnu|systemd|snap-confine|openssh|sudo)\b/i' => 110,
+				'/\b(linux|kernel|package|distribution)\b/i' => 35,
+			),
+			'devops' => array(
+				'/\b(github|gitlab|ci\/cd|pipeline|runner|jenkins|docker|container|kubernetes|helm|npm|pypi|maven)\b/i' => 100,
+				'/\b(build|dependency|artifact|repository|supply chain|secret)\b/i' => 35,
+			),
+			'artificial-intelligence' => array(
+				'/\b(langflow|openai|hugging face|llm|ai agent|agentic|prompt injection|model context protocol|mcp)\b/i' => 115,
+				'/\b(artificial intelligence|model|agent|copilot|sandbox)\b/i' => 40,
+			),
+			'cloud-security' => array(
+				'/\b(aws|amazon web services|azure|google cloud|gcp|iam|service account|tenant|managed service)\b/i' => 105,
+				'/\b(cloud|kubernetes|cluster|container|workload identity)\b/i' => 35,
+			),
+			'windows-security' => array(
+				'/\b(microsoft|windows|sharepoint|exchange|active directory|ad fs|entra|vmswitch|bitlocker)\b/i' => 110,
+				'/\b(patch tuesday|office|endpoint|domain controller)\b/i' => 35,
+			),
+			'network-security' => array(
+				'/\b(fortinet|fortios|fortigate|sonicwall|palo alto|cisco|check point|router|firewall|vpn|gateway)\b/i' => 115,
+				'/\b(network|switch|dns|tcp|udp|firmware|edge device|management interface)\b/i' => 35,
+			),
+			'web-security' => array(
+				'/\b(wordpress|woocommerce|elementor|apache|nginx|php|codeigniter|web application|rest api)\b/i' => 115,
+				'/\b(api|browser|http|sql injection|xss|cross-site|csrf|ssrf|authentication bypass|authorization bypass)\b/i' => 40,
+			),
+		);
+
+		$score = 0;
+		foreach ( $patterns[ $category ] ?? array() as $pattern => $weight ) {
+			if ( 1 === preg_match( (string) $pattern, $text ) ) {
+				$score += (int) $weight;
 			}
 		}
 
-		return array_slice( $selected, 0, $limit );
+		$type = (string) ( $item['type'] ?? '' );
+		if ( 'critical-cves' === $category ) {
+			$score += 'kev' === $type ? 150 : 0;
+			$score += (int) round( (float) ( $item['score'] ?? 0 ) * 10 );
+		} elseif ( 'cybersecurity' === $category ) {
+			$score += in_array( $type, array( 'reported_news', 'official_context', 'feed' ), true ) ? 120 : 0;
+			$score += in_array( (string) ( $item['source_key'] ?? '' ), array( 'cisa_advisory', 'github_security', 'microsoft_security', 'verified_context' ), true ) ? 45 : 0;
+		} elseif ( 'tutorials' === $category ) {
+			$score += in_array( $type, array( 'vulnerability', 'advisory' ), true ) ? 50 : 0;
+			$score += false !== strpos( $text, 'guide' ) || false !== strpos( $text, 'checklist' ) ? 40 : 0;
+		}
+
+		if ( 'web-security' === $category && 1 === preg_match( '/\b(fortinet|fortios|fortigate|router|firewall|vpn)\b/i', $text ) ) {
+			$score -= 90;
+		}
+		if ( 'network-security' === $category && 1 === preg_match( '/\b(sharepoint|wordpress|woocommerce|elementor)\b/i', $text ) ) {
+			$score -= 65;
+		}
+
+		return $score;
 	}
 
 	/**
@@ -919,48 +1043,58 @@ final class Live_Intelligence {
 	 * @return string
 	 */
 	private static function render_article( string $date, array $config, array $items, array $data ): string {
-		$checked_at = (string) ( $data['checked_at'] ?? '' );
-		$checked    = '' !== $checked_at ? get_date_from_gmt( $checked_at, 'F j, Y \a\t g:i a T' ) : $date;
-		$counts     = self::summary_counts( $items );
-		$sources    = self::source_pairs( $items );
-		$notes      = is_array( $config['review_notes'] ?? null ) ? $config['review_notes'] : array();
+		unset( $data );
+
+		$label       = (string) $config['label'];
+		$headings    = self::article_headings( $label );
+		$notes       = is_array( $config['review_notes'] ?? null ) ? $config['review_notes'] : array();
+		$sources     = self::source_pairs( $items );
+		$lead        = $items[0] ?? array();
+		$lead_title  = trim( (string) ( $lead['title'] ?? '' ) );
+		$lead_product = trim( implode( ' ', array_filter( array( (string) ( $lead['vendor'] ?? '' ), (string) ( $lead['product'] ?? '' ) ) ) ) );
 
 		$content  = '<p class="isnx-live-deck">' . esc_html( (string) $config['intro'] ) . '</p>';
-		$content .= '<p><strong>Live verification:</strong> This briefing was assembled from public CISA, NIST NVD, GitHub, Ubuntu, Microsoft, and other official publisher feeds checked on ' . esc_html( $checked ) . '. Existing posts are preserved and repeated source IDs are deduplicated.</p>';
 		$content .= '<!--more-->';
-		$content .= '<h2>Executive summary</h2>';
-		$content .= '<p>The current source set produced ' . esc_html( (string) count( $items ) ) . ' relevant updates for this briefing. It includes ' . esc_html( (string) $counts['kev'] ) . ' CISA Known Exploited Vulnerabilities, ' . esc_html( (string) $counts['critical'] ) . ' critical records, ' . esc_html( (string) $counts['high'] ) . ' high-severity records, and ' . esc_html( (string) $counts['news'] ) . ' official publisher updates. Severity alone is not treated as proof of exposure: teams should verify products, versions, reachability, privileges, and available mitigations.</p>';
+		$content .= '<h2>' . esc_html( $headings['overview'] ) . '</h2>';
 		$content .= '<p>' . esc_html( (string) $config['context'] ) . '</p>';
-		$content .= '<h2>Top verified developments</h2>';
-
-		foreach ( $items as $index => $item ) {
-			$content .= self::render_item( $item, (string) $config['label'], (string) ( $notes[ $index % max( 1, count( $notes ) ) ] ?? $config['context'] ) );
+		if ( '' !== $lead_title ) {
+			$content .= '<p>For ' . esc_html( $date ) . ', the lead development is <strong>' . esc_html( $lead_title ) . '</strong>. ';
+			if ( '' !== $lead_product ) {
+				$content .= 'Start by confirming where ' . esc_html( $lead_product ) . ' is deployed, who owns it, and whether the affected path is reachable. ';
+			}
+			$content .= 'The remaining items below add the product-specific context needed to turn the headline into an owned security decision.</p>';
 		}
 
-		$content .= '<h2>What teams should do next</h2>';
-		$content .= '<p>Use the items above as a review queue, not as an automatic statement that every environment is vulnerable. Match each product or service against a current asset inventory, confirm the installed version, and identify whether an attacker can reach the affected path. CISA KEV entries deserve special attention because their inclusion is based on evidence of exploitation in the wild.</p>';
-		$content .= '<ul>';
+		$content .= '<h2>' . esc_html( $headings['developments'] ) . '</h2>';
+		foreach ( $items as $index => $item ) {
+			$note = (string) ( $notes[ $index % max( 1, count( $notes ) ) ] ?? $config['context'] );
+			$content .= self::render_item( $item, $label, $note, (int) $index );
+		}
+
+		$content .= '<h2>' . esc_html( $headings['response'] ) . '</h2>';
+		$content .= '<p>' . esc_html( self::response_intro( $label ) ) . '</p><ul>';
 		foreach ( (array) $config['actions'] as $action ) {
 			$content .= '<li>' . esc_html( (string) $action ) . '</li>';
 		}
 		$content .= '</ul>';
-		$content .= '<h2>Prioritization method</h2>';
-		$content .= '<p>Start with active exploitation, then combine internet exposure, privilege level, sensitive data access, business criticality, and recovery difficulty. A lower-scored issue on a public administrative service can be more urgent than a higher-scored issue in an unreachable component. Record why an item was accelerated, deferred, mitigated, or found not applicable so the decision can be reviewed later.</p>';
-		$content .= '<p>For software updates, validate the vendor-fixed version and test the change in a representative environment. For cloud and managed services, confirm whether the provider has already deployed a platform-side fix or whether customer configuration is still required. For AI and automation systems, include connector permissions, stored credentials, tool execution, and untrusted input in the exposure review.</p>';
-		$content .= '<h2>Validation checklist</h2>';
-		$content .= '<ol><li>Confirm the source advisory, publication date, affected product, and fixed version.</li><li>Locate internet-facing, privileged, and business-critical instances before broad backlog work.</li><li>Apply the vendor patch or documented mitigation and keep an owner on every exception.</li><li>Verify the running version, service restart or reboot state, and control health after the change.</li><li>Review logs and alerts for exploitation indicators appropriate to the affected component.</li><li>Record evidence and schedule a follow-up for systems that cannot be remediated immediately.</li></ol>';
-		$content .= '<h2>Accuracy and source notes</h2>';
-		$content .= '<p>Automated feeds can be revised after initial publication. NVD enrichment, CVSS scores, affected-version ranges, and vendor guidance may change as maintainers add evidence. This page therefore shows the source and check time and links readers to the current advisory. Claims without a matching trusted source are not added to the live briefing.</p>';
-		$content .= '<p>Items described as Known Exploited come from the CISA KEV catalog. Other vulnerability severities reflect the value reported by NVD or the publishing CNA or advisory database at collection time. An official news post confirms what its publisher announced; it does not automatically prove broader third-party claims.</p>';
-		$content .= '<h2>Sources</h2><ul>';
-		foreach ( $sources as $source ) {
-			$content .= '<li><a href="' . esc_url( (string) $source[1] ) . '" rel="nofollow noopener" target="_blank">' . esc_html( (string) $source[0] ) . '</a></li>';
+
+		$content .= '<h2>' . esc_html( $headings['signals'] ) . '</h2>';
+		$content .= '<p>' . esc_html( self::signal_intro( $label ) ) . '</p><ul>';
+		foreach ( $notes as $note ) {
+			$content .= '<li>' . esc_html( (string) $note ) . '</li>';
 		}
 		$content .= '</ul>';
-		$content .= '<h2>Frequently asked questions</h2>';
-		$content .= '<h3>Is every item listed here exploitable in my environment?</h3><p>No. Only CISA KEV placement is treated as an active-exploitation signal, and even then your own exposure depends on product use, version, configuration, and reachability. Verify inventory and vendor guidance before making a final decision.</p>';
-		$content .= '<h3>Why can a score change after publication?</h3><p>CVE records are often enriched over time. NVD, a CNA, or a vendor may add a vector, change an affected range, or revise analysis when new evidence becomes available. The linked source remains the authority for the latest record.</p>';
-		$content .= '<h3>How often is this briefing refreshed?</h3><p>The theme checks its live source cache twice daily through WordPress cron and whenever an administrator requests a manual refresh. WordPress cron runs when the site receives a request, so the exact minute can vary on low-traffic sites.</p>';
+
+		$content .= '<h2>' . esc_html( $headings['closing'] ) . '</h2>';
+		$content .= '<p>' . esc_html( self::closing_note( $label ) ) . '</p>';
+
+		if ( ! empty( $sources ) ) {
+			$content .= '<details class="isnx-references"><summary>References used in this briefing</summary><ul>';
+			foreach ( $sources as $source ) {
+				$content .= '<li><a href="' . esc_url( (string) $source[1] ) . '" rel="nofollow noopener" target="_blank">' . esc_html( (string) $source[0] ) . '</a></li>';
+			}
+			$content .= '</ul></details>';
+		}
 
 		return $content;
 	}
@@ -971,9 +1105,10 @@ final class Live_Intelligence {
 	 * @param array<string,mixed> $item Source item.
 	 * @param string              $category_label Category label.
 	 * @param string              $review_note Category-specific review note.
+	 * @param int                 $position Item position in the briefing.
 	 * @return string
 	 */
-	private static function render_item( array $item, string $category_label, string $review_note ): string {
+	private static function render_item( array $item, string $category_label, string $review_note, int $position ): string {
 		$published = strtotime( (string) ( $item['published'] ?? '' ) );
 		$date      = false !== $published ? wp_date( 'F j, Y', $published ) : 'Date not supplied';
 		$severity  = trim( (string) ( $item['severity'] ?? '' ) );
@@ -993,29 +1128,308 @@ final class Live_Intelligence {
 		$content .= '<h3>' . esc_html( (string) $item['title'] ) . '</h3>';
 		$content .= '<p class="isnx-live-item__meta">' . esc_html( implode( ' | ', array_unique( $meta ) ) ) . '</p>';
 
-		$description = wp_trim_words( (string) ( $item['description'] ?? '' ), 20, '&hellip;' );
+		$description = wp_trim_words( (string) ( $item['description'] ?? '' ), 58, '&hellip;' );
 		if ( '' !== $description ) {
-			$content .= '<p><strong>Source summary:</strong> ' . esc_html( $description ) . '</p>';
+			$content .= '<p>' . esc_html( $description ) . '</p>';
 		}
 
+		$insight = self::item_insight( $item, $category_label, $position );
+		$content .= '<p><strong>Why it matters:</strong> ' . esc_html( $insight['why'] ) . '</p>';
+		$content .= '<p><strong>What to verify:</strong> ' . esc_html( $insight['verify'] ) . '</p>';
+
 		if ( 'kev' === (string) ( $item['type'] ?? '' ) ) {
-			$content .= '<p>CISA lists this issue in the Known Exploited Vulnerabilities catalog, which makes confirmed exploitation the leading prioritization signal. Review the catalog due date and required action, then identify exposed assets before normal severity-only backlog work.</p>';
 			if ( ! empty( $item['due_date'] ) ) {
-				$content .= '<p><strong>CISA due date:</strong> ' . esc_html( (string) $item['due_date'] ) . '. ';
+				$content .= '<p><strong>CISA remediation date: ' . esc_html( (string) $item['due_date'] ) . '.</strong> ';
 				$content .= ! empty( $item['action'] ) ? esc_html( wp_trim_words( (string) $item['action'], 24, '&hellip;' ) ) : 'Follow the current catalog action.';
 				$content .= '</p>';
 			}
-		} elseif ( 'vulnerability' === (string) ( $item['type'] ?? '' ) || 'advisory' === (string) ( $item['type'] ?? '' ) ) {
-			$content .= '<p>This record is a current vulnerability or package advisory. Confirm the affected version range and vendor fix before deployment, then prioritize instances that are public, privileged, or connected to sensitive data and production workflows.</p>';
-		} else {
-			$content .= '<p>This is an official publisher update rather than a standalone proof of customer exposure. Read the linked announcement for its exact scope, then translate any required product, policy, or operational change into an owned task.</p>';
 		}
 
-		$content .= '<p><strong>' . esc_html( $category_label ) . ' review:</strong> ' . esc_html( $review_note ) . '</p>';
-		$content .= '<p><a href="' . esc_url( (string) $item['url'] ) . '" rel="nofollow noopener" target="_blank">Read the current source record</a></p>';
+		$content .= '<p class="isnx-live-item__analysis"><strong>Operational focus:</strong> ' . esc_html( $review_note ) . '</p>';
+		$content .= '<p><a href="' . esc_url( (string) $item['url'] ) . '" rel="nofollow noopener" target="_blank">Open the original ' . esc_html( (string) ( $item['source'] ?? 'source' ) ) . ' record</a></p>';
 		$content .= '</section>';
 
 		return $content;
+	}
+
+	/**
+	 * Build product- and weakness-aware editorial analysis for one source record.
+	 *
+	 * @param array<string,mixed> $item Source item.
+	 * @param string              $category_label Category label.
+	 * @param int                 $position Item position in the briefing.
+	 * @return array{why:string,verify:string}
+	 */
+	private static function item_insight( array $item, string $category_label, int $position ): array {
+		$subject = trim(
+			implode(
+				' ',
+				array_filter(
+					array(
+						(string) ( $item['vendor'] ?? '' ),
+						(string) ( $item['product'] ?? '' ),
+					)
+				)
+			)
+		);
+		if ( '' === $subject ) {
+			$subject = (string) ( $item['cve'] ?? '' );
+		}
+		if ( '' === $subject ) {
+			$subject = wp_trim_words( (string) ( $item['title'] ?? 'This update' ), 10, '' );
+		}
+
+		$text = strtolower(
+			implode(
+				' ',
+				array(
+					(string) ( $item['title'] ?? '' ),
+					(string) ( $item['description'] ?? '' ),
+					(string) ( $item['vendor'] ?? '' ),
+					(string) ( $item['product'] ?? '' ),
+				)
+			)
+		);
+
+		$profiles = array(
+			array(
+				'pattern' => '/\b(wordpress|woocommerce|elementor|plugin|theme)\b/i',
+				'why'     => '%s may sit directly on a public website, so a vulnerable core, plugin, or theme can turn a routine content system into an initial-access path.',
+				'verify'  => 'Record the exact WordPress core and extension versions, confirm whether the affected feature is enabled, review administrator accounts, and inspect web requests before and after the update.',
+			),
+			array(
+				'pattern' => '/\b(fortinet|fortios|fortigate|sonicwall|palo alto|firewall appliance)\b/i',
+				'why'     => '%s commonly protects an internet edge or management boundary. Exposure there can affect remote access, traffic inspection, credentials, and the trust placed in downstream systems.',
+				'verify'  => 'Check the running firmware and model, restrict management access, compare configuration changes and new accounts, preserve independent logs, and rotate credentials if compromise cannot be excluded.',
+			),
+			array(
+				'pattern' => '/\b(sharepoint|active directory|ad fs|exchange|windows|vmswitch|microsoft 365|entra)\b/i',
+				'why'     => '%s is likely connected to identity, collaboration, or privileged Windows workloads, where one exposed role can widen impact beyond a single endpoint.',
+				'verify'  => 'Map supported builds and server roles, prioritize public and identity systems, confirm the installed update plus restart state, and review authentication and EDR telemetry for abnormal activity.',
+			),
+			array(
+				'pattern' => '/\b(linux|kernel|ubuntu|debian|red hat|rhel|gnu|snap-confine|systemd|openssh|sudo)\b/i',
+				'why'     => '%s may be embedded across servers, containers, appliances, and administration hosts. Package installation alone does not prove that the corrected code is running.',
+				'verify'  => 'Compare distribution package versions, identify the loaded kernel or library, plan required service restarts or reboots, and validate workload health after the change.',
+			),
+			array(
+				'pattern' => '/\b(langflow|llm|prompt injection|model|agentic|ai agent|copilot|openai|hugging face|mcp server)\b/i',
+				'why'     => '%s can combine untrusted text with connectors, stored credentials, and tool permissions. The meaningful risk is what the surrounding agent is allowed to read, change, or send.',
+				'verify'  => 'Test with hostile input in an isolated environment, inspect connector scopes and retained context, require approval for sensitive actions, and confirm that tool calls are logged and attributable.',
+			),
+			array(
+				'pattern' => '/\b(github|gitlab|pipeline|runner|docker|container|kubernetes|jenkins|package registry|dependency|supply chain)\b/i',
+				'why'     => '%s participates in the path from source code to production. A weakness can inherit runner permissions, build secrets, trusted artifacts, or deployment access.',
+				'verify'  => 'Trace untrusted input through pull requests and jobs, review token scope, isolate runners, pin trusted dependencies, and rebuild affected artifacts after remediation.',
+			),
+			array(
+				'pattern' => '/\b(aws|azure|google cloud|gcp|cloud service|iam|service account|tenant)\b/i',
+				'why'     => '%s can involve both provider-managed software and tenant-owned identity or exposure settings. Those responsibilities must be separated before the finding can be closed.',
+				'verify'  => 'Check affected accounts and regions, public endpoints, identity paths, workload images, provider status, and centralized audit logs that prove the repaired control is active.',
+			),
+			array(
+				'pattern' => '/\b(router|vpn|dns|network|switch|gateway|edge device|tcp|udp|wireless|firmware)\b/i',
+				'why'     => '%s may control a traffic or administration path that other systems implicitly trust, making reachability and management-plane exposure more important than the headline score alone.',
+				'verify'  => 'Inventory affected models and firmware, close public administration paths, compare routes and configuration, inspect flow and DNS logs, and validate connectivity after the upgrade.',
+			),
+			array(
+				'pattern' => '/\b(sql injection|command injection|code injection|remote code execution|rce)\b/i',
+				'why'     => '%s may let attacker-controlled input cross into an interpreter or executable path, which can turn a reachable application feature into data access or code execution.',
+				'verify'  => 'Confirm the vulnerable route and authentication state, deploy the fixed release, review suspicious parameters and child processes, and test authorization boundaries after patching.',
+			),
+			array(
+				'pattern' => '/\b(authentication bypass|improper authentication|authorization bypass|idor|access control)\b/i',
+				'why'     => '%s concerns a trust decision rather than a cosmetic defect. If the affected path is reachable, an attacker may cross a role, tenant, or login boundary.',
+				'verify'  => 'Reproduce the expected access checks safely, identify exposed roles and tenants, invalidate risky sessions or tokens, patch the decision point, and retest denied cases.',
+			),
+			array(
+				'pattern' => '/\b(privilege escalation|elevation of privilege|escalate to root|local privilege)\b/i',
+				'why'     => '%s can convert an existing low-privilege foothold into administrative control, increasing the importance of shared hosts, jump systems, and multi-user endpoints.',
+				'verify'  => 'Identify who can reach the vulnerable component locally, patch privileged systems first, review recent elevation and process events, and test that the fixed boundary still blocks unprivileged users.',
+			),
+			array(
+				'pattern' => '/\b(buffer overflow|out-of-bounds|use-after-free|memory corruption|integer overflow)\b/i',
+				'why'     => '%s is a memory-safety issue whose practical impact depends on the reachable parser, process privileges, platform protections, and reliability of attacker-controlled input.',
+				'verify'  => 'Confirm the exact affected build and component exposure, update from the vendor channel, review crash and restart telemetry, and keep network containment in place until the fixed process is running.',
+			),
+			array(
+				'pattern' => '/\b(information disclosure|exposure of sensitive|data leak|credential exposure|secret exposure)\b/i',
+				'why'     => '%s may reveal information that enables follow-on access even when it does not directly execute code. Tokens, configuration, keys, and internal topology deserve separate review.',
+				'verify'  => 'Determine what data the affected path could return, inspect access logs, revoke exposed credentials, reduce response detail where possible, and confirm the patch closes the same request path.',
+			),
+			array(
+				'pattern' => '/\b(path traversal|directory traversal|arbitrary file|file read|file write)\b/i',
+				'why'     => '%s may let a crafted path escape its intended directory, exposing configuration, credentials, application data, or a writable execution location.',
+				'verify'  => 'Identify the service account and filesystem boundary, review unusual path sequences in logs, patch the canonicalization check, rotate secrets from readable files, and retest encoded traversal variants.',
+			),
+			array(
+				'pattern' => '/\b(cross-site scripting|xss|csrf|ssrf|browser|http request)\b/i',
+				'why'     => '%s affects a browser or server-side request boundary, where authentication state, user roles, and reachable internal services determine the real impact.',
+				'verify'  => 'Confirm the vulnerable parameter and required role, update the affected component, inspect relevant requests, and retest output encoding, origin checks, and outbound request restrictions.',
+			),
+		);
+
+		foreach ( $profiles as $profile ) {
+			if ( 1 === preg_match( (string) $profile['pattern'], $text ) ) {
+				return array(
+					'why'   => sprintf( (string) $profile['why'], $subject ),
+					'verify' => (string) $profile['verify'],
+				);
+			}
+		}
+
+		$fallbacks = array(
+			'Critical CVE'      => 'belongs in an exploit-led queue only after the affected product is matched to a reachable asset and accountable owner.',
+			'Cybersecurity'     => 'changes a threat, product, or control assumption that should be translated into one explicit decision for the responsible team.',
+			'Linux Security'    => 'requires version evidence from the running Linux workload, not only a package-manager success message.',
+			'DevOps Security'   => 'should be traced across source, runner, dependency, artifact, secret, and deployment boundaries before release.',
+			'AI Security'       => 'should be evaluated as part of the complete model, agent, data, connector, and tool-permission system.',
+			'Security Tutorial' => 'is useful here as a worked example for turning an advisory into a documented owner, deadline, and verification record.',
+			'Cloud Security'    => 'needs an account, region, identity path, exposure state, and provider-versus-tenant ownership decision.',
+			'Windows Security'  => 'should be mapped to supported builds, deployed roles, restart requirements, and endpoint monitoring coverage.',
+			'Network Security'  => 'must be evaluated at the edge, management plane, firmware level, and independent logging path.',
+			'Web Security'      => 'should be tied to a reachable route, enabled component, authentication state, and permanent application fix.',
+		);
+		$why = $subject . ' ' . ( $fallbacks[ $category_label ] ?? 'needs an asset owner, exposure decision, remediation deadline, and proof that the control works.' );
+		$variants = array(
+			'Confirm the affected version and reachable component, preserve useful telemetry, apply the publisher guidance, and record the evidence used to close the item.',
+			'Start with asset ownership and exposure, compare the fixed release with the deployed build, and validate both security behavior and service health afterward.',
+			'Separate confirmed applicability from broad advisory language, assign the remediation decision, and keep any exception visible with an expiry date.',
+		);
+
+		return array(
+			'why'   => $why,
+			'verify' => $variants[ $position % count( $variants ) ],
+		);
+	}
+
+	/**
+	 * Reader-facing section headings for each desk.
+	 *
+	 * @return array{overview:string,developments:string,response:string,signals:string,closing:string}
+	 */
+	private static function article_headings( string $label ): array {
+		$sets = array(
+			'Critical CVE'      => array( 'Exploit-led priority', 'Vulnerabilities requiring action', 'Triage and remediation plan', 'Evidence to confirm', 'Patch queue decision' ),
+			'Cybersecurity'     => array( 'Threat picture', 'Developments shaping the day', 'Defensive priorities', 'Escalation signals', 'Operational takeaway' ),
+			'Linux Security'    => array( 'Linux exposure snapshot', 'Kernel, package, and service updates', 'Administrator runbook', 'Post-change checks', 'Linux team takeaway' ),
+			'DevOps Security'   => array( 'Delivery-chain risk', 'Pipeline and dependency developments', 'DevSecOps response plan', 'Build and release signals', 'Release decision' ),
+			'AI Security'       => array( 'Agent and model risk', 'AI security developments', 'Containment and governance actions', 'Tool-boundary signals', 'AI security takeaway' ),
+			'Security Tutorial' => array( 'Goal for this exercise', 'Advisories used in the walkthrough', 'Step-by-step workflow', 'Evidence to capture', 'Finish the review' ),
+			'Cloud Security'    => array( 'Cloud control-plane view', 'Service and workload developments', 'Cloud response plan', 'Tenant checks', 'Cloud team takeaway' ),
+			'Windows Security'  => array( 'Microsoft estate view', 'Windows and identity developments', 'Deployment plan', 'Endpoint and server checks', 'Windows team takeaway' ),
+			'Network Security'  => array( 'Edge exposure view', 'Network and appliance developments', 'Containment and firmware plan', 'Traffic and management signals', 'Network team takeaway' ),
+			'Web Security'      => array( 'Application attack surface', 'Web and API developments', 'Application response plan', 'Requests and control signals', 'Web security takeaway' ),
+		);
+		$values = $sets[ $label ] ?? array( 'Current risk picture', 'Developments to review', 'Response plan', 'Signals to verify', 'Bottom line' );
+
+		return array_combine( array( 'overview', 'developments', 'response', 'signals', 'closing' ), $values );
+	}
+
+	/**
+	 * Category-specific transition into the action list.
+	 */
+	private static function response_intro( string $label ): string {
+		$notes = array(
+			'Critical CVE'      => 'Move from exploit evidence to asset matching, containment, patching, and proof of remediation. A scanner finding is the start of the workflow, not the completion record.',
+			'Cybersecurity'     => 'Convert the developments above into a short queue of affected systems, accountable owners, deadlines, and detection work. Keep confirmed exposure separate from broad industry reporting.',
+			'Linux Security'    => 'Work from the package or kernel version that is actually running. Plan service restarts or reboots, protect high-value workloads during the change, and verify the fixed code is loaded afterward.',
+			'DevOps Security'   => 'Protect the path from source code to production. Review what untrusted input can reach, which identities a runner can use, and whether secrets survive in logs, caches, or artifacts.',
+			'AI Security'       => 'Treat the model, agent runtime, connectors, stored credentials, and reachable tools as one system. Reduce permissions before testing and keep high-impact actions behind explicit approval.',
+			'Security Tutorial' => 'Use one row per advisory and complete the workflow in order. The result should be a decision with an owner and evidence, not another unread list of links.',
+			'Cloud Security'    => 'Separate provider-side remediation from tenant-owned configuration. Check identities, public endpoints, workload images, service accounts, regions, and audit coverage before closing the issue.',
+			'Windows Security'  => 'Connect each advisory to supported builds and deployed server roles. Identity and internet-facing systems should move before routine endpoint waves, with restart and EDR health verified afterward.',
+			'Network Security'  => 'Start at the internet edge and management plane. Preserve configurations, restrict administration paths, patch supported firmware, and rotate credentials where compromise cannot be ruled out.',
+			'Web Security'      => 'Confirm that the affected route or component is actually enabled, then patch the permanent cause. Use temporary filtering only as a bridge and review requests for evidence of attempted abuse.',
+		);
+
+		return $notes[ $label ] ?? 'Translate each relevant development into an owner, deadline, remediation step, and verification record.';
+	}
+
+	/**
+	 * Category-specific transition into verification signals.
+	 */
+	private static function signal_intro( string $label ): string {
+		$notes = array(
+			'Critical CVE'      => 'Use these checks to decide whether an advisory is urgent in your environment and whether remediation is complete.',
+			'Cybersecurity'     => 'Escalate when exposure, privilege, sensitive data, identity control, or recovery impact increases the likely business consequence.',
+			'Linux Security'    => 'Package installation is not enough; confirm the running kernel, loaded libraries, service state, and monitoring coverage.',
+			'DevOps Security'   => 'Review trust boundaries at pull requests, runners, package resolution, artifact storage, credentials, and deployment approval.',
+			'AI Security'       => 'Observe what the agent can read, write, execute, send, and approve when it processes untrusted context.',
+			'Security Tutorial' => 'Capture enough evidence that another reviewer can understand the decision without repeating the entire investigation.',
+			'Cloud Security'    => 'Verify the affected account and region, the identity path, public reachability, provider responsibility, and audit evidence.',
+			'Windows Security'  => 'Check build numbers, installed updates, restart state, privileged authentication, EDR coverage, and server-role health.',
+			'Network Security'  => 'Check firmware, exposed management paths, configuration changes, new accounts, tunnels, routes, and independent logs.',
+			'Web Security'      => 'Check route reachability, authentication state, roles, request patterns, component versions, and recovery readiness.',
+		);
+
+		return $notes[ $label ] ?? 'Confirm exposure, remediation, and evidence before the item is closed.';
+	}
+
+	/**
+	 * Finish each desk with a distinct editorial takeaway.
+	 */
+	private static function closing_note( string $label ): string {
+		$notes = array(
+			'Critical CVE'      => 'The best patch order is the one that starts with exploited, reachable, and privileged systems, then records why every remaining item was deferred or found not applicable.',
+			'Cybersecurity'     => 'A useful daily brief changes decisions. Keep the queue small, tie it to real systems, and publish what changed, who owns the response, and what remains uncertain.',
+			'Linux Security'    => 'Linux remediation is complete only when the fixed kernel, package, or service is running and the workload has passed its operational checks.',
+			'DevOps Security'   => 'The secure release path minimizes inherited trust: isolated runners, short-lived identities, reviewed dependencies, reproducible artifacts, and explicit production approval.',
+			'AI Security'       => 'AI risk becomes manageable when tool access is narrow, untrusted context is expected, sensitive actions require approval, and every invocation leaves an auditable trail.',
+			'Security Tutorial' => 'End with a short action register: affected asset, decision, owner, deadline, proof required, and the next review time.',
+			'Cloud Security'    => 'Close cloud findings only after both the provider status and tenant configuration are understood, with centralized logs showing the repaired control is working.',
+			'Windows Security'  => 'A successful Windows update cycle protects identity and public server roles first, proves the new build is active, and keeps every exception visible.',
+			'Network Security'  => 'Edge risk falls when management access is private, firmware is supported, credentials are rotated after doubt, and network changes are visible outside the device.',
+			'Web Security'      => 'Permanent web risk reduction comes from fixing the vulnerable component or authorization path, then validating the result with request evidence and recovery checks.',
+		);
+
+		return $notes[ $label ] ?? 'Keep the response tied to real exposure, accountable ownership, and evidence that the control now works.';
+	}
+
+	/**
+	 * Remove internal generator notes from older auto-published briefings.
+	 */
+	public static function clean_legacy_article( string $content ): string {
+		$content = (string) preg_replace(
+			'#<p\b[^>]*>\s*<strong\b[^>]*>\s*(?:Live verification|Internal verification|Generator note|Automation note):?\s*</strong>.*?</p>#is',
+			'',
+			$content
+		);
+		$content = (string) preg_replace(
+			'#<p\b[^>]*>[^<]*(?:This briefing was assembled from public CISA|Existing posts are preserved and repeated source IDs are deduplicated).*?</p>#is',
+			'',
+			$content
+		);
+		$content = (string) preg_replace(
+			'#<h2\b[^>]*>\s*Executive summary\s*</h2>\s*<p\b[^>]*>\s*The current source set produced.*?</p>#is',
+			'<h2>Briefing overview</h2>',
+			$content
+		);
+		$content = (string) preg_replace(
+			'#<h2\b[^>]*>\s*(?:Prioritization method|Validation checklist|Accuracy and source notes|Frequently asked questions|Source verification|Editorial verification|Generator notes|Automation notes|How this briefing was assembled)\s*</h2>.*?(?=<h2\b|$)#is',
+			'',
+			$content
+		);
+		$content = (string) preg_replace(
+			'#<p>(?:CISA lists this issue in the Known Exploited Vulnerabilities catalog|This record is a current vulnerability or package advisory|This is an official publisher update rather than a standalone proof of customer exposure).*?</p>#is',
+			'',
+			$content
+		);
+		$content = (string) preg_replace(
+			'#<p>(?:CISA exploitation evidence moves|For .*?the useful decision points are|This publisher update matters to the).*?</p>#is',
+			'',
+			$content
+		);
+		$content = str_replace( '<strong>Source summary:</strong> ', '', $content );
+		$content = (string) preg_replace( '#<strong>[^<]+ review:</strong>#i', '<strong>Operational focus:</strong>', $content );
+		$content = (string) preg_replace(
+			'#<h2\b[^>]*>\s*Sources\s*</h2>\s*(<ul\b[^>]*>.*?</ul>)#is',
+			'<details class="isnx-references"><summary>References used in this briefing</summary>$1</details>',
+			$content
+		);
+		$content = (string) preg_replace( '#<!--\s*/?wp:[^>]+-->\s*(?=<!--\s*/?wp:|$)#i', '', $content );
+
+		return trim( $content );
 	}
 
 	/**

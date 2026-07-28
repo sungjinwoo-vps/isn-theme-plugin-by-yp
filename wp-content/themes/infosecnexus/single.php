@@ -49,9 +49,6 @@ if ( \InfoSecNexus\Theme\Elementor\render_location( 'single' ) ) {
 						)
 					);
 					?>
-					<?php if ( function_exists( 'infosecnexus_toolkit_newsletter_form' ) ) : ?>
-						<?php infosecnexus_toolkit_newsletter_form(); ?>
-					<?php endif; ?>
 					<footer class="entry-footer">
 						<?php the_tags( '<div class="tag-links">', '', '</div>' ); ?>
 					</footer>

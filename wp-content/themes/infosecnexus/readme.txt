@@ -3,7 +3,7 @@ Contributors: infosecnexus
 Requires at least: 6.5
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.1.28
+Stable tag: 0.1.29
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,6 +25,9 @@ InfoSecNexus WordPress Theme, Copyright 2026 InfoSecNexus.
 InfoSecNexus is distributed under the terms of the GNU GPL.
 
 == Changelog ==
+
+= 0.1.29 =
+Removes internal generator notes from published briefings, adds desk-specific source ranking and product-aware editorial analysis, and assigns every post a distinct real topic-matched WebP photograph.
 
 = 0.1.28 =
 Generates distinct, original WebP featured artwork for every published post, backfills existing posts in small background batches, and defers toolkit JavaScript without changing manually selected featured images.

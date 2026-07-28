@@ -59,3 +59,31 @@ test('SEO, agent discovery, and deferred ads are present', async ({ page, reques
   expect(llms.headers()['content-type']).toContain('text/plain');
   expect(await llms.text()).toMatch(/^# InfoSecNexus/m);
 });
+
+test('published briefings hide internal notes and use topic-aware analysis', async ({ page, request }) => {
+  const response = await request.get(`${baseURL}/wp-json/wp/v2/posts?per_page=1&orderby=date&order=desc`);
+  expect(response.ok()).toBeTruthy();
+
+  const [post] = await response.json();
+  await page.goto(post.link, { waitUntil: 'networkidle' });
+
+  const article = page.locator('.single-entry').first();
+  await expect(article).toBeVisible();
+  await expect(article).toContainText('Why it matters:');
+  await expect(article).toContainText('What to verify:');
+  await expect(article).not.toContainText(/Live verification|Validation checklist|Accuracy and source notes|Generator note/i);
+
+  const featuredImage = article.locator('.single-hero__media img').first();
+  await expect(featuredImage).toBeVisible();
+  const renderedImage = await featuredImage.evaluate((image) => ({
+    width: image.naturalWidth,
+    height: image.naturalHeight
+  }));
+  expect(renderedImage.width).toBeGreaterThanOrEqual(300);
+  expect(renderedImage.height).toBeGreaterThanOrEqual(160);
+
+  const hasHorizontalOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1
+  );
+  expect(hasHorizontalOverflow).toBeFalsy();
+});
