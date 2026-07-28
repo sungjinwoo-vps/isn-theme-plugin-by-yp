@@ -1,4 +1,5 @@
 const { test, expect } = require('@playwright/test');
+const { createHash } = require('node:crypto');
 const AxeBuilder = require('@axe-core/playwright').default;
 
 const baseURL = process.env.WP_BASE_URL || 'http://127.0.0.1:8888';
@@ -10,7 +11,7 @@ test('home page renders header, content, and footer', async ({ page }) => {
   await expect(page.locator('.site-footer')).toBeVisible();
 });
 
-test('homepage post cards use distinct generated artwork', async ({ page }) => {
+test('homepage post cards use distinct generated artwork', async ({ page, request }) => {
   await page.goto(baseURL, { waitUntil: 'networkidle' });
 
   const artwork = page.locator('img[src*="/infosecnexus-artwork/"]');
@@ -19,6 +20,15 @@ test('homepage post cards use distinct generated artwork', async ({ page }) => {
 
   const sources = await artwork.evaluateAll((images) => images.map((image) => image.currentSrc || image.src));
   expect(new Set(sources).size).toBe(count);
+
+  const pixelHashes = await Promise.all(
+    sources.map(async (source) => {
+      const response = await request.get(source);
+      expect(response.ok()).toBeTruthy();
+      return createHash('sha256').update(await response.body()).digest('hex');
+    })
+  );
+  expect(new Set(pixelHashes).size).toBe(count);
 });
 
 test('header controls are keyboard reachable', async ({ page }, testInfo) => {

@@ -3,7 +3,7 @@ Contributors: infosecnexus
 Requires at least: 6.5
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.1.30
+Stable tag: 0.1.31
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,6 +25,9 @@ InfoSecNexus WordPress Theme, Copyright 2026 InfoSecNexus.
 InfoSecNexus is distributed under the terms of the GNU GPL.
 
 == Changelog ==
+
+= 0.1.31 =
+Repairs legacy featured-photo collisions by reserving sources across every published generated attachment and verifies that homepage artwork bytes are distinct.
 
 = 0.1.30 =
 Individualizes older daily editions by date and newsroom desk so adjacent publication days no longer retain duplicate article bodies.

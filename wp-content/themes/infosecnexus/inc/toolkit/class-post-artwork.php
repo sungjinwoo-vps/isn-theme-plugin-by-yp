@@ -13,7 +13,7 @@ namespace InfoSecNexus\Theme\Toolkit;
  * Download licensed editorial photography, optimize it to WebP, and attach it.
  */
 final class Post_Artwork {
-	private const VERSION              = '7';
+	private const VERSION              = '8';
 	private const BACKFILL_HOOK        = 'infosecnexus_backfill_post_artwork';
 	private const BACKFILL_OPTION      = 'infosecnexus_post_artwork_backfill_version';
 	private const GENERATED_META       = '_infosecnexus_generated_artwork';
@@ -664,8 +664,7 @@ final class Post_Artwork {
 
 		foreach ( $attachments as $attachment ) {
 			$parent_id = $attachment instanceof \WP_Post ? (int) $attachment->post_parent : 0;
-			$version   = $parent_id > 0 ? (string) get_post_meta( $parent_id, self::GENERATED_META, true ) : '';
-			if ( str_starts_with( $version, self::VERSION . ':' ) ) {
+			if ( $parent_id > 0 && 'publish' === get_post_status( $parent_id ) ) {
 				return true;
 			}
 		}

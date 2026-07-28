@@ -17,7 +17,7 @@ final class Demo_Content {
 	private const DAILY_SEEDED_OPTION = 'infosecnexus_daily_content_seeded_dates';
 	private const DAILY_CRON_HOOK = 'infosecnexus_publish_daily_content';
 	private const PUBLIC_CACHE_RELEASE_OPTION = 'infosecnexus_public_cache_release';
-	private const CONTENT_REFRESH_VERSION = '0.1.30';
+	private const CONTENT_REFRESH_VERSION = '0.1.31';
 	private const DAILY_SCHEMA_OPTION = 'infosecnexus_daily_content_schema';
 	private const DAILY_SCHEMA_HOOK = 'infosecnexus_upgrade_daily_content_schema';
 
