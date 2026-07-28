@@ -19,7 +19,7 @@ final class Live_Intelligence {
 	private const CACHE_TTL = 4 * HOUR_IN_SECONDS;
 	private const LOOKBACK_DAYS = 10;
 	private const MAX_ITEMS = 260;
-	private const CONTENT_SCHEMA_VERSION = '7';
+	private const CONTENT_SCHEMA_VERSION = '8';
 
 	/**
 	 * Hide retired generator notes immediately while the database migration runs.

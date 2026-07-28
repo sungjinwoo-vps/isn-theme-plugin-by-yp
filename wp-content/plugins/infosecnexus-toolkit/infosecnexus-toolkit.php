@@ -3,7 +3,7 @@
  * Plugin Name: InfoSecNexus Toolkit Legacy Bridge
  * Plugin URI: https://infosecnexus.com/
  * Description: Legacy bridge for older InfoSecNexus installs. Current toolkit features are bundled into the InfoSecNexus theme.
- * Version: 0.1.29
+ * Version: 0.1.30
  * Requires at least: 6.5
  * Requires PHP: 8.1
  * Author: InfoSecNexus
@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'INFOSECNEXUS_TOOLKIT_VERSION', '0.1.29' );
+define( 'INFOSECNEXUS_TOOLKIT_VERSION', '0.1.30' );
 define( 'INFOSECNEXUS_TOOLKIT_FILE', __FILE__ );
 define( 'INFOSECNEXUS_TOOLKIT_DIR', plugin_dir_path( __FILE__ ) );
 define( 'INFOSECNEXUS_TOOLKIT_URL', plugin_dir_url( __FILE__ ) );

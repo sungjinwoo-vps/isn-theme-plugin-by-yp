@@ -104,7 +104,7 @@ $releaseManifest = @{
         last_updated = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd")
         sections = @{
             description = "Cybersecurity newsroom theme for InfoSecNexus."
-            changelog = "Removes internal generator notes, ranks live sources by newsroom topic, adds product-aware analysis, and gives every post a distinct real WebP photograph."
+            changelog = "Removes internal generator notes, gives every post a distinct real WebP photograph, and individualizes older daily editions that previously reused the same article body."
         }
     }
     plugin = @{
@@ -119,7 +119,7 @@ $releaseManifest = @{
         last_updated = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd")
         sections = @{
             description = "Legacy bridge for older InfoSecNexus installs. Current toolkit features are bundled into the InfoSecNexus theme."
-            changelog = "Keeps the optional legacy bridge aligned with the theme clean-article, topic-ranking, and real-photo release."
+            changelog = "Keeps the optional legacy bridge aligned with the theme clean-article, real-photo, and unique-edition release."
         }
     }
 }

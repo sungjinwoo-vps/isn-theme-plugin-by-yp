@@ -17,7 +17,7 @@ final class Demo_Content {
 	private const DAILY_SEEDED_OPTION = 'infosecnexus_daily_content_seeded_dates';
 	private const DAILY_CRON_HOOK = 'infosecnexus_publish_daily_content';
 	private const PUBLIC_CACHE_RELEASE_OPTION = 'infosecnexus_public_cache_release';
-	private const CONTENT_REFRESH_VERSION = '0.1.29';
+	private const CONTENT_REFRESH_VERSION = '0.1.30';
 	private const DAILY_SCHEMA_OPTION = 'infosecnexus_daily_content_schema';
 	private const DAILY_SCHEMA_HOOK = 'infosecnexus_upgrade_daily_content_schema';
 
@@ -244,6 +244,7 @@ final class Demo_Content {
 			$existing = (string) get_post_field( 'post_content', $post_id );
 			$cleaned  = Live_Intelligence::clean_legacy_article( $existing );
 			$cleaned  = self::modernize_short_daily_content( $cleaned );
+			$cleaned  = self::individualize_legacy_daily_content( $post_id, $cleaned );
 			if ( $cleaned === $existing ) {
 				continue;
 			}
@@ -1469,6 +1470,147 @@ final class Demo_Content {
 		}
 
 		return $rebuilt;
+	}
+
+	/**
+	 * Give older daily editions a date- and desk-specific editorial focus.
+	 *
+	 * Early daily posts could reuse the same body when upstream feeds had not
+	 * changed overnight. Current source-backed posts already contain live item
+	 * sections, so this migration is limited to those older editions.
+	 *
+	 * @param int    $post_id Daily post ID.
+	 * @param string $content Existing article HTML.
+	 */
+	private static function individualize_legacy_daily_content( int $post_id, string $content ): string {
+		if (
+			false !== strpos( $content, 'class="isnx-live-item"' )
+			|| false !== strpos( $content, 'class="isnx-edition-focus"' )
+		) {
+			return $content;
+		}
+
+		$date = sanitize_text_field( (string) get_post_meta( $post_id, '_infosecnexus_daily_content', true ) );
+		if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date ) ) {
+			$date = get_the_date( 'Y-m-d', $post_id );
+		}
+
+		$timestamp = strtotime( $date . ' 12:00:00' );
+		$human_date = false !== $timestamp ? wp_date( 'F j, Y', $timestamp ) : $date;
+		$term_slugs = wp_get_post_terms( $post_id, 'category', array( 'fields' => 'slugs' ) );
+		$term_slugs = is_wp_error( $term_slugs ) ? array() : array_map( 'strval', $term_slugs );
+		$profiles   = array(
+			'critical-cves' => array(
+				'label'    => 'Exploit-led vulnerability',
+				'scope'    => 'actively exploited, internet-facing, privileged, and hard-to-recover systems',
+				'evidence' => 'exact product versions, reachable features, exploit telemetry, patch state, and restart evidence',
+				'action'   => 'assign a patch, containment, investigation, or documented non-applicability decision',
+			),
+			'cybersecurity' => array(
+				'label'    => 'Security operations',
+				'scope'    => 'developments that change a current defensive assumption or expose an owned technology',
+				'evidence' => 'asset ownership, exposure, identity impact, detection coverage, and recovery readiness',
+				'action'   => 'turn each relevant signal into a small, accountable response rather than a broad news queue',
+			),
+			'linux-administration' => array(
+				'label'    => 'Linux operations',
+				'scope'    => 'public services, bastions, orchestration nodes, shared hosts, and privileged workloads',
+				'evidence' => 'distribution package versions, the running kernel or process, reboot state, and service health',
+				'action'   => 'sequence remediation around workload risk and prove that the corrected code is actually loaded',
+			),
+			'devops' => array(
+				'label'    => 'DevSecOps',
+				'scope'    => 'pull requests, runners, dependencies, artifacts, secrets, and production deployment paths',
+				'evidence' => 'trigger conditions, token scope, runner isolation, artifact provenance, and approval boundaries',
+				'action'   => 'remove inherited trust from the path between untrusted code and a production release',
+			),
+			'artificial-intelligence' => array(
+				'label'    => 'AI security',
+				'scope'    => 'agents and assistants that combine untrusted context with private data or consequential tools',
+				'evidence' => 'connector scope, retained context, tool permissions, approval gates, and complete invocation logs',
+				'action'   => 'reduce authority outside the model and test whether hostile context can influence a sensitive call',
+			),
+			'tutorials' => array(
+				'label'    => 'Security workflow',
+				'scope'    => 'a limited set of advisories that can be mapped to real systems and responsible teams',
+				'evidence' => 'affected assets, owners, deadlines, verification steps, exceptions, and the next review time',
+				'action'   => 'finish with a compact action register that another engineer can verify without repeating the research',
+			),
+			'cloud-security' => array(
+				'label'    => 'Cloud security',
+				'scope'    => 'public control planes, privileged identities, storage, production clusters, and sensitive workloads',
+				'evidence' => 'accounts, regions, identity paths, public endpoints, workload images, provider status, and audit logs',
+				'action'   => 'separate provider remediation from tenant-owned work and verify both sides of the control',
+			),
+			'windows-security' => array(
+				'label'    => 'Windows security',
+				'scope'    => 'identity systems, exposed servers, administrator workstations, and endpoints with reusable credentials',
+				'evidence' => 'supported builds, installed updates, restart state, server roles, authentication events, and EDR health',
+				'action'   => 'move high-impact deployment rings first and keep failed or unreachable systems visible',
+			),
+			'network-security' => array(
+				'label'    => 'Network security',
+				'scope'    => 'internet-edge appliances, VPNs, gateways, DNS infrastructure, and management interfaces',
+				'evidence' => 'models, firmware, exposed administration paths, configuration changes, routes, tunnels, and independent logs',
+				'action'   => 'contain reachable management paths before patching and validate traffic plus high availability afterward',
+			),
+			'web-security' => array(
+				'label'    => 'Application security',
+				'scope'    => 'public routes, APIs, sessions, plugins, browser controls, and authorization boundaries',
+				'evidence' => 'enabled component versions, request methods, user roles, response behavior, logs, and recovery readiness',
+				'action'   => 'fix the permanent application cause and retest both denied and authorized requests through the public path',
+			),
+		);
+
+		$slug = 'cybersecurity';
+		foreach ( array_keys( $profiles ) as $candidate ) {
+			if ( in_array( $candidate, $term_slugs, true ) ) {
+				$slug = $candidate;
+				break;
+			}
+		}
+
+		$profile = $profiles[ $slug ];
+		$variant = abs( (int) crc32( $date . '|' . $slug ) ) % 3;
+		$paragraphs = array(
+			array(
+				'For %1$s, this %2$s edition puts %3$s first. The aim is to convert the day\'s references into an owned decision instead of repeating every headline.',
+				'Review %1$s, then %2$s. Production evidence should determine priority; a category label or severity score alone should not close the work.',
+			),
+			array(
+				'The %1$s %2$s review is organized around %3$s. Read each item against the environment that actually runs it, including inherited trust and operational dependencies.',
+				'Use %1$s to separate confirmed exposure from broad advisory language, then %2$s. Record the reason whenever an item is deferred or found not applicable.',
+			),
+			array(
+				'This %1$s edition emphasizes closure quality for %2$s. Start with %3$s so the response follows reachable risk rather than the order in which headlines arrived.',
+				'Capture %1$s before and after remediation, then %2$s. Keep temporary mitigations attached to an owner and expiry date until the permanent control is verified.',
+			),
+		);
+
+		$edition  = '<section class="isnx-edition-focus">';
+		$edition .= '<h2>' . esc_html( (string) $profile['label'] . ' focus for ' . $human_date ) . '</h2>';
+		$edition .= '<p>' . esc_html(
+			sprintf(
+				$paragraphs[ $variant ][0],
+				$human_date,
+				(string) $profile['label'],
+				(string) $profile['scope']
+			)
+		) . '</p>';
+		$edition .= '<p>' . esc_html(
+			sprintf(
+				$paragraphs[ $variant ][1],
+				(string) $profile['evidence'],
+				(string) $profile['action']
+			)
+		) . '</p>';
+		$edition .= '</section>';
+
+		if ( false !== strpos( $content, '<!--more-->' ) ) {
+			return (string) preg_replace( '/<!--more-->/', '<!--more-->' . $edition, $content, 1 );
+		}
+
+		return $edition . $content;
 	}
 
 	/**

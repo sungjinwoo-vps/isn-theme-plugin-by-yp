@@ -1,7 +1,7 @@
 {
     "plugin":  {
                    "slug":  "infosecnexus-toolkit",
-                   "version":  "0.1.29",
+                   "version":  "0.1.30",
                    "plugin":  "infosecnexus-toolkit/infosecnexus-toolkit.php",
                    "requires_php":  "8.1",
                    "package":  "https://raw.githubusercontent.com/sungjinwoo-vps/isn-theme-plugin-by-yp/stable/dist/infosecnexus-toolkit.zip",
@@ -9,23 +9,23 @@
                    "homepage":  "https://infosecnexus.com/",
                    "last_updated":  "2026-07-28",
                    "sections":  {
-                                    "changelog":  "Keeps the optional legacy bridge aligned with the theme clean-article, topic-ranking, and real-photo release.",
+                                    "changelog":  "Keeps the optional legacy bridge aligned with the theme clean-article, real-photo, and unique-edition release.",
                                     "description":  "Legacy bridge for older InfoSecNexus installs. Current toolkit features are bundled into the InfoSecNexus theme."
                                 },
                    "requires":  "6.5"
                },
-    "generatedAt":  "2026-07-28T14:25:13Z",
+    "generatedAt":  "2026-07-28T15:15:43Z",
     "manifestVersion":  1,
     "theme":  {
                   "slug":  "infosecnexus",
-                  "version":  "0.1.29",
+                  "version":  "0.1.30",
                   "requires_php":  "8.1",
                   "package":  "https://raw.githubusercontent.com/sungjinwoo-vps/isn-theme-plugin-by-yp/stable/dist/infosecnexus-theme.zip",
                   "tested":  "7.0",
                   "homepage":  "https://infosecnexus.com/",
                   "last_updated":  "2026-07-28",
                   "sections":  {
-                                   "changelog":  "Removes internal generator notes, ranks live sources by newsroom topic, adds product-aware analysis, and gives every post a distinct real WebP photograph.",
+                                   "changelog":  "Removes internal generator notes, gives every post a distinct real WebP photograph, and individualizes older daily editions that previously reused the same article body.",
                                    "description":  "Cybersecurity newsroom theme for InfoSecNexus."
                                },
                   "requires":  "6.5"
