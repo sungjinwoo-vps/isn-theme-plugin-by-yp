@@ -25,6 +25,7 @@ final class Contact_Form {
 		add_action( 'admin_post_nopriv_' . self::ACTION, array( __CLASS__, 'handle_submission' ) );
 		add_shortcode( 'infosecnexus_contact_form', array( __CLASS__, 'shortcode' ) );
 		add_filter( 'the_content', array( __CLASS__, 'replace_legacy_form' ), 8 );
+		add_filter( 'the_content', array( __CLASS__, 'normalize_form_markup' ), 12 );
 	}
 
 	/**
@@ -74,6 +75,26 @@ final class Contact_Form {
 		$updated = preg_replace(
 			'#<form\b[^>]*class=(["\'])[^"\']*isnx-contact-form[^"\']*\1[^>]*>.*?</form>#is',
 			'[infosecnexus_contact_form]',
+			$content,
+			1
+		);
+
+		return is_string( $updated ) ? $updated : $content;
+	}
+
+	/**
+	 * Remove a paragraph that wpautop can place before the block-level form.
+	 *
+	 * @param string $content Filtered post content.
+	 */
+	public static function normalize_form_markup( string $content ): string {
+		if ( false === strpos( $content, 'isnx-contact-form' ) ) {
+			return $content;
+		}
+
+		$updated = preg_replace(
+			'#<p>\s*(<form\b[^>]*class=(["\'])[^"\']*isnx-contact-form[^"\']*\2[^>]*>)#i',
+			'$1',
 			$content,
 			1
 		);

@@ -70,6 +70,7 @@ test('public forms use secure same-site handlers and anti-spam fields', async ({
   await expect(contact.locator('input[name="name"]')).toHaveAttribute('autocomplete', 'name');
   await expect(contact.locator('input[name="email"]')).toHaveAttribute('autocomplete', 'email');
   await expect(contact.locator('textarea[name="message"]')).toHaveAttribute('required', '');
+  expect(await contact.evaluate((form) => form.previousElementSibling?.tagName)).not.toBe('P');
 
   await page.goto(baseURL, { waitUntil: 'networkidle' });
   const newsletter = page.locator('[data-isnx-newsletter]').first();
