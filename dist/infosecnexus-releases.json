@@ -1,31 +1,31 @@
 {
     "plugin":  {
                    "slug":  "infosecnexus-toolkit",
-                   "version":  "0.1.31",
+                   "version":  "0.1.32",
                    "plugin":  "infosecnexus-toolkit/infosecnexus-toolkit.php",
                    "requires_php":  "8.1",
                    "package":  "https://raw.githubusercontent.com/sungjinwoo-vps/isn-theme-plugin-by-yp/stable/dist/infosecnexus-toolkit.zip",
                    "tested":  "7.0",
                    "homepage":  "https://infosecnexus.com/",
-                   "last_updated":  "2026-07-28",
+                   "last_updated":  "2026-07-30",
                    "sections":  {
-                                    "changelog":  "Keeps the optional legacy bridge aligned with the theme clean-article, unique-edition, and strict real-photo release.",
+                                    "changelog":  "Keeps the optional legacy bridge aligned with the theme secure forms, mail delivery, and confirmed newsletter release.",
                                     "description":  "Legacy bridge for older InfoSecNexus installs. Current toolkit features are bundled into the InfoSecNexus theme."
                                 },
                    "requires":  "6.5"
                },
-    "generatedAt":  "2026-07-28T15:40:38Z",
+    "generatedAt":  "2026-07-30T07:55:35Z",
     "manifestVersion":  1,
     "theme":  {
                   "slug":  "infosecnexus",
-                  "version":  "0.1.31",
+                  "version":  "0.1.32",
                   "requires_php":  "8.1",
                   "package":  "https://raw.githubusercontent.com/sungjinwoo-vps/isn-theme-plugin-by-yp/stable/dist/infosecnexus-theme.zip",
                   "tested":  "7.0",
                   "homepage":  "https://infosecnexus.com/",
-                  "last_updated":  "2026-07-28",
+                  "last_updated":  "2026-07-30",
                   "sections":  {
-                                   "changelog":  "Removes internal generator notes, individualizes older daily editions, and repairs legacy featured-photo collisions with strict source reservation.",
+                                   "changelog":  "Adds secure same-site contact handling, a private WordPress message inbox, encrypted optional SMTP delivery, mail diagnostics, and a double opt-in Daily Cyber Brief with unsubscribe links and scheduled digests.",
                                    "description":  "Cybersecurity newsroom theme for InfoSecNexus."
                                },
                   "requires":  "6.5"

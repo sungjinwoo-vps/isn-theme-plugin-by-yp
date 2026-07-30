@@ -1042,7 +1042,19 @@ textarea::placeholder {
 
 .newsletter-card__status {
   flex-basis: 100%;
+  min-height: 1.3rem;
+  color: #087443;
   font-size: 0.85rem;
+}
+
+.newsletter-card__status.is-error {
+  color: #b42318;
+}
+
+.newsletter-card button[disabled],
+.entry-content .isnx-contact-form button[disabled] {
+  cursor: wait;
+  opacity: 0.72;
 }
 
 .isnx-hp {
@@ -1918,6 +1930,41 @@ textarea::placeholder {
   cursor: pointer;
 }
 
+.entry-content .isnx-form-notice {
+  margin: 0;
+  padding: 0.8rem 0.9rem;
+  color: #17336b;
+  font-weight: 700;
+  background: #eef6ff;
+  border: 1px solid #bad8ff;
+  border-radius: 6px;
+}
+
+.entry-content .isnx-form-notice--success {
+  color: #05603a;
+  background: #ecfdf3;
+  border-color: #86efac;
+}
+
+.entry-content .isnx-form-notice--warning {
+  color: #7a4c00;
+  background: #fff8e5;
+  border-color: #f5d280;
+}
+
+.entry-content .isnx-form-notice--error {
+  color: #912018;
+  background: #fff1f0;
+  border-color: #f4aaa4;
+}
+
+.entry-content .isnx-form-privacy {
+  max-width: 58ch;
+  margin: -0.25rem 0 0;
+  color: var(--isnx-muted);
+  font-size: 0.82rem;
+}
+
 .entry-content .isnx-alert-note,
 .entry-content .isnx-response-band {
   padding: 1rem;
@@ -2534,6 +2581,38 @@ textarea::placeholder {
   background: #081226;
   border-color: var(--isnx-border);
   box-shadow: none;
+}
+
+:root[data-color-mode="dark"] .entry-content .isnx-form-notice {
+  color: #c9dcff;
+  background: #122142;
+  border-color: #294776;
+}
+
+:root[data-color-mode="dark"] .entry-content .isnx-form-notice--success {
+  color: #adf0cf;
+  background: #0c2d25;
+  border-color: #20765c;
+}
+
+:root[data-color-mode="dark"] .entry-content .isnx-form-notice--warning {
+  color: #ffe09a;
+  background: #352600;
+  border-color: #806115;
+}
+
+:root[data-color-mode="dark"] .entry-content .isnx-form-notice--error {
+  color: #ffc9c5;
+  background: #3a1718;
+  border-color: #874044;
+}
+
+:root[data-color-mode="dark"] .newsletter-card__status {
+  color: #9ce8c3;
+}
+
+:root[data-color-mode="dark"] .newsletter-card__status.is-error {
+  color: #ffb4ae;
 }
 
 :root[data-color-mode="dark"] .search-field::placeholder,

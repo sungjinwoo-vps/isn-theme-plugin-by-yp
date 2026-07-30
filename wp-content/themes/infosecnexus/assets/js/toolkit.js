@@ -85,7 +85,16 @@
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
       const status = form.querySelector('[data-isnx-newsletter-status]');
+      const button = form.querySelector('button[type="submit"]');
       const formData = new FormData(form);
+      form.setAttribute('aria-busy', 'true');
+      if (button) {
+        button.disabled = true;
+      }
+      if (status) {
+        status.textContent = 'Submitting securely...';
+        status.classList.remove('is-error');
+      }
       const response = await fetch(`${config.restUrl}newsletter`, {
         method: 'POST',
         headers: { 'X-WP-Nonce': config.restNonce || '' },
@@ -94,9 +103,28 @@
       const payload = response ? await response.json().catch(() => ({})) : {};
       if (status) {
         status.textContent = payload.message || 'Unable to subscribe right now.';
+        status.classList.toggle('is-error', !response || !response.ok);
       }
       if (response && response.ok) {
         form.reset();
+      }
+      form.removeAttribute('aria-busy');
+      if (button) {
+        button.disabled = false;
+      }
+    });
+  });
+
+  document.querySelectorAll('.isnx-contact-form').forEach((form) => {
+    form.addEventListener('submit', () => {
+      if (!form.checkValidity()) {
+        return;
+      }
+      const button = form.querySelector('button[type="submit"]');
+      form.setAttribute('aria-busy', 'true');
+      if (button) {
+        button.disabled = true;
+        button.textContent = 'Sending...';
       }
     });
   });

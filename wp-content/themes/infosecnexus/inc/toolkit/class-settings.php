@@ -66,20 +66,37 @@ final class Settings {
 			$output['modules'][ $module ] = ! empty( $input['modules'][ $module ] );
 		}
 
-		$output['cookie_text']         = sanitize_text_field( (string) ( $input['cookie_text'] ?? '' ) );
-		$output['newsletter_heading']  = sanitize_text_field( (string) ( $input['newsletter_heading'] ?? '' ) );
-		$output['newsletter_intro']    = sanitize_textarea_field( (string) ( $input['newsletter_intro'] ?? '' ) );
-		$output['sidebar_conditions']  = self::sanitize_json_textarea( (string) ( $input['sidebar_conditions'] ?? '' ) );
-		$output['maintenance_enabled'] = ! empty( $input['maintenance_enabled'] );
-		$output['updates_enabled']     = ! empty( $input['updates_enabled'] );
-		$output['update_manifest_url'] = esc_url_raw( (string) ( $input['update_manifest_url'] ?? self::default_manifest_url() ) );
-		$output['daily_content_enabled'] = ! empty( $input['daily_content_enabled'] );
-		$output['adsense_enabled']     = ! empty( $input['adsense_enabled'] );
-		$output['adsense_side_rails']  = ! empty( $input['adsense_side_rails'] );
-		$output['adsense_post_gate']   = ! empty( $input['adsense_post_gate'] );
-		$output['adsense_client']      = self::sanitize_adsense_client( (string) ( $input['adsense_client'] ?? '' ) );
-		$output['adsense_left_slot']   = self::sanitize_adsense_slot( (string) ( $input['adsense_left_slot'] ?? '' ) );
-		$output['adsense_right_slot']  = self::sanitize_adsense_slot( (string) ( $input['adsense_right_slot'] ?? '' ) );
+		$output['cookie_text']               = sanitize_text_field( (string) ( $input['cookie_text'] ?? '' ) );
+		$output['newsletter_heading']        = sanitize_text_field( (string) ( $input['newsletter_heading'] ?? '' ) );
+		$output['newsletter_intro']          = sanitize_textarea_field( (string) ( $input['newsletter_intro'] ?? '' ) );
+		$output['newsletter_digest_enabled'] = ! empty( $input['newsletter_digest_enabled'] );
+		$output['contact_recipient']         = sanitize_email( (string) ( $input['contact_recipient'] ?? '' ) );
+		$output['mail_from_name']            = sanitize_text_field( (string) ( $input['mail_from_name'] ?? '' ) );
+		$output['mail_from_email']           = sanitize_email( (string) ( $input['mail_from_email'] ?? '' ) );
+		$output['smtp_enabled']              = ! empty( $input['smtp_enabled'] );
+		$output['smtp_host']                 = sanitize_text_field( (string) ( $input['smtp_host'] ?? '' ) );
+		$output['smtp_port']                 = min( 65535, max( 1, absint( $input['smtp_port'] ?? 587 ) ) );
+		$smtp_encryption                     = sanitize_key( (string) ( $input['smtp_encryption'] ?? 'tls' ) );
+		$output['smtp_encryption']           = in_array( $smtp_encryption, array( 'tls', 'ssl', 'none' ), true ) ? $smtp_encryption : 'tls';
+		$output['smtp_username']             = sanitize_text_field( (string) ( $input['smtp_username'] ?? '' ) );
+		$smtp_password                       = trim( (string) ( $input['smtp_password'] ?? '' ) );
+		if ( '' === $smtp_password ) {
+			$output['smtp_password'] = (string) ( $current['smtp_password'] ?? '' );
+		} else {
+			$encrypted_password      = Mailer::encrypt_secret( wp_unslash( $smtp_password ) );
+			$output['smtp_password'] = '' !== $encrypted_password ? $encrypted_password : (string) ( $current['smtp_password'] ?? '' );
+		}
+		$output['sidebar_conditions']     = self::sanitize_json_textarea( (string) ( $input['sidebar_conditions'] ?? '' ) );
+		$output['maintenance_enabled']    = ! empty( $input['maintenance_enabled'] );
+		$output['updates_enabled']        = ! empty( $input['updates_enabled'] );
+		$output['update_manifest_url']    = esc_url_raw( (string) ( $input['update_manifest_url'] ?? self::default_manifest_url() ) );
+		$output['daily_content_enabled']  = ! empty( $input['daily_content_enabled'] );
+		$output['adsense_enabled']        = ! empty( $input['adsense_enabled'] );
+		$output['adsense_side_rails']     = ! empty( $input['adsense_side_rails'] );
+		$output['adsense_post_gate']      = ! empty( $input['adsense_post_gate'] );
+		$output['adsense_client']         = self::sanitize_adsense_client( (string) ( $input['adsense_client'] ?? '' ) );
+		$output['adsense_left_slot']      = self::sanitize_adsense_slot( (string) ( $input['adsense_left_slot'] ?? '' ) );
+		$output['adsense_right_slot']     = self::sanitize_adsense_slot( (string) ( $input['adsense_right_slot'] ?? '' ) );
 		$output['adsense_inarticle_slot'] = self::sanitize_adsense_slot( (string) ( $input['adsense_inarticle_slot'] ?? '' ) );
 
 		$custom_css = (string) ( $input['custom_css'] ?? '' );
@@ -138,12 +155,28 @@ final class Settings {
 			return;
 		}
 
-		$options = options();
-		$modules = is_array( $options['modules'] ?? null ) ? $options['modules'] : Plugin::default_modules();
+		$options     = options();
+		$modules     = is_array( $options['modules'] ?? null ) ? $options['modules'] : Plugin::default_modules();
+		$mail_status = Mailer::last_status();
 		?>
 		<div class="wrap">
 			<h1><?php esc_html_e( 'InfoSecNexus Features', 'infosecnexus' ); ?></h1>
 			<p><?php esc_html_e( 'Theme-bundled content blocks, search, newsletter, sidebars, Elementor widgets, and presentation helpers. The separate toolkit plugin is no longer required.', 'infosecnexus' ); ?></p>
+			<?php // Display-only result from the nonce-protected test-mail action. ?>
+			<?php // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
+			<?php if ( isset( $_GET['infosecnexus_mail_test'] ) ) : ?>
+				<?php // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
+				<?php $mail_test = sanitize_key( wp_unslash( (string) $_GET['infosecnexus_mail_test'] ) ); ?>
+				<div class="notice <?php echo 'accepted' === $mail_test ? 'notice-success' : 'notice-error'; ?> is-dismissible">
+					<p>
+						<?php
+						echo 'accepted' === $mail_test
+							? esc_html__( 'WordPress accepted the test email for delivery. Check the inbox and spam folder.', 'infosecnexus' )
+							: esc_html__( 'The test email failed. Review the SMTP settings and the delivery status below.', 'infosecnexus' );
+						?>
+					</p>
+				</div>
+			<?php endif; ?>
 			<form method="post" action="options.php">
 				<?php settings_fields( 'infosecnexus_theme_features' ); ?>
 				<h2><?php esc_html_e( 'Theme Updates', 'infosecnexus' ); ?></h2>
@@ -257,7 +290,88 @@ final class Settings {
 						<th scope="row"><label for="isnx-newsletter-intro"><?php esc_html_e( 'Intro', 'infosecnexus' ); ?></label></th>
 						<td><textarea id="isnx-newsletter-intro" class="large-text" rows="3" name="<?php echo esc_attr( OPTION_KEY ); ?>[newsletter_intro]"><?php echo esc_textarea( (string) option( 'newsletter_intro', '' ) ); ?></textarea></td>
 					</tr>
+					<tr>
+						<th scope="row"><?php esc_html_e( 'Daily Email Digest', 'infosecnexus' ); ?></th>
+						<td>
+							<label>
+								<input type="checkbox" name="<?php echo esc_attr( OPTION_KEY ); ?>[newsletter_digest_enabled]" value="1" <?php checked( (bool) option( 'newsletter_digest_enabled', true ) ); ?>>
+								<?php esc_html_e( 'Email confirmed subscribers after the morning briefing refresh.', 'infosecnexus' ); ?>
+							</label>
+							<p class="description"><?php esc_html_e( 'The digest is scheduled near 7:15 AM in the WordPress site timezone and includes unsubscribe links.', 'infosecnexus' ); ?></p>
+						</td>
+					</tr>
 				</table>
+				<h2><?php esc_html_e( 'Email Delivery', 'infosecnexus' ); ?></h2>
+				<p><?php esc_html_e( 'Contact messages are always stored privately in Tools > Contact Messages. Email notifications use WordPress mail or the optional built-in SMTP transport below.', 'infosecnexus' ); ?></p>
+				<table class="form-table" role="presentation">
+					<tr>
+						<th scope="row"><label for="isnx-contact-recipient"><?php esc_html_e( 'Admin Recipient', 'infosecnexus' ); ?></label></th>
+						<td><input id="isnx-contact-recipient" class="regular-text" type="email" autocomplete="email" name="<?php echo esc_attr( OPTION_KEY ); ?>[contact_recipient]" value="<?php echo esc_attr( (string) option( 'contact_recipient', Mailer::recipient_email() ) ); ?>"></td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="isnx-mail-from-name"><?php esc_html_e( 'Sender Name', 'infosecnexus' ); ?></label></th>
+						<td><input id="isnx-mail-from-name" class="regular-text" name="<?php echo esc_attr( OPTION_KEY ); ?>[mail_from_name]" value="<?php echo esc_attr( (string) option( 'mail_from_name', 'InfoSecNexus' ) ); ?>"></td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="isnx-mail-from-email"><?php esc_html_e( 'Sender Email', 'infosecnexus' ); ?></label></th>
+						<td>
+							<input id="isnx-mail-from-email" class="regular-text" type="email" autocomplete="email" name="<?php echo esc_attr( OPTION_KEY ); ?>[mail_from_email]" value="<?php echo esc_attr( (string) option( 'mail_from_email', Mailer::from_email() ) ); ?>">
+							<p class="description"><?php esc_html_e( 'Use an address on this site domain that your mail provider authorizes.', 'infosecnexus' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><?php esc_html_e( 'Use SMTP', 'infosecnexus' ); ?></th>
+						<td>
+							<label>
+								<input type="checkbox" name="<?php echo esc_attr( OPTION_KEY ); ?>[smtp_enabled]" value="1" <?php checked( (bool) option( 'smtp_enabled', false ) ); ?>>
+								<?php esc_html_e( 'Send through an authenticated SMTP mailbox instead of the server mail command.', 'infosecnexus' ); ?>
+							</label>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="isnx-smtp-host"><?php esc_html_e( 'SMTP Host', 'infosecnexus' ); ?></label></th>
+						<td><input id="isnx-smtp-host" class="regular-text code" autocomplete="off" name="<?php echo esc_attr( OPTION_KEY ); ?>[smtp_host]" value="<?php echo esc_attr( (string) option( 'smtp_host', '' ) ); ?>" placeholder="smtp.example.com"></td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="isnx-smtp-port"><?php esc_html_e( 'SMTP Port', 'infosecnexus' ); ?></label></th>
+						<td><input id="isnx-smtp-port" class="small-text" type="number" min="1" max="65535" name="<?php echo esc_attr( OPTION_KEY ); ?>[smtp_port]" value="<?php echo esc_attr( (string) option( 'smtp_port', 587 ) ); ?>"></td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="isnx-smtp-encryption"><?php esc_html_e( 'Encryption', 'infosecnexus' ); ?></label></th>
+						<td>
+							<select id="isnx-smtp-encryption" name="<?php echo esc_attr( OPTION_KEY ); ?>[smtp_encryption]">
+								<option value="tls" <?php selected( (string) option( 'smtp_encryption', 'tls' ), 'tls' ); ?>>TLS</option>
+								<option value="ssl" <?php selected( (string) option( 'smtp_encryption', 'tls' ), 'ssl' ); ?>>SSL</option>
+								<option value="none" <?php selected( (string) option( 'smtp_encryption', 'tls' ), 'none' ); ?>><?php esc_html_e( 'None', 'infosecnexus' ); ?></option>
+							</select>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="isnx-smtp-username"><?php esc_html_e( 'SMTP Username', 'infosecnexus' ); ?></label></th>
+						<td><input id="isnx-smtp-username" class="regular-text" autocomplete="username" name="<?php echo esc_attr( OPTION_KEY ); ?>[smtp_username]" value="<?php echo esc_attr( (string) option( 'smtp_username', '' ) ); ?>"></td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="isnx-smtp-password"><?php esc_html_e( 'SMTP Password', 'infosecnexus' ); ?></label></th>
+						<td>
+							<input id="isnx-smtp-password" class="regular-text" type="password" autocomplete="new-password" name="<?php echo esc_attr( OPTION_KEY ); ?>[smtp_password]" value="" placeholder="<?php echo Mailer::has_saved_password() ? esc_attr__( 'Saved securely - leave blank to keep it', 'infosecnexus' ) : ''; ?>">
+							<p class="description"><?php esc_html_e( 'The password is encrypted with installation-specific WordPress salts before storage. Leave blank to keep the saved value.', 'infosecnexus' ); ?></p>
+						</td>
+					</tr>
+				</table>
+				<?php if ( ! empty( $mail_status ) ) : ?>
+					<p>
+						<strong><?php esc_html_e( 'Last mail transport result:', 'infosecnexus' ); ?></strong>
+						<?php echo esc_html( ucfirst( (string) ( $mail_status['status'] ?? '' ) ) ); ?>
+						<?php if ( ! empty( $mail_status['time'] ) ) : ?>
+							<?php echo esc_html( ' - ' . (string) $mail_status['time'] ); ?>
+						<?php endif; ?>
+						<?php if ( ! empty( $mail_status['message'] ) ) : ?>
+							<?php echo esc_html( ' - ' . (string) $mail_status['message'] ); ?>
+						<?php endif; ?>
+					</p>
+				<?php endif; ?>
+				<p><a class="button" href="<?php echo esc_url( Mailer::test_url() ); ?>"><?php esc_html_e( 'Send Test Email', 'infosecnexus' ); ?></a></p>
+				<p class="description"><?php esc_html_e( 'For infrastructure-managed secrets, wp-config.php constants INFOSECNEXUS_SMTP_HOST, INFOSECNEXUS_SMTP_PORT, INFOSECNEXUS_SMTP_ENCRYPTION, INFOSECNEXUS_SMTP_USERNAME, INFOSECNEXUS_SMTP_PASSWORD, INFOSECNEXUS_MAIL_FROM_EMAIL, and INFOSECNEXUS_CONTACT_RECIPIENT override these fields.', 'infosecnexus' ); ?></p>
 				<h2><?php esc_html_e( 'Cookie Banner', 'infosecnexus' ); ?></h2>
 				<p><?php esc_html_e( 'This banner stores a local preference only. It is not a legal compliance guarantee.', 'infosecnexus' ); ?></p>
 				<textarea class="large-text" rows="3" name="<?php echo esc_attr( OPTION_KEY ); ?>[cookie_text]"><?php echo esc_textarea( (string) option( 'cookie_text', '' ) ); ?></textarea>

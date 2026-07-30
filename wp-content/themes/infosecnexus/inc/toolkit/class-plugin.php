@@ -64,24 +64,34 @@ final class Plugin {
 			add_option(
 				OPTION_KEY,
 				array(
-					'modules'             => self::default_modules(),
-					'cookie_text'         => __( 'InfoSecNexus uses essential cookies and optional preference storage to improve the reading experience.', 'infosecnexus' ),
-					'newsletter_heading'  => __( 'Get the daily security briefing', 'infosecnexus' ),
-					'newsletter_intro'    => __( 'A concise roundup of critical CVEs, infrastructure changes, and defensive operations.', 'infosecnexus' ),
-					'custom_css'          => '',
-					'custom_js'           => '',
-					'sidebar_conditions'  => '',
-					'maintenance_enabled' => false,
-					'updates_enabled'     => true,
-					'update_manifest_url' => self::DEFAULT_MANIFEST_URL,
-					'daily_content_enabled' => true,
-					'adsense_enabled'     => false,
-					'adsense_side_rails'  => true,
-					'adsense_post_gate'   => true,
-					'adsense_client'      => 'ca-pub-6550916382964760',
-					'adsense_left_slot'   => '',
-					'adsense_right_slot'  => '',
-					'adsense_inarticle_slot' => '',
+					'modules'                   => self::default_modules(),
+					'cookie_text'               => __( 'InfoSecNexus uses essential cookies and optional preference storage to improve the reading experience.', 'infosecnexus' ),
+					'newsletter_heading'        => __( 'Get the daily security briefing', 'infosecnexus' ),
+					'newsletter_intro'          => __( 'A concise roundup of critical CVEs, infrastructure changes, and defensive operations.', 'infosecnexus' ),
+					'newsletter_digest_enabled' => true,
+					'contact_recipient'         => sanitize_email( (string) get_option( 'admin_email', '' ) ),
+					'mail_from_name'            => 'InfoSecNexus',
+					'mail_from_email'           => Mailer::from_email(),
+					'smtp_enabled'              => false,
+					'smtp_host'                 => '',
+					'smtp_port'                 => 587,
+					'smtp_encryption'           => 'tls',
+					'smtp_username'             => '',
+					'smtp_password'             => '',
+					'custom_css'                => '',
+					'custom_js'                 => '',
+					'sidebar_conditions'        => '',
+					'maintenance_enabled'       => false,
+					'updates_enabled'           => true,
+					'update_manifest_url'       => self::DEFAULT_MANIFEST_URL,
+					'daily_content_enabled'     => true,
+					'adsense_enabled'           => false,
+					'adsense_side_rails'        => true,
+					'adsense_post_gate'         => true,
+					'adsense_client'            => 'ca-pub-6550916382964760',
+					'adsense_left_slot'         => '',
+					'adsense_right_slot'        => '',
+					'adsense_inarticle_slot'    => '',
 				),
 				'',
 				false
@@ -89,6 +99,7 @@ final class Plugin {
 		}
 		Content_Blocks::register_post_type();
 		Newsletter::register_post_type();
+		Contact_Form::register_post_type();
 		flush_rewrite_rules();
 	}
 
@@ -96,10 +107,12 @@ final class Plugin {
 	 * Boot modules.
 	 */
 	public function boot(): void {
+		Mailer::boot();
 		Settings::boot();
 		Assets::boot();
 		Admin_Meta::boot();
 		Content_Blocks::boot();
+		Contact_Form::boot();
 		Sidebars::boot();
 		Search::boot();
 		Newsletter::boot();

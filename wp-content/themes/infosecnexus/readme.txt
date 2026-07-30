@@ -3,7 +3,7 @@ Contributors: infosecnexus
 Requires at least: 6.5
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.1.31
+Stable tag: 0.1.32
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,6 +25,9 @@ InfoSecNexus WordPress Theme, Copyright 2026 InfoSecNexus.
 InfoSecNexus is distributed under the terms of the GNU GPL.
 
 == Changelog ==
+
+= 0.1.32 =
+Replaces the insecure mailto contact form with validated same-site submission and a private WordPress inbox, adds visitor and administrator mail acknowledgments, introduces encrypted built-in SMTP settings and delivery diagnostics, and upgrades the Daily Cyber Brief to double opt-in confirmation, unsubscribe links, and scheduled digests.
 
 = 0.1.31 =
 Repairs legacy featured-photo collisions by reserving sources across every published generated attachment and verifies that homepage artwork bytes are distinct.

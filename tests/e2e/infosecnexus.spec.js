@@ -57,6 +57,31 @@ test('axe smoke check has no serious violations', async ({ page }) => {
   expect(serious).toEqual([]);
 });
 
+test('public forms use secure same-site handlers and anti-spam fields', async ({ page }) => {
+  await page.goto(`${baseURL}/contact/`, { waitUntil: 'networkidle' });
+
+  const contact = page.locator('.isnx-contact-form').first();
+  await expect(contact).toBeVisible();
+  await expect(contact).toHaveAttribute('method', 'post');
+  const contactAction = new URL(await contact.getAttribute('action'));
+  expect(contactAction.origin).toBe(new URL(baseURL).origin);
+  expect(contactAction.pathname).toMatch(/\/wp-admin\/admin-post\.php$/);
+  await expect(contact.locator('input[name="isnx_token"]')).toHaveAttribute('value', /^[a-f0-9]{64}$/);
+  await expect(contact.locator('input[name="name"]')).toHaveAttribute('autocomplete', 'name');
+  await expect(contact.locator('input[name="email"]')).toHaveAttribute('autocomplete', 'email');
+  await expect(contact.locator('textarea[name="message"]')).toHaveAttribute('required', '');
+
+  await page.goto(baseURL, { waitUntil: 'networkidle' });
+  const newsletter = page.locator('[data-isnx-newsletter]').first();
+  await expect(newsletter).toBeVisible();
+  await expect(newsletter).toHaveAttribute('method', 'post');
+  const newsletterAction = new URL(await newsletter.getAttribute('action'));
+  expect(newsletterAction.origin).toBe(new URL(baseURL).origin);
+  expect(newsletterAction.pathname).toMatch(/\/wp-admin\/admin-post\.php$/);
+  await expect(newsletter.locator('input[name="isnx_token"]')).toHaveAttribute('value', /^[a-f0-9]{64}$/);
+  await expect(newsletter.locator('input[name="email"]')).toHaveAttribute('autocomplete', 'email');
+});
+
 test('SEO, agent discovery, and deferred ads are present', async ({ page, request }) => {
   await page.goto(baseURL, { waitUntil: 'networkidle' });
 

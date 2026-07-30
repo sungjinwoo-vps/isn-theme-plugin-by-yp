@@ -17,7 +17,7 @@ final class Demo_Content {
 	private const DAILY_SEEDED_OPTION = 'infosecnexus_daily_content_seeded_dates';
 	private const DAILY_CRON_HOOK = 'infosecnexus_publish_daily_content';
 	private const PUBLIC_CACHE_RELEASE_OPTION = 'infosecnexus_public_cache_release';
-	private const CONTENT_REFRESH_VERSION = '0.1.31';
+	private const CONTENT_REFRESH_VERSION = '0.1.32';
 	private const DAILY_SCHEMA_OPTION = 'infosecnexus_daily_content_schema';
 	private const DAILY_SCHEMA_HOOK = 'infosecnexus_upgrade_daily_content_schema';
 
@@ -1966,7 +1966,7 @@ final class Demo_Content {
 			'contact'    => array(
 				'<section class="isnx-page-hero isnx-page-hero--contact"><div><p class="isnx-page-kicker">Contact InfoSecNexus</p><h2>Send corrections, tips, questions, and collaboration requests.</h2><p>We read every serious message and route it to the right editorial or technical review path. For sensitive reports, keep secrets, passwords, private keys, and exploit code out of the first message.</p></div><img src="' . $image . '" alt=""></section>',
 				'<section class="isnx-contact-grid"><div class="isnx-contact-card"><h3>Editorial & Corrections</h3><p>Report factual errors, request corrections, or suggest improvements to published content.</p><p><a href="mailto:contact@infosecnexus.com">contact@infosecnexus.com</a></p></div><div class="isnx-contact-card"><h3>Security Tips</h3><p>Share vulnerability leads, exploitation activity, suspicious campaigns, or defensive lessons from the field.</p><p><a href="mailto:contact@infosecnexus.com">contact@infosecnexus.com</a></p></div><div class="isnx-contact-card"><h3>General Enquiries</h3><p>Send partnership requests, media questions, guest ideas, and general notes for the InfoSecNexus team.</p><p><a href="mailto:contact@infosecnexus.com">contact@infosecnexus.com</a></p></div></section>',
-				'<section class="isnx-contact-panel"><div><h2>Write to us</h2><p>Tell us what needs review, what changed, and how we can reach you. Clear context helps us route corrections, security tips, and collaboration requests faster.</p><div class="isnx-alert-note"><strong>Before you send:</strong> do not include passwords, private keys, tokens, or sensitive credentials.</div></div><form class="isnx-contact-form" action="mailto:contact@infosecnexus.com" method="post" enctype="text/plain"><label>Your Name<input type="text" name="name" placeholder="Your name"></label><label>Work Email<input type="email" name="email" placeholder="you@example.com"></label><label>Subject<input type="text" name="subject" placeholder="How can we help?"></label><label>Message<textarea name="message" rows="6" placeholder="Share the context we should know."></textarea></label><button type="submit">Send Message</button></form></section>',
+				'<section class="isnx-contact-panel" id="contact-form"><div><h2>Write to us</h2><p>Tell us what needs review, what changed, and how we can reach you. Clear context helps us route corrections, security tips, and collaboration requests faster.</p><div class="isnx-alert-note"><strong>Before you send:</strong> do not include passwords, private keys, tokens, or sensitive credentials.</div></div>[infosecnexus_contact_form]</section>',
 				'<section class="isnx-response-band"><div><strong>Typical response time</strong><span>We usually reply within two business days. Urgent corrections and security tips are reviewed first.</span></div></section>',
 			),
 			'privacy'    => array(

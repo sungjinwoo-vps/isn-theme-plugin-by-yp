@@ -32,6 +32,8 @@ function bootstrap(): void {
 
 	$files = array(
 		'inc/toolkit/helpers.php',
+		'inc/toolkit/class-mailer.php',
+		'inc/toolkit/class-contact-form.php',
 		'inc/toolkit/class-plugin.php',
 		'inc/toolkit/class-settings.php',
 		'inc/toolkit/class-assets.php',
