@@ -43,12 +43,30 @@ final class Mailer {
 		$headers   = is_array( $headers ) ? $headers : array( $headers );
 		$headers[] = 'Content-Type: text/plain; charset=UTF-8';
 
-		return wp_mail(
+		$sent = wp_mail(
 			$to,
 			wp_strip_all_tags( $subject ),
 			$message,
 			array_values( array_unique( array_filter( $headers ) ) )
 		);
+
+		// API-based transports may replace wp_mail() without firing the
+		// wp_mail_succeeded action after their service accepts a message.
+		if ( $sent ) {
+			self::record_success();
+		} elseif ( 'failed' !== ( self::last_status()['status'] ?? '' ) ) {
+			update_option(
+				self::STATUS_OPTION,
+				array(
+					'status'  => 'failed',
+					'time'    => current_time( 'mysql' ),
+					'message' => __( 'The configured mail transport rejected the message.', 'infosecnexus' ),
+				),
+				false
+			);
+		}
+
+		return $sent;
 	}
 
 	/**

@@ -153,7 +153,7 @@ final class Newsletter {
 		$subscription_id = self::find_subscription( $email );
 		if ( $subscription_id > 0 ) {
 			$current_status = (string) get_post_meta( $subscription_id, '_isnx_subscription_status', true );
-			if ( '' === $current_status || 'active' === $current_status ) {
+			if ( 'active' === $current_status ) {
 				return self::result( 'active', __( 'This email is already subscribed to the Daily Cyber Brief.', 'infosecnexus' ), 200 );
 			}
 		} else {
