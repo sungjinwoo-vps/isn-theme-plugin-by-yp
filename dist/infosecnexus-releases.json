@@ -1,10 +1,10 @@
 {
     "plugin":  {
                    "slug":  "infosecnexus-toolkit",
-                   "version":  "0.1.35",
+                   "version":  "0.1.36",
                    "plugin":  "infosecnexus-toolkit/infosecnexus-toolkit.php",
                    "requires_php":  "8.1",
-                   "package":  "https://github.com/sungjinwoo-vps/isn-theme-plugin-by-yp/releases/download/auto-v0.1.35/infosecnexus-toolkit.zip",
+                   "package":  "https://raw.githubusercontent.com/sungjinwoo-vps/isn-theme-plugin-by-yp/stable/dist/infosecnexus-toolkit.zip",
                    "tested":  "7.0",
                    "homepage":  "https://infosecnexus.com/",
                    "last_updated":  "2026-08-01",
@@ -14,18 +14,18 @@
                                 },
                    "requires":  "6.5"
                },
-    "generatedAt":  "2026-08-01T15:08:57Z",
+    "generatedAt":  "2026-08-01T17:44:54Z",
     "manifestVersion":  1,
     "theme":  {
                   "slug":  "infosecnexus",
-                  "version":  "0.1.35",
+                  "version":  "0.1.36",
                   "requires_php":  "8.1",
-                  "package":  "https://github.com/sungjinwoo-vps/isn-theme-plugin-by-yp/releases/download/auto-v0.1.35/infosecnexus-theme.zip",
+                  "package":  "https://raw.githubusercontent.com/sungjinwoo-vps/isn-theme-plugin-by-yp/stable/dist/infosecnexus-theme.zip",
                   "tested":  "7.0",
                   "homepage":  "https://infosecnexus.com/",
                   "last_updated":  "2026-08-01",
                   "sections":  {
-                                   "changelog":  "Adds secure same-site contact handling, a private WordPress message inbox, encrypted optional SMTP delivery, mail diagnostics, and a double opt-in Daily Cyber Brief with unsubscribe links and scheduled digests.",
+                                   "changelog":  "Stops automated contact spam before storage or email delivery with a cache-safe browser challenge, one-time tokens, layered rate limits, duplicate suppression, honeypots, and high-confidence campaign filtering.",
                                    "description":  "Cybersecurity newsroom theme for InfoSecNexus."
                                },
                   "requires":  "6.5"

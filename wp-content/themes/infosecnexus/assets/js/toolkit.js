@@ -116,11 +116,58 @@
   });
 
   document.querySelectorAll('.isnx-contact-form').forEach((form) => {
-    form.addEventListener('submit', () => {
+    const button = form.querySelector('[data-isnx-contact-submit]');
+    const guardUrl = form.dataset.isnxContactGuardUrl || '';
+    const guardFields = {
+      issued: form.querySelector('input[name="isnx_guard_issued"]'),
+      nonce: form.querySelector('input[name="isnx_guard_nonce"]'),
+      token: form.querySelector('input[name="isnx_guard_token"]')
+    };
+    let guardReady = false;
+    let guardPreparing = false;
+
+    const prepareGuard = async () => {
+      if (!guardUrl || guardReady || guardPreparing || !guardFields.issued || !guardFields.nonce || !guardFields.token) {
+        return;
+      }
+
+      guardPreparing = true;
+      const response = await fetch(guardUrl, {
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: { Accept: 'application/json' }
+      }).catch(() => null);
+      const payload = response ? await response.json().catch(() => ({})) : {};
+      if (!response || !response.ok || !payload.issued || !payload.nonce || !payload.token) {
+        guardPreparing = false;
+        return;
+      }
+
+      guardFields.issued.value = String(payload.issued);
+      guardFields.nonce.value = String(payload.nonce);
+      guardFields.token.value = String(payload.token);
+
+      const elapsed = Math.max(0, Math.floor(Date.now() / 1000) - Number(payload.issued));
+      window.setTimeout(() => {
+        guardReady = true;
+        guardPreparing = false;
+        if (button) {
+          button.disabled = false;
+        }
+      }, Math.max(0, 3000 - (elapsed * 1000)));
+    };
+
+    prepareGuard();
+    form.addEventListener('focusin', prepareGuard);
+    form.addEventListener('submit', (event) => {
       if (!form.checkValidity()) {
         return;
       }
-      const button = form.querySelector('button[type="submit"]');
+      if (!guardReady) {
+        event.preventDefault();
+        prepareGuard();
+        return;
+      }
       form.setAttribute('aria-busy', 'true');
       if (button) {
         button.disabled = true;

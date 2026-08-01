@@ -104,7 +104,7 @@ $releaseManifest = @{
         last_updated = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd")
         sections = @{
             description = "Cybersecurity newsroom theme for InfoSecNexus."
-            changelog = "Adds secure same-site contact handling, a private WordPress message inbox, encrypted optional SMTP delivery, mail diagnostics, and a double opt-in Daily Cyber Brief with unsubscribe links and scheduled digests."
+            changelog = "Stops automated contact spam before storage or email delivery with a cache-safe browser challenge, one-time tokens, layered rate limits, duplicate suppression, honeypots, and high-confidence campaign filtering."
         }
     }
     plugin = @{

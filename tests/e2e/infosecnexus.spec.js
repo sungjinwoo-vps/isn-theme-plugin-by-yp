@@ -67,12 +67,26 @@ test('public forms use secure same-site handlers and anti-spam fields', async ({
   expect(contactAction.origin).toBe(new URL(baseURL).origin);
   expect(contactAction.pathname).toMatch(/\/wp-admin\/admin-post\.php$/);
   await expect(contact.locator('input[name="isnx_token"]')).toHaveAttribute('value', /^[a-f0-9]{64}$/);
+  await expect(contact).toHaveAttribute('data-isnx-contact-guard-url', /\/wp-json\/infosecnexus\/v1\/contact-challenge$/);
+  await expect(contact.locator('input[name="isnx_guard_issued"]')).not.toHaveValue('');
+  await expect(contact.locator('input[name="isnx_guard_nonce"]')).toHaveValue(/^[a-f0-9]{32}$/);
+  await expect(contact.locator('input[name="isnx_guard_token"]')).toHaveValue(/^[a-f0-9]{64}$/);
+  await expect(contact.locator('[data-isnx-contact-submit]')).toBeEnabled({ timeout: 5000 });
   await expect(contact.locator('input[name="name"]')).toHaveAttribute('autocomplete', 'name');
   await expect(contact.locator('input[name="email"]')).toHaveAttribute('autocomplete', 'email');
   await expect(contact.locator('textarea[name="message"]')).toHaveAttribute('required', '');
   expect(await contact.evaluate((form) => form.previousElementSibling?.tagName)).not.toBe('P');
   await expect(page.locator('a[href="mailto:yashpatel@infosecnexus.com"]')).toHaveCount(3);
   await expect(page.locator('body')).not.toContainText('contact@infosecnexus.com');
+
+  const challenge = await page.request.get(await contact.getAttribute('data-isnx-contact-guard-url'));
+  expect(challenge.ok()).toBeTruthy();
+  expect(challenge.headers()['cache-control']).toContain('no-store');
+  expect(await challenge.json()).toMatchObject({
+    issued: expect.any(Number),
+    nonce: expect.stringMatching(/^[a-f0-9]{32}$/),
+    token: expect.stringMatching(/^[a-f0-9]{64}$/)
+  });
 
   await page.goto(baseURL, { waitUntil: 'networkidle' });
   const newsletter = page.locator('[data-isnx-newsletter]').first();

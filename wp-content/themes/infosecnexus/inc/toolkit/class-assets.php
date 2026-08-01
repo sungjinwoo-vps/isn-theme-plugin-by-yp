@@ -24,7 +24,8 @@ final class Assets {
 	 * Enqueue assets when a frontend module needs them.
 	 */
 	public static function enqueue(): void {
-		$needs_js = module_enabled( 'live_search' ) || module_enabled( 'newsletter' ) || module_enabled( 'cookie_consent' ) || module_enabled( 'content_blocks' ) || module_enabled( 'snippets' );
+		$has_contact_form = is_page( 'contact' ) || ( is_singular() && has_shortcode( (string) get_post_field( 'post_content', get_queried_object_id() ), 'infosecnexus_contact_form' ) );
+		$needs_js         = $has_contact_form || module_enabled( 'live_search' ) || module_enabled( 'newsletter' ) || module_enabled( 'cookie_consent' ) || module_enabled( 'content_blocks' ) || module_enabled( 'snippets' );
 		$css_file = INFOSECNEXUS_THEME_TOOLKIT_DIR . 'assets/css/toolkit.css';
 		if ( is_readable( $css_file ) ) {
 			$css = file_get_contents( $css_file );
