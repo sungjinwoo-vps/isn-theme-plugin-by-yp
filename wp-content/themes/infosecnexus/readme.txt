@@ -3,7 +3,7 @@ Contributors: infosecnexus
 Requires at least: 6.5
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.1.34
+Stable tag: 0.1.35
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,6 +25,9 @@ InfoSecNexus WordPress Theme, Copyright 2026 InfoSecNexus.
 InfoSecNexus is distributed under the terms of the GNU GPL.
 
 == Changelog ==
+
+= 0.1.35 =
+Moves contact notifications, outbound mail, and published contact details to yashpatel@infosecnexus.com, including an automatic migration from the former mailbox.
 
 = 0.1.34 =
 Keeps the secure contact form in its intended desktop column by removing invalid paragraph markup introduced by WordPress automatic formatting.

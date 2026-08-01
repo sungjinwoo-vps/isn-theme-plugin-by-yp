@@ -13,12 +13,17 @@ namespace InfoSecNexus\Theme\Toolkit;
  * Configure WordPress mail without requiring a separate SMTP plugin.
  */
 final class Mailer {
-	private const STATUS_OPTION = 'infosecnexus_mail_delivery_status';
+	private const STATUS_OPTION            = 'infosecnexus_mail_delivery_status';
+	private const PRIMARY_EMAIL            = 'yashpatel@infosecnexus.com';
+	private const LEGACY_EMAIL             = 'contact@infosecnexus.com';
+	private const EMAIL_MIGRATION_OPTION   = 'infosecnexus_primary_email_migration';
+	private const EMAIL_MIGRATION_VERSION  = '1';
 
 	/**
 	 * Register mail hooks.
 	 */
 	public static function boot(): void {
+		add_action( 'init', array( __CLASS__, 'migrate_legacy_email' ), 5 );
 		add_filter( 'wp_mail_from', array( __CLASS__, 'filter_from_email' ) );
 		add_filter( 'wp_mail_from_name', array( __CLASS__, 'filter_from_name' ) );
 		add_action( 'phpmailer_init', array( __CLASS__, 'configure_phpmailer' ) );
@@ -74,11 +79,17 @@ final class Mailer {
 	 */
 	public static function recipient_email(): string {
 		$configured = self::constant_or_option( 'INFOSECNEXUS_CONTACT_RECIPIENT', 'contact_recipient', '' );
+		if ( self::LEGACY_EMAIL === strtolower( $configured ) ) {
+			return self::PRIMARY_EMAIL;
+		}
 		if ( is_email( $configured ) ) {
 			return sanitize_email( $configured );
 		}
 
 		$admin_email = sanitize_email( (string) get_option( 'admin_email', '' ) );
+		if ( self::LEGACY_EMAIL === strtolower( $admin_email ) ) {
+			return self::PRIMARY_EMAIL;
+		}
 		return is_email( $admin_email ) ? $admin_email : self::default_from_email();
 	}
 
@@ -87,7 +98,72 @@ final class Mailer {
 	 */
 	public static function from_email(): string {
 		$configured = self::constant_or_option( 'INFOSECNEXUS_MAIL_FROM_EMAIL', 'mail_from_email', '' );
+		if ( self::LEGACY_EMAIL === strtolower( $configured ) ) {
+			return self::PRIMARY_EMAIL;
+		}
 		return is_email( $configured ) ? sanitize_email( $configured ) : self::default_from_email();
+	}
+
+	/**
+	 * Move the former site mailbox to the current authorized Zoho sender.
+	 */
+	public static function migrate_legacy_email(): void {
+		if ( self::EMAIL_MIGRATION_VERSION === (string) get_option( self::EMAIL_MIGRATION_OPTION, '' ) ) {
+			return;
+		}
+
+		$options = options();
+		$changed = false;
+		foreach ( array( 'contact_recipient', 'mail_from_email' ) as $key ) {
+			if ( self::LEGACY_EMAIL === strtolower( trim( (string) ( $options[ $key ] ?? '' ) ) ) ) {
+				$options[ $key ] = self::PRIMARY_EMAIL;
+				$changed         = true;
+			}
+		}
+
+		if ( $changed ) {
+			update_option( OPTION_KEY, $options, false );
+		}
+
+		if ( self::LEGACY_EMAIL === strtolower( sanitize_email( (string) get_option( 'admin_email', '' ) ) ) ) {
+			update_option( 'admin_email', self::PRIMARY_EMAIL, false );
+		}
+
+		$query = new \WP_Query(
+			array(
+				'post_type'      => 'any',
+				'post_status'    => array( 'publish', 'future', 'draft', 'pending', 'private', 'trash', 'inherit' ),
+				'posts_per_page' => -1,
+				'fields'         => 'ids',
+				's'              => self::LEGACY_EMAIL,
+				'no_found_rows'  => true,
+			)
+		);
+
+		foreach ( array_map( 'intval', $query->posts ) as $post_id ) {
+			$post = get_post( $post_id );
+			if ( ! $post ) {
+				continue;
+			}
+
+			$content = str_ireplace( self::LEGACY_EMAIL, self::PRIMARY_EMAIL, (string) $post->post_content );
+			$excerpt = str_ireplace( self::LEGACY_EMAIL, self::PRIMARY_EMAIL, (string) $post->post_excerpt );
+			if ( $content === $post->post_content && $excerpt === $post->post_excerpt ) {
+				continue;
+			}
+
+			wp_update_post(
+				wp_slash(
+					array(
+						'ID'           => $post_id,
+						'post_content' => $content,
+						'post_excerpt' => $excerpt,
+					)
+				)
+			);
+		}
+
+		update_option( self::EMAIL_MIGRATION_OPTION, self::EMAIL_MIGRATION_VERSION, false );
 	}
 
 	/**
@@ -346,7 +422,11 @@ final class Mailer {
 	private static function default_from_email(): string {
 		$host  = strtolower( (string) wp_parse_url( home_url( '/' ), PHP_URL_HOST ) );
 		$host  = preg_replace( '/^www\./', '', $host );
-		$email = 'contact@' . $host;
+		if ( 'infosecnexus.com' === $host ) {
+			return self::PRIMARY_EMAIL;
+		}
+
+		$email = 'wordpress@' . $host;
 
 		if ( is_email( $email ) ) {
 			return $email;
