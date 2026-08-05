@@ -367,6 +367,16 @@ A WordPress theme cannot provide a network/application firewall. WAF and DDoS
 protection belong at the CDN, reverse proxy, or hosting layer. Do not claim that
 theme headers are a WAF.
 
+`server/nginx-infosecnexus-production.conf` is the current deploy-ready hosting
+template created on 2026-08-05. It fixes security-header inheritance for missing
+static files such as `/404javascript.js`, adds a strict CSP to static/error
+responses, and blocks sensitive files plus PHP execution in uploads. Its syntax
+was validated with the production server's Nginx 1.30.4 binary, but it still
+requires a manual provider paste, `sudo nginx -t`, reload, cache purge, and live
+header verification. The compatible dynamic WordPress CSP intentionally retains
+the inline allowances currently required by WordPress output and AdSense; do not
+remove them without a coordinated nonce/hash and cache migration.
+
 ### SEO And Agentic Browsing
 
 - Search and archives are scoped to useful public posts.
@@ -661,4 +671,3 @@ normally means:
 - Caches are purged and stale anonymous pages are checked.
 - Secrets and generated artifacts remain outside Git.
 - This project memory is updated when the enduring project state changes.
-
