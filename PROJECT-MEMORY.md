@@ -4,7 +4,7 @@
 > project. Then run the startup checklist in the next section. This is the
 > authoritative continuity handoff for the current project state.
 
-Last updated: 2026-08-01 (Asia/Kolkata)
+Last updated: 2026-08-05 (Asia/Kolkata)
 
 ## 1. Current Snapshot
 
@@ -16,7 +16,7 @@ Last updated: 2026-08-01 (Asia/Kolkata)
   downloads. Moving it to private requires an authenticated update service.
 - Current theme version: `0.1.36`
 - Current known release: `auto-v0.1.36`
-- Current known code commit: `0d2e790` (`Block automated contact spam`)
+- Current known code commit: `2b5ee35` (`Add hardened production Nginx config`)
 - WordPress was running version 7.0.2 at this checkpoint.
 - The live site is theme-first. The InfoSecNexus Toolkit features are bundled
   into the theme and the separate toolkit plugin is not required on this site.
@@ -599,7 +599,13 @@ project backups.
 ## 16. Known Constraints And Future Options
 
 - Exact daily publishing time requires server cron; WP-Cron is traffic-driven.
-- A WAF/DDoS layer must be configured at Cloudflare, a CDN, Nginx, or hosting.
+- A cloud WAF/DDoS layer must be configured through Cloudflare, Sucuri, or an
+  equivalent edge provider. Nginx hardening alone does not satisfy Sucuri's
+  `Website Firewall Not Detected` check.
+- The production CSP currently permits `unsafe-inline` for WordPress and Google
+  AdSense compatibility. This is an accepted compatibility tradeoff, not a
+  delayed cache result. Do not remove it without a coordinated nonce/hash
+  migration and complete frontend, admin, form, search, and ad testing.
 - AdSense ads can remain blank until Google approves and fills inventory.
 - Zoho/API success does not prove inbox delivery; monitor logs and spam folders.
 - The public GitHub update model exposes source code. A private repository needs
@@ -646,6 +652,22 @@ through the current checkpoint:
 27. `0b48af8` - Fixed the secure contact form layout.
 28. `3909ef7` - Migrated public and outbound mail to the primary Zoho mailbox.
 29. `0d2e790` - Blocked automated contact spam before storage or email delivery.
+30. `2b5ee35` - Added the hardened production Nginx configuration for CloudPanel.
+
+The CloudPanel v2 deployment files are:
+
+- `server/nginx-infosecnexus-production.conf` for the documented source.
+- `server/cloudpanel-v2-infosecnexus-clean.conf` for comment-free Vhost Editor
+  deployment.
+
+The clean file preserves CloudPanel placeholders, the Varnish/port 8080 flow,
+PHP-FPM routing, security headers, sensitive-file blocking, and strict headers
+for missing static resources. On 2026-08-05, live checks confirmed the homepage
+and `/404javascript.js` return CSP, HSTS, clickjacking, MIME-sniffing, referrer,
+permissions, and cross-domain policy headers. A fresh Sucuri scan no longer
+reported the missing CSP directive. Its remaining warnings were the absent
+cloud WAF and the intentional `unsafe-inline` compatibility policy described
+above.
 
 Earlier visual and functional revisions also established the current responsive
 newsroom homepage, compact logo, Blogs dropdown, About/Contact header placement,
