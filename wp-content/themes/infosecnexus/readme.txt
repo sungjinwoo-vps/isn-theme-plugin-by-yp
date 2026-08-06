@@ -3,7 +3,7 @@ Contributors: infosecnexus
 Requires at least: 6.5
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.1.36
+Stable tag: 0.1.37
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,6 +25,9 @@ InfoSecNexus WordPress Theme, Copyright 2026 InfoSecNexus.
 InfoSecNexus is distributed under the terms of the GNU GPL.
 
 == Changelog ==
+
+= 0.1.37 =
+Replaces repetitive category batches with one continuously updated daily cybersecurity brief and conservative confirmed-exploitation alerts. Adds independent official-source caches, SonicWall and other direct vendor advisories, cross-source deduplication, source-health monitoring, server-cron support, topic-aware real WebP photography, a two-day news sitemap, and a reversible noindex-first retirement workflow for legacy generated URLs.
 
 = 0.1.36 =
 Stops automated contact spam before storage or email delivery with a cache-safe browser challenge, human timing validation, one-time tokens, tighter IP and email throttling, duplicate suppression, rotating honeypots, and high-confidence campaign filtering.

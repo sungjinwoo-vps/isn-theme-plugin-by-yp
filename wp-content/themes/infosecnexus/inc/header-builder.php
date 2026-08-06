@@ -68,6 +68,19 @@ function render_logo(): void {
 }
 
 /**
+ * Render the configured primary call-to-action button.
+ */
+function render_button(): void {
+	$label = trim( (string) get_value( 'header_button_label' ) );
+	$url   = trim( (string) get_value( 'header_button_url' ) );
+	if ( '' === $label || '' === $url ) {
+		return;
+	}
+
+	echo '<a class="button" href="' . esc_url( $url ) . '">' . esc_html( $label ) . '</a>';
+}
+
+/**
  * Render primary navigation.
  *
  * @param string $variant Navigation variant.

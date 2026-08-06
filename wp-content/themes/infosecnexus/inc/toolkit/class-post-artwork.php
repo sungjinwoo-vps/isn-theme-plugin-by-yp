@@ -429,6 +429,7 @@ final class Post_Artwork {
 				'exploitability signals' => '9SoCnyQmkzI',
 			),
 			'cybersecurity' => array(
+				'live cybersecurity brief'      => 'Bd7gNnWJBkU',
 				'live cybersecurity news brief' => 'Bd7gNnWJBkU',
 				'security operations metrics' => 'Fa9b57hffnM',
 				'phishing defense'            => 'LPZy4da9aRo',
@@ -568,6 +569,24 @@ final class Post_Artwork {
 			'web-security'            => 'web developer laptop office',
 		);
 		$query = (string) ( $queries[ $category ] ?? 'cybersecurity computer office' );
+		$context = strtolower( $post->post_title . ' ' . $post->post_excerpt );
+		$topic_queries = array(
+			'firewall network appliance server rack' => array( 'sonicwall', 'sonicos', 'fortinet', 'fortios', 'palo alto', 'pan-os', 'check point' ),
+			'network switch data center'              => array( 'cisco', 'router', 'switch', 'vpn', 'gateway' ),
+			'enterprise windows computer'             => array( 'microsoft', 'windows', 'sharepoint', 'exchange', 'active directory' ),
+			'linux server terminal data center'       => array( 'linux', 'ubuntu', 'kernel', 'gnu', 'debian', 'red hat' ),
+			'software developer code laptop'          => array( 'wordpress', 'github', 'teamcity', 'docker', 'kubernetes', 'jenkins', 'devops' ),
+			'artificial intelligence computer lab'    => array( 'openai', 'langflow', 'artificial intelligence', ' ai ', 'model', 'prompt' ),
+			'cloud server data center'                 => array( 'aws', 'azure', 'cloud', 'cluster' ),
+		);
+		foreach ( $topic_queries as $topic_query => $needles ) {
+			foreach ( $needles as $needle ) {
+				if ( false !== strpos( ' ' . $context . ' ', $needle ) ) {
+					$query = $topic_query;
+					break 2;
+				}
+			}
+		}
 		$page  = 1 + ( self::seed( $post->ID, $post->post_title ) % 3 );
 		$key   = 'isnx_openverse_' . md5( $query . '|' . $page );
 		$items = get_transient( $key );

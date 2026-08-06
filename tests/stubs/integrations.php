@@ -26,6 +26,50 @@ namespace {
 		define( 'INFOSECNEXUS_TOOLKIT_DIR', __DIR__ . '/../../wp-content/plugins/infosecnexus-toolkit/' );
 	}
 
+	if ( ! defined( 'INFOSECNEXUS_DIR' ) ) {
+		define( 'INFOSECNEXUS_DIR', __DIR__ . '/../../wp-content/themes/infosecnexus/' );
+	}
+
+	if ( ! defined( 'INFOSECNEXUS_URI' ) ) {
+		define( 'INFOSECNEXUS_URI', 'https://example.test/wp-content/themes/infosecnexus/' );
+	}
+
+	if ( ! defined( 'INFOSECNEXUS_THEME_TOOLKIT_VERSION' ) ) {
+		define( 'INFOSECNEXUS_THEME_TOOLKIT_VERSION', '0.1.0' );
+	}
+
+	if ( ! defined( 'INFOSECNEXUS_THEME_TOOLKIT_URL' ) ) {
+		define( 'INFOSECNEXUS_THEME_TOOLKIT_URL', 'https://example.test/wp-content/themes/infosecnexus/inc/toolkit/' );
+	}
+
+	if ( ! defined( 'INFOSECNEXUS_THEME_TOOLKIT_DIR' ) ) {
+		define( 'INFOSECNEXUS_THEME_TOOLKIT_DIR', __DIR__ . '/../../wp-content/themes/infosecnexus/inc/toolkit/' );
+	}
+
+	if ( ! defined( 'WPINC' ) ) {
+		define( 'WPINC', 'wp-includes' );
+	}
+
+	if ( ! defined( 'OBJECT' ) ) {
+		define( 'OBJECT', 'OBJECT' );
+	}
+
+	if ( ! defined( 'MINUTE_IN_SECONDS' ) ) {
+		define( 'MINUTE_IN_SECONDS', 60 );
+	}
+
+	if ( ! defined( 'HOUR_IN_SECONDS' ) ) {
+		define( 'HOUR_IN_SECONDS', 3600 );
+	}
+
+	if ( ! defined( 'DAY_IN_SECONDS' ) ) {
+		define( 'DAY_IN_SECONDS', 86400 );
+	}
+
+	if ( ! defined( 'MB_IN_BYTES' ) ) {
+		define( 'MB_IN_BYTES', 1048576 );
+	}
+
 	if ( ! defined( 'MONTH_IN_SECONDS' ) ) {
 		define( 'MONTH_IN_SECONDS', 2592000 );
 	}
@@ -40,6 +84,35 @@ namespace {
 
 	if ( ! class_exists( 'WooCommerce' ) ) {
 		class WooCommerce {}
+	}
+
+	if ( ! class_exists( 'WP_CLI' ) ) {
+		/**
+		 * WP-CLI facade stub.
+		 */
+		final class WP_CLI {
+			/**
+			 * Register a command.
+			 *
+			 * @param string   $name     Command name.
+			 * @param callable $callback Command callback.
+			 */
+			public static function add_command( string $name, callable $callback ): void {}
+
+			/**
+			 * Report command success.
+			 *
+			 * @param string $message Message.
+			 */
+			public static function success( string $message ): void {}
+
+			/**
+			 * Report a command error.
+			 *
+			 * @param string $message Message.
+			 */
+			public static function error( string $message ): void {}
+		}
 	}
 
 	if ( ! class_exists( 'WC_Product' ) ) {
@@ -121,6 +194,19 @@ namespace {
 		 * WooCommerce template output.
 		 */
 		function woocommerce_content(): void {}
+	}
+}
+
+namespace WP_CLI\Utils {
+	if ( ! function_exists( __NAMESPACE__ . '\\format_items' ) ) {
+		/**
+		 * Render a WP-CLI item table.
+		 *
+		 * @param string                    $format Format name.
+		 * @param array<int,array<string,mixed>> $items Items.
+		 * @param string[]                  $fields Fields.
+		 */
+		function format_items( string $format, array $items, array $fields ): void {}
 	}
 }
 

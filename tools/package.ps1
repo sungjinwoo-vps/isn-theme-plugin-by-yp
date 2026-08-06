@@ -104,7 +104,7 @@ $releaseManifest = @{
         last_updated = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd")
         sections = @{
             description = "Cybersecurity newsroom theme for InfoSecNexus."
-            changelog = "Stops automated contact spam before storage or email delivery with a cache-safe browser challenge, one-time tokens, layered rate limits, duplicate suppression, honeypots, and high-confidence campaign filtering."
+            changelog = "Introduces a rolling official-source newsroom, direct vendor coverage, cross-source deduplication, source health, server-cron support, topic-aware real WebP photography, a news sitemap, and reversible legacy-URL retirement."
         }
     }
     plugin = @{
@@ -119,7 +119,7 @@ $releaseManifest = @{
         last_updated = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd")
         sections = @{
             description = "Legacy bridge for older InfoSecNexus installs. Current toolkit features are bundled into the InfoSecNexus theme."
-            changelog = "Keeps the optional legacy bridge aligned with the theme secure forms, mail delivery, and confirmed newsletter release."
+            changelog = "Keeps the optional legacy bridge aligned with the theme rolling-newsroom and staged content-retirement release."
         }
     }
 }

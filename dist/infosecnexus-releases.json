@@ -1,31 +1,31 @@
 {
     "plugin":  {
                    "slug":  "infosecnexus-toolkit",
-                   "version":  "0.1.36",
+                   "version":  "0.1.37",
                    "plugin":  "infosecnexus-toolkit/infosecnexus-toolkit.php",
                    "requires_php":  "8.1",
                    "package":  "https://raw.githubusercontent.com/sungjinwoo-vps/isn-theme-plugin-by-yp/stable/dist/infosecnexus-toolkit.zip",
                    "tested":  "7.0",
                    "homepage":  "https://infosecnexus.com/",
-                   "last_updated":  "2026-08-01",
+                   "last_updated":  "2026-08-06",
                    "sections":  {
-                                    "changelog":  "Keeps the optional legacy bridge aligned with the theme secure forms, mail delivery, and confirmed newsletter release.",
+                                    "changelog":  "Keeps the optional legacy bridge aligned with the theme rolling-newsroom and staged content-retirement release.",
                                     "description":  "Legacy bridge for older InfoSecNexus installs. Current toolkit features are bundled into the InfoSecNexus theme."
                                 },
                    "requires":  "6.5"
                },
-    "generatedAt":  "2026-08-01T17:44:54Z",
+    "generatedAt":  "2026-08-06T17:02:53Z",
     "manifestVersion":  1,
     "theme":  {
                   "slug":  "infosecnexus",
-                  "version":  "0.1.36",
+                  "version":  "0.1.37",
                   "requires_php":  "8.1",
                   "package":  "https://raw.githubusercontent.com/sungjinwoo-vps/isn-theme-plugin-by-yp/stable/dist/infosecnexus-theme.zip",
                   "tested":  "7.0",
                   "homepage":  "https://infosecnexus.com/",
-                  "last_updated":  "2026-08-01",
+                  "last_updated":  "2026-08-06",
                   "sections":  {
-                                   "changelog":  "Stops automated contact spam before storage or email delivery with a cache-safe browser challenge, one-time tokens, layered rate limits, duplicate suppression, honeypots, and high-confidence campaign filtering.",
+                                   "changelog":  "Introduces a rolling official-source newsroom, direct vendor coverage, cross-source deduplication, source health, server-cron support, topic-aware real WebP photography, a news sitemap, and reversible legacy-URL retirement.",
                                    "description":  "Cybersecurity newsroom theme for InfoSecNexus."
                                },
                   "requires":  "6.5"

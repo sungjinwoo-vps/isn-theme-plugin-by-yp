@@ -14,8 +14,8 @@ $asset_image = static function ( string $file, array $attrs = array() ): void {
 };
 
 $post_url = static function ( string $slug, string $fallback ): string {
-	$post = get_page_by_path( $slug, OBJECT, 'post' );
-	return $post ? get_permalink( $post ) : $fallback;
+	$post = get_page_by_path( $slug, 'OBJECT', 'post' );
+	return $post && 'staged' !== (string) get_post_meta( $post->ID, '_infosecnexus_retirement_state', true ) ? get_permalink( $post ) : $fallback;
 };
 
 $critical_url = \InfoSecNexus\Theme\Header_Builder\category_url( 'critical-cves' );
@@ -48,9 +48,48 @@ $post_card_data = static function ( \WP_Post $post, string $severity = '', strin
 	);
 };
 
+$normalize_severity = static function ( string $severity ): string {
+	return match ( strtoupper( trim( $severity ) ) ) {
+		'KNOWN EXPLOITED', 'CRITICAL' => 'Critical',
+		'HIGH'                         => 'High',
+		'MEDIUM', 'MODERATE'           => 'Medium',
+		'LOW'                          => 'Low',
+		default                        => 'High',
+	};
+};
+
 $hero_url = (string) \InfoSecNexus\Theme\Customizer\get_value( 'home_hero_button_url' );
 if ( '' === $hero_url ) {
 	$hero_url = $critical_url;
+}
+$hero_badge        = (string) \InfoSecNexus\Theme\Customizer\get_value( 'home_hero_badge' );
+$hero_title        = (string) \InfoSecNexus\Theme\Customizer\get_value( 'home_hero_title' );
+$hero_excerpt      = (string) \InfoSecNexus\Theme\Customizer\get_value( 'home_hero_excerpt' );
+$hero_button_label = (string) \InfoSecNexus\Theme\Customizer\get_value( 'home_hero_button_label' );
+$hero_post_id      = 0;
+
+$rolling_posts = get_posts(
+	array(
+		'post_type'           => 'post',
+		'post_status'         => 'publish',
+		'posts_per_page'      => 1,
+		'ignore_sticky_posts' => true,
+		'meta_query'          => array(
+			array(
+				'key'   => '_infosecnexus_newsroom_kind',
+				'value' => 'rolling',
+			),
+		),
+	)
+);
+if ( ! empty( $rolling_posts ) && $rolling_posts[0] instanceof \WP_Post ) {
+	$hero_post         = $rolling_posts[0];
+	$hero_post_id      = (int) $hero_post->ID;
+	$hero_url          = get_permalink( $hero_post );
+	$hero_badge        = __( 'Live Brief', 'infosecnexus' );
+	$hero_title        = get_the_title( $hero_post );
+	$hero_excerpt      = wp_trim_words( has_excerpt( $hero_post_id ) ? get_the_excerpt( $hero_post ) : wp_strip_all_tags( (string) $hero_post->post_content ), 28, '...' );
+	$hero_button_label = __( 'Read Live Brief', 'infosecnexus' );
 }
 
 $latest_cards = array(
@@ -127,57 +166,72 @@ $critical_posts = get_posts(
 	array(
 		'post_type'           => 'post',
 		'post_status'         => 'publish',
-		'category_name'       => 'critical-cves',
 		'posts_per_page'      => 5,
 		'ignore_sticky_posts' => true,
+		'meta_query'          => array(
+			array(
+				'key'   => '_infosecnexus_newsroom_kind',
+				'value' => 'breaking',
+			),
+		),
 	)
 );
 
 if ( ! empty( $critical_posts ) ) {
 	$cves = array();
-	foreach ( $critical_posts as $index => $post ) {
-		$title  = get_the_title( $post );
+	foreach ( $critical_posts as $critical_post ) {
+		$critical_title = get_the_title( $critical_post );
 		$match  = array();
-		$label  = preg_match( '/CVE-\d{4}-\d+/i', $title, $match ) ? strtoupper( $match[0] ) : wp_trim_words( $title, 3, '' );
-		if ( false !== stripos( $title, 'Daily CVE Watch' ) ) {
-			$label = 'Daily CVE Watch';
-		}
+		$label  = preg_match( '/CVE-\d{4}-\d+/i', $critical_title, $match ) ? strtoupper( $match[0] ) : wp_trim_words( $critical_title, 3, '' );
+		$severity = $normalize_severity( sanitize_text_field( (string) get_post_meta( $critical_post->ID, '_infosecnexus_live_severity', true ) ) );
+		$score    = get_post_meta( $critical_post->ID, '_infosecnexus_live_score', true );
 		$cves[] = array(
 			'id'       => $label,
-			'name'     => wp_trim_words( $title, 8, '' ),
-			'severity' => 0 === $index ? 'Critical' : ( $index < 3 ? 'High' : 'Medium' ),
-			'score'    => array( '9.8', '8.6', '8.1', '6.9', '5.8' )[ $index ] ?? '5.8',
-			'url'      => get_permalink( $post ),
+			'name'     => wp_trim_words( $critical_title, 8, '' ),
+			'severity' => $severity,
+			'score'    => is_numeric( $score ) ? number_format_i18n( (float) $score, 1 ) : '--',
+			'url'      => get_permalink( $critical_post ),
 		);
 	}
 
-	$side_stories[0] = $post_card_data( $critical_posts[0], 'Critical', 'lock-chip.png' );
+	$priority_severity = $normalize_severity( sanitize_text_field( (string) get_post_meta( $critical_posts[0]->ID, '_infosecnexus_live_severity', true ) ) );
+	$side_stories[0]   = $post_card_data( $critical_posts[0], $priority_severity, 'lock-chip.png' );
 }
 
-$linux_posts = get_posts(
+$secondary_breaking_posts = get_posts(
 	array(
 		'post_type'           => 'post',
 		'post_status'         => 'publish',
-		'category_name'       => 'linux-administration',
-		'posts_per_page'      => 1,
+		'posts_per_page'      => 2,
 		'ignore_sticky_posts' => true,
+		'meta_query'          => array(
+			array(
+				'key'   => '_infosecnexus_newsroom_kind',
+				'value' => 'breaking',
+			),
+		),
 	)
 );
 
-if ( ! empty( $linux_posts ) ) {
-	$side_stories[1] = $post_card_data( $linux_posts[0], 'High', 'linux-circuit.png' );
+if ( count( $secondary_breaking_posts ) > 1 ) {
+	$secondary_severity = $normalize_severity( sanitize_text_field( (string) get_post_meta( $secondary_breaking_posts[1]->ID, '_infosecnexus_live_severity', true ) ) );
+	$side_stories[1]    = $post_card_data( $secondary_breaking_posts[1], $secondary_severity, 'linux-circuit.png' );
 }
 ?>
 <main id="primary" class="site-main">
 	<section class="home-hero layout-wide-shell" aria-label="<?php esc_attr_e( 'Featured cybersecurity briefings', 'infosecnexus' ); ?>">
 		<a class="home-hero__lead" href="<?php echo esc_url( $hero_url ); ?>">
-			<?php $asset_image( 'hero-shield.png', array( 'loading' => 'eager', 'fetchpriority' => 'high', 'sizes' => '(max-width: 760px) calc(100vw - 32px), (max-width: 1180px) 64vw, 860px' ) ); ?>
+			<?php if ( $hero_post_id > 0 && has_post_thumbnail( $hero_post_id ) ) : ?>
+				<?php echo get_the_post_thumbnail( $hero_post_id, 'large', array( 'loading' => 'eager', 'fetchpriority' => 'high', 'decoding' => 'async', 'sizes' => '(max-width: 760px) calc(100vw - 32px), (max-width: 1180px) 64vw, 860px' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+			<?php else : ?>
+				<?php $asset_image( 'hero-shield.png', array( 'loading' => 'eager', 'fetchpriority' => 'high', 'sizes' => '(max-width: 760px) calc(100vw - 32px), (max-width: 1180px) 64vw, 860px' ) ); ?>
+			<?php endif; ?>
 			<span class="home-hero__shade" aria-hidden="true"></span>
 			<span class="home-hero__content">
-				<span class="severity-pill severity-pill--critical"><?php echo esc_html( (string) \InfoSecNexus\Theme\Customizer\get_value( 'home_hero_badge' ) ); ?></span>
-				<h1 class="home-hero__title"><?php echo esc_html( (string) \InfoSecNexus\Theme\Customizer\get_value( 'home_hero_title' ) ); ?></h1>
-				<span class="home-hero__excerpt"><?php echo esc_html( (string) \InfoSecNexus\Theme\Customizer\get_value( 'home_hero_excerpt' ) ); ?></span>
-				<span class="button button--hero"><?php echo esc_html( (string) \InfoSecNexus\Theme\Customizer\get_value( 'home_hero_button_label' ) ); ?><?php \InfoSecNexus\Theme\Header_Builder\icon( 'arrow-right' ); ?></span>
+				<span class="severity-pill severity-pill--critical"><?php echo esc_html( $hero_badge ); ?></span>
+				<h1 class="home-hero__title"><?php echo esc_html( $hero_title ); ?></h1>
+				<span class="home-hero__excerpt"><?php echo esc_html( $hero_excerpt ); ?></span>
+				<span class="button button--hero"><?php echo esc_html( $hero_button_label ); ?><?php \InfoSecNexus\Theme\Header_Builder\icon( 'arrow-right' ); ?></span>
 			</span>
 		</a>
 

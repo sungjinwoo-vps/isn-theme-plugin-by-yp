@@ -121,6 +121,7 @@ final class Plugin {
 		Live_Intelligence::boot();
 		Post_Artwork::boot();
 		Demo_Content::boot();
+		Content_Retirement::boot();
 		Snippets::boot();
 		Maintenance::boot();
 		WooCommerce::boot();

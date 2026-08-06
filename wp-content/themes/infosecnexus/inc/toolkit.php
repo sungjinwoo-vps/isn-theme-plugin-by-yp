@@ -48,6 +48,7 @@ function bootstrap(): void {
 		'inc/toolkit/class-live-intelligence.php',
 		'inc/toolkit/class-post-artwork.php',
 		'inc/toolkit/class-demo-content.php',
+		'inc/toolkit/class-content-retirement.php',
 		'inc/toolkit/class-snippets.php',
 		'inc/toolkit/class-maintenance.php',
 		'inc/toolkit/class-woocommerce.php',

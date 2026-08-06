@@ -20,6 +20,7 @@ final class Demo_Content {
 	private const CONTENT_REFRESH_VERSION = '0.1.32';
 	private const DAILY_SCHEMA_OPTION = 'infosecnexus_daily_content_schema';
 	private const DAILY_SCHEMA_HOOK = 'infosecnexus_upgrade_daily_content_schema';
+	private const NEWSROOM_INTERVAL = 'infosecnexus_fifteen_minutes';
 
 	/**
 	 * Register hooks.
@@ -28,14 +29,32 @@ final class Demo_Content {
 		add_action( 'admin_menu', array( __CLASS__, 'admin_menu' ) );
 		add_action( 'admin_init', array( __CLASS__, 'handle_import' ) );
 		add_action( 'admin_init', array( __CLASS__, 'maybe_auto_seed' ) );
-		add_action( 'admin_init', array( __CLASS__, 'maybe_seed_daily_content' ) );
 		add_action( 'admin_init', array( __CLASS__, 'maybe_upgrade_daily_content' ), 30 );
+		add_filter( 'cron_schedules', array( __CLASS__, 'cron_schedules' ) );
 		add_action( 'init', array( __CLASS__, 'schedule_daily_content' ) );
 		add_action( 'init', array( __CLASS__, 'schedule_daily_content_upgrade' ), 40 );
 		add_action( 'init', array( __CLASS__, 'maybe_purge_release_cache' ), 99 );
 		add_action( self::DAILY_CRON_HOOK, array( __CLASS__, 'publish_daily_content' ) );
 		add_action( self::DAILY_SCHEMA_HOOK, array( __CLASS__, 'maybe_upgrade_daily_content' ) );
 		add_action( 'infosecnexus_post_artwork_changed', array( __CLASS__, 'purge_artwork_cache' ) );
+
+		if ( defined( 'WP_CLI' ) && WP_CLI ) {
+			\WP_CLI::add_command( 'infosecnexus newsroom refresh', array( __CLASS__, 'cli_refresh_newsroom' ) );
+		}
+	}
+
+	/**
+	 * Add the frequent newsroom recurrence used by WP-Cron and server cron.
+	 *
+	 * @param array<string,array<string,mixed>> $schedules Registered schedules.
+	 * @return array<string,array<string,mixed>>
+	 */
+	public static function cron_schedules( array $schedules ): array {
+		$schedules[ self::NEWSROOM_INTERVAL ] = array(
+			'interval' => 15 * MINUTE_IN_SECONDS,
+			'display'  => __( 'Every 15 minutes (InfoSecNexus newsroom)', 'infosecnexus' ),
+		);
+		return $schedules;
 	}
 
 	/**
@@ -82,7 +101,7 @@ final class Demo_Content {
 			<p><?php esc_html_e( 'This content repair is non-destructive for your Customizer and feature settings.', 'infosecnexus' ); ?></p>
 			<hr>
 			<h2><?php esc_html_e( 'Live Cybersecurity Briefings', 'infosecnexus' ); ?></h2>
-			<p><?php esc_html_e( 'Build long, source-backed posts from current CISA KEV, NIST NVD, GitHub, Ubuntu, Microsoft, OpenAI, and official security feeds. The automatic refresh runs near 6:30 AM and 6:30 PM in the WordPress site timezone.', 'infosecnexus' ); ?></p>
+			<p><?php esc_html_e( 'Maintain one rolling daily brief from CISA, NIST, GitHub, Ubuntu, Microsoft, SonicWall, Cisco, Palo Alto, WordPress, OpenAI, and other official sources. Critical feeds refresh every 15 minutes and general feeds every 30 minutes.', 'infosecnexus' ); ?></p>
 			<p><a class="button button-primary" href="<?php echo esc_url( $daily_url ); ?>"><?php esc_html_e( 'Refresh Live Briefings Now', 'infosecnexus' ); ?></a></p>
 			<?php if ( '' !== $checked_at ) : ?>
 				<p>
@@ -98,14 +117,16 @@ final class Demo_Content {
 				</p>
 			<?php endif; ?>
 			<?php if ( ! empty( $source_rows ) ) : ?>
-				<table class="widefat striped" style="max-width: 820px">
-					<thead><tr><th><?php esc_html_e( 'Source', 'infosecnexus' ); ?></th><th><?php esc_html_e( 'Status', 'infosecnexus' ); ?></th><th><?php esc_html_e( 'Items', 'infosecnexus' ); ?></th></tr></thead>
+				<table class="widefat striped" style="max-width: 1100px">
+					<thead><tr><th><?php esc_html_e( 'Source', 'infosecnexus' ); ?></th><th><?php esc_html_e( 'Status', 'infosecnexus' ); ?></th><th><?php esc_html_e( 'Items', 'infosecnexus' ); ?></th><th><?php esc_html_e( 'Last success', 'infosecnexus' ); ?></th><th><?php esc_html_e( 'Response', 'infosecnexus' ); ?></th></tr></thead>
 					<tbody>
 					<?php foreach ( $source_rows as $source ) : ?>
 						<tr>
 							<td><?php echo esc_html( (string) ( $source['label'] ?? '' ) ); ?></td>
-							<td><?php echo ! empty( $source['ok'] ) ? esc_html__( 'Connected', 'infosecnexus' ) : esc_html__( 'Unavailable', 'infosecnexus' ); ?></td>
+							<td><?php echo ! empty( $source['ok'] ) ? ( ! empty( $source['cached'] ) ? esc_html__( 'Cached', 'infosecnexus' ) : esc_html__( 'Connected', 'infosecnexus' ) ) : ( ! empty( $source['stale'] ) ? esc_html__( 'Last good copy', 'infosecnexus' ) : esc_html__( 'Unavailable', 'infosecnexus' ) ); ?></td>
 							<td><?php echo esc_html( (string) (int) ( $source['count'] ?? 0 ) ); ?></td>
+							<td><?php echo esc_html( (string) ( $source['last_success'] ?? 'Never' ) ); ?></td>
+							<td><?php echo esc_html( (string) (int) ( $source['duration_ms'] ?? 0 ) . ' ms' ); ?></td>
 						</tr>
 					<?php endforeach; ?>
 					</tbody>
@@ -180,19 +201,11 @@ final class Demo_Content {
 	}
 
 	/**
-	 * Add today's daily batch when an admin visits and the cron has not run yet.
+	 * Legacy compatibility shim. Publication now runs only from cron or an
+	 * explicit administrator refresh, keeping logged-in and public views equal.
 	 */
 	public static function maybe_seed_daily_content(): void {
-		if ( ! current_user_can( 'manage_options' ) || ! (bool) option( 'daily_content_enabled', true ) ) {
-			return;
-		}
-
-		$theme = wp_get_theme();
-		if ( 'infosecnexus' !== $theme->get_stylesheet() ) {
-			return;
-		}
-
-		self::publish_daily_content();
+		return;
 	}
 
 	/**
@@ -210,7 +223,7 @@ final class Demo_Content {
 	}
 
 	/**
-	 * Remove old generator notes and refresh today's generated briefings.
+	 * Refresh the current newsroom schema without rewriting legacy articles.
 	 */
 	public static function maybe_upgrade_daily_content(): void {
 		$version = Live_Intelligence::content_schema_version();
@@ -222,55 +235,11 @@ final class Demo_Content {
 			return;
 		}
 
-		self::create_posts( self::create_categories() );
-
-		$query = new \WP_Query(
-			array(
-				'post_type'      => 'post',
-				'post_status'    => 'publish',
-				'posts_per_page' => -1,
-				'fields'         => 'ids',
-				'no_found_rows'  => true,
-				'meta_query'     => array(
-					array(
-						'key'     => '_infosecnexus_daily_content',
-						'compare' => 'EXISTS',
-					),
-				),
-			)
-		);
-		$changed_ids = array();
-		foreach ( array_map( 'intval', $query->posts ) as $post_id ) {
-			$existing = (string) get_post_field( 'post_content', $post_id );
-			$cleaned  = Live_Intelligence::clean_legacy_article( $existing );
-			$cleaned  = self::modernize_short_daily_content( $cleaned );
-			$cleaned  = self::individualize_legacy_daily_content( $post_id, $cleaned );
-			if ( $cleaned === $existing ) {
-				continue;
-			}
-
-			$result = wp_update_post(
-				wp_slash(
-					array(
-						'ID'           => $post_id,
-						'post_content' => $cleaned,
-					)
-				),
-				true
-			);
-			if ( ! is_wp_error( $result ) ) {
-				$changed_ids[] = $post_id;
-			}
-		}
-
 		if ( (bool) option( 'daily_content_enabled', true ) ) {
-			self::publish_daily_content();
+			self::publish_daily_content( true );
 		}
 
 		update_option( self::DAILY_SCHEMA_OPTION, $version, false );
-		if ( ! empty( $changed_ids ) ) {
-			self::purge_public_cache( $changed_ids );
-		}
 	}
 
 	/**
@@ -283,26 +252,33 @@ final class Demo_Content {
 		}
 
 		$event = wp_get_scheduled_event( self::DAILY_CRON_HOOK );
-		if ( $event && 'twicedaily' !== (string) $event->schedule ) {
+		if ( $event && self::NEWSROOM_INTERVAL !== (string) $event->schedule ) {
 			wp_clear_scheduled_hook( self::DAILY_CRON_HOOK );
 			$event = false;
 		}
 
 		if ( ! $event ) {
-			$now     = current_datetime();
-			$morning = $now->setTime( 6, 30, 0 );
-			$evening = $now->setTime( 18, 30, 0 );
-
-			if ( $now < $morning ) {
-				$next = $morning;
-			} elseif ( $now < $evening ) {
-				$next = $evening;
-			} else {
-				$next = $morning->modify( '+1 day' );
-			}
-
-			wp_schedule_event( $next->getTimestamp(), 'twicedaily', self::DAILY_CRON_HOOK );
+			wp_schedule_event( time() + 60, self::NEWSROOM_INTERVAL, self::DAILY_CRON_HOOK );
 		}
+	}
+
+	/**
+	 * Force an authoritative newsroom refresh from WP-CLI.
+	 *
+	 * @param string[]            $args Positional arguments.
+	 * @param array<string,mixed> $assoc_args Named arguments.
+	 */
+	public static function cli_refresh_newsroom( array $args, array $assoc_args ): void {
+		unset( $args, $assoc_args );
+		self::publish_daily_content( true );
+		$status = Live_Intelligence::status();
+		\WP_CLI::success(
+			sprintf(
+				'Refreshed the newsroom with %d normalized source items at %s.',
+				(int) ( $status['item_count'] ?? 0 ),
+				(string) ( $status['checked_at'] ?? gmdate( 'Y-m-d H:i:s' ) )
+			)
+		);
 	}
 
 	/**
@@ -334,6 +310,7 @@ final class Demo_Content {
 		}
 
 		update_option( self::PUBLIC_CACHE_RELEASE_OPTION, $version, false );
+		flush_rewrite_rules( false );
 		self::purge_public_cache( array() );
 	}
 
@@ -963,7 +940,7 @@ final class Demo_Content {
 				}
 			}
 
-			$post_slug = $date_slug . '-' . $post['slug'];
+			$post_slug = ! empty( $post['dated_slug'] ) ? $date_slug . '-' . $post['slug'] : (string) $post['slug'];
 			$existing  = get_page_by_path( $post_slug, OBJECT, 'post' );
 			if (
 				$existing
@@ -992,10 +969,15 @@ final class Demo_Content {
 					'post_category' => $term_ids,
 					'meta_input'    => array(
 						'_infosecnexus_daily_content'     => $date,
+						'_infosecnexus_newsroom_post'     => '1',
+						'_infosecnexus_newsroom_kind'     => sanitize_key( (string) ( $post['kind'] ?? 'rolling' ) ),
+						'_infosecnexus_story_key'         => sanitize_text_field( (string) ( $post['story_key'] ?? $post_slug ) ),
 						'_infosecnexus_source_urls'       => wp_json_encode( $post['sources'] ),
 						'_infosecnexus_live_source_ids'   => wp_json_encode( $post['source_ids'] ),
 						'_infosecnexus_live_fingerprint'  => $post['fingerprint'],
 						'_infosecnexus_live_checked_at'   => (string) ( $live_data['checked_at'] ?? '' ),
+						'_infosecnexus_live_severity'     => sanitize_text_field( (string) ( $post['severity'] ?? '' ) ),
+						'_infosecnexus_live_score'        => isset( $post['score'] ) && is_numeric( $post['score'] ) ? (string) $post['score'] : '',
 						'_infosecnexus_seo_description'   => $post['excerpt'],
 						'_yoast_wpseo_metadesc'           => $post['excerpt'],
 						'rank_math_description'           => $post['excerpt'],
@@ -1027,7 +1009,7 @@ final class Demo_Content {
 	 *
 	 * @param array<int,int> $post_ids Changed post IDs.
 	 */
-	private static function purge_public_cache( array $post_ids ): void {
+	public static function purge_public_cache( array $post_ids ): void {
 		$urls          = array( home_url( '/' ), home_url( '/llms.txt' ) );
 		$posts_page_id = (int) get_option( 'page_for_posts' );
 

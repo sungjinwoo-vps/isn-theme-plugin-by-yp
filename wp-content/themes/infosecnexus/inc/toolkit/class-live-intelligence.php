@@ -16,10 +16,16 @@ final class Live_Intelligence {
 	private const CACHE_KEY = 'infosecnexus_live_intelligence_cache';
 	private const LAST_GOOD_OPTION = 'infosecnexus_live_intelligence_last_good';
 	private const STATUS_OPTION = 'infosecnexus_live_intelligence_status';
-	private const CACHE_TTL = 4 * HOUR_IN_SECONDS;
-	private const LOOKBACK_DAYS = 10;
-	private const MAX_ITEMS = 260;
-	private const CONTENT_SCHEMA_VERSION = '8';
+	private const SOURCE_HEALTH_OPTION = 'infosecnexus_live_source_health';
+	private const SOURCE_CACHE_PREFIX = 'infosecnexus_live_source_';
+	private const SOURCE_LAST_GOOD_PREFIX = 'infosecnexus_live_source_last_good_';
+	private const SOURCE_ALERT_PREFIX = 'infosecnexus_live_source_alert_';
+	private const CACHE_TTL = 15 * MINUTE_IN_SECONDS;
+	private const CRITICAL_SOURCE_TTL = 15 * MINUTE_IN_SECONDS;
+	private const GENERAL_SOURCE_TTL = 30 * MINUTE_IN_SECONDS;
+	private const LOOKBACK_DAYS = 7;
+	private const MAX_ITEMS = 220;
+	private const CONTENT_SCHEMA_VERSION = '9';
 
 	/**
 	 * Hide retired generator notes immediately while the database migration runs.
@@ -55,82 +61,21 @@ final class Live_Intelligence {
 			}
 		}
 
-		$items    = array();
-		$statuses = array();
-		$sources  = array(
-			'verified_context' => array( 'Verified Current Context', array( __CLASS__, 'collect_verified_context' ) ),
-			'cisa_kev'       => array( 'CISA Known Exploited Vulnerabilities', array( __CLASS__, 'collect_cisa_kev' ) ),
-			'nvd'            => array( 'NIST National Vulnerability Database', array( __CLASS__, 'collect_nvd' ) ),
-			'github_advisory' => array( 'GitHub Advisory Database', array( __CLASS__, 'collect_github_advisories' ) ),
-			'cisa_advisory'  => array(
-				'CISA Cybersecurity Advisories',
-				static fn() => self::collect_feed(
-					'cisa_advisory',
-					'CISA Cybersecurity Advisories',
-					'https://www.cisa.gov/cybersecurity-advisories/all.xml',
-					10
-				),
-			),
-			'ubuntu'         => array(
-				'Ubuntu Security Notices',
-				static fn() => self::collect_feed(
-					'ubuntu',
-					'Ubuntu Security Notices',
-					'https://ubuntu.com/security/notices/rss.xml',
-					12
-				),
-			),
-			'github_security' => array(
-				'GitHub Security Blog',
-				static fn() => self::collect_feed(
-					'github_security',
-					'GitHub Security Blog',
-					'https://github.blog/security/feed/',
-					10
-				),
-			),
-			'microsoft_security' => array(
-				'Microsoft Security Blog',
-				static fn() => self::collect_feed(
-					'microsoft_security',
-					'Microsoft Security Blog',
-					'https://www.microsoft.com/en-us/security/blog/feed/',
-					10
-				),
-			),
-			'openai'         => array(
-				'OpenAI News',
-				static fn() => self::collect_feed(
-					'openai',
-					'OpenAI News',
-					'https://openai.com/news/rss.xml',
-					8,
-					'/\b(security|cyber|vulnerab|exploit|incident|safety|alignment|red[- ]?team|sandbox|containment|risk)\b/i'
-				),
-			),
-		);
+		$items     = array();
+		$statuses  = array();
+		$health    = get_option( self::SOURCE_HEALTH_OPTION, array() );
+		$health    = is_array( $health ) ? $health : array();
+		$all_fresh = true;
 
-		foreach ( $sources as $key => $source ) {
-			$result = call_user_func( $source[1] );
-			if ( is_wp_error( $result ) ) {
-				$statuses[ $key ] = array(
-					'label'   => $source[0],
-					'ok'      => false,
-					'count'   => 0,
-					'message' => $result->get_error_message(),
-				);
-				continue;
-			}
-
-			$result = is_array( $result ) ? $result : array();
-			$items  = array_merge( $items, $result );
-			$statuses[ $key ] = array(
-				'label'   => $source[0],
-				'ok'      => true,
-				'count'   => count( $result ),
-				'message' => '',
-			);
+		foreach ( self::source_definitions() as $key => $source ) {
+			$collected        = self::collect_source( (string) $key, $source, $force, (array) ( $health[ $key ] ?? array() ) );
+			$items            = array_merge( $items, $collected['items'] );
+			$statuses[ $key ] = $collected['status'];
+			$health[ $key ]   = $collected['health'];
+			$all_fresh        = $all_fresh && empty( $collected['status']['stale'] );
 		}
+
+		update_option( self::SOURCE_HEALTH_OPTION, $health, false );
 
 		$items = self::normalize_items( $items );
 		if ( empty( $items ) ) {
@@ -159,7 +104,7 @@ final class Live_Intelligence {
 			'checked_at'     => gmdate( 'Y-m-d H:i:s' ),
 			'items'          => array_slice( $items, 0, self::MAX_ITEMS ),
 			'source_status'  => $statuses,
-			'stale'          => false,
+			'stale'          => ! $all_fresh,
 			'refresh_failed' => false,
 		);
 		$data['fingerprint'] = hash(
@@ -175,9 +120,12 @@ final class Live_Intelligence {
 							'published'   => (string) ( $item['published'] ?? '' ),
 							'severity'    => (string) ( $item['severity'] ?? '' ),
 							'score'       => $item['score'] ?? null,
+							'cve'         => (string) ( $item['cve'] ?? '' ),
 							'due_date'    => (string) ( $item['due_date'] ?? '' ),
 							'action'      => (string) ( $item['action'] ?? '' ),
 							'categories'  => (array) ( $item['categories'] ?? array() ),
+							'references'  => self::item_references( $item ),
+							'active'      => ! empty( $item['active_exploitation'] ),
 						);
 					},
 					$data['items']
@@ -190,6 +138,153 @@ final class Live_Intelligence {
 		self::save_status( $data );
 
 		return $data;
+	}
+
+	/**
+	 * Describe every primary or authoritative newsroom source and its cadence.
+	 *
+	 * @return array<string,array<string,mixed>>
+	 */
+	private static function source_definitions(): array {
+		$critical = self::CRITICAL_SOURCE_TTL;
+		$general  = self::GENERAL_SOURCE_TTL;
+
+		return array(
+			'cisa_kev' => array(
+				'label' => 'CISA Known Exploited Vulnerabilities', 'ttl' => $critical, 'critical' => true,
+				'callback' => array( __CLASS__, 'collect_cisa_kev' ),
+			),
+			'nvd' => array(
+				'label' => 'NIST National Vulnerability Database', 'ttl' => $critical, 'critical' => true,
+				'callback' => array( __CLASS__, 'collect_nvd' ),
+			),
+			'cisa_advisory' => array(
+				'label' => 'CISA Cybersecurity Advisories', 'ttl' => $critical, 'critical' => true,
+				'callback' => static fn() => self::collect_feed( 'cisa_advisory', 'CISA Cybersecurity Advisories', 'https://www.cisa.gov/cybersecurity-advisories/all.xml?source=infosecnexus', 14 ),
+			),
+			'sonicwall_psirt' => array(
+				'label' => 'SonicWall PSIRT', 'ttl' => $critical, 'critical' => true,
+				'callback' => static fn() => self::collect_feed( 'sonicwall_psirt', 'SonicWall PSIRT', 'https://psirtapi.global.sonicwall.com/api/v1/feed/rss.xml', 16 ),
+			),
+			'paloalto_psirt' => array(
+				'label' => 'Palo Alto Networks Security Advisories', 'ttl' => $critical, 'critical' => true,
+				'callback' => static fn() => self::collect_feed( 'paloalto_psirt', 'Palo Alto Networks Security Advisories', 'https://security.paloaltonetworks.com/rss.xml', 16 ),
+			),
+			'cisco_psirt' => array(
+				'label' => 'Cisco Security Advisories', 'ttl' => $critical, 'critical' => true,
+				'callback' => static fn() => self::collect_feed( 'cisco_psirt', 'Cisco Security Advisories', 'https://sec.cloudapps.cisco.com/security/center/psirtrss20/CiscoSecurityAdvisory.xml', 16 ),
+			),
+			'wordpress_security' => array(
+				'label' => 'WordPress Security Releases', 'ttl' => $critical, 'critical' => true,
+				'callback' => static fn() => self::collect_feed( 'wordpress_security', 'WordPress Security Releases', 'https://wordpress.org/news/category/security/feed/', 12 ),
+			),
+			'github_advisory' => array(
+				'label' => 'GitHub Advisory Database', 'ttl' => $general, 'critical' => false,
+				'callback' => array( __CLASS__, 'collect_github_advisories' ),
+			),
+			'ubuntu' => array(
+				'label' => 'Ubuntu Security Notices', 'ttl' => $general, 'critical' => false,
+				'callback' => static fn() => self::collect_feed( 'ubuntu', 'Ubuntu Security Notices', 'https://ubuntu.com/security/notices/rss.xml', 16 ),
+			),
+			'github_security' => array(
+				'label' => 'GitHub Security Blog', 'ttl' => $general, 'critical' => false,
+				'callback' => static fn() => self::collect_feed( 'github_security', 'GitHub Security Blog', 'https://github.blog/security/feed/', 12 ),
+			),
+			'microsoft_security' => array(
+				'label' => 'Microsoft Security Blog', 'ttl' => $general, 'critical' => false,
+				'callback' => static fn() => self::collect_feed( 'microsoft_security', 'Microsoft Security Blog', 'https://www.microsoft.com/en-us/security/blog/feed/', 12 ),
+			),
+			'openai' => array(
+				'label' => 'OpenAI News', 'ttl' => $general, 'critical' => false,
+				'callback' => static fn() => self::collect_feed( 'openai', 'OpenAI News', 'https://openai.com/news/rss.xml', 10, '/\b(security|cyber|vulnerab|exploit|incident|safety|red[- ]?team|sandbox|containment|risk)\b/i' ),
+			),
+		);
+	}
+
+	/**
+	 * Collect one source with an independent cache and last-good fallback.
+	 *
+	 * @param string              $key Source key.
+	 * @param array<string,mixed> $source Source definition.
+	 * @param bool                $force Skip source cache.
+	 * @param array<string,mixed> $previous Previous health state.
+	 * @return array{items:array<int,array<string,mixed>>,status:array<string,mixed>,health:array<string,mixed>}
+	 */
+	private static function collect_source( string $key, array $source, bool $force, array $previous ): array {
+		$cache_key = self::SOURCE_CACHE_PREFIX . md5( $key );
+		$cached    = get_transient( $cache_key );
+		$label     = (string) ( $source['label'] ?? $key );
+		$now       = gmdate( 'Y-m-d H:i:s' );
+
+		if ( ! $force && is_array( $cached ) ) {
+			$items = is_array( $cached['items'] ?? null ) ? $cached['items'] : array();
+			return array(
+				'items'  => $items,
+				'status' => array(
+					'label' => $label, 'ok' => true, 'count' => count( $items ), 'message' => '',
+					'checked_at' => (string) ( $cached['checked_at'] ?? $now ), 'last_success' => (string) ( $previous['last_success'] ?? '' ),
+					'duration_ms' => 0, 'cached' => true, 'stale' => false, 'failure_count' => (int) ( $previous['failure_count'] ?? 0 ),
+				),
+				'health' => $previous,
+			);
+		}
+
+		$started = microtime( true );
+		$result  = call_user_func( $source['callback'] );
+		$elapsed = (int) round( ( microtime( true ) - $started ) * 1000 );
+		if ( ! is_wp_error( $result ) ) {
+			$items  = is_array( $result ) ? $result : array();
+			$health = array(
+				'label' => $label, 'last_checked' => $now, 'last_success' => $now, 'duration_ms' => $elapsed,
+				'count' => count( $items ), 'failure_count' => 0, 'last_error' => '',
+			);
+			$payload = array( 'checked_at' => $now, 'items' => $items );
+			set_transient( $cache_key, $payload, max( MINUTE_IN_SECONDS, (int) ( $source['ttl'] ?? self::GENERAL_SOURCE_TTL ) ) );
+			update_option( self::SOURCE_LAST_GOOD_PREFIX . $key, $payload, false );
+
+			return array(
+				'items' => $items,
+				'status' => array_merge( $health, array( 'ok' => true, 'message' => '', 'checked_at' => $now, 'cached' => false, 'stale' => false ) ),
+				'health' => $health,
+			);
+		}
+
+		$failures  = (int) ( $previous['failure_count'] ?? 0 ) + 1;
+		$message   = self::clean_text( $result->get_error_message(), 28 );
+		$last_good = get_option( self::SOURCE_LAST_GOOD_PREFIX . $key, array() );
+		$fallback  = is_array( $last_good ) && is_array( $last_good['items'] ?? null ) ? $last_good['items'] : array();
+		$health    = array_merge(
+			$previous,
+			array(
+				'label' => $label, 'last_checked' => $now, 'duration_ms' => $elapsed, 'count' => count( $fallback ),
+				'failure_count' => $failures, 'last_error' => $message,
+			)
+		);
+		if ( ! empty( $source['critical'] ) && $failures >= 3 ) {
+			self::maybe_alert_source_failure( $key, $label, $message, $failures );
+		}
+
+		return array(
+			'items' => $fallback,
+			'status' => array_merge( $health, array( 'ok' => false, 'message' => $message, 'checked_at' => $now, 'cached' => false, 'stale' => ! empty( $fallback ) ) ),
+			'health' => $health,
+		);
+	}
+
+	/**
+	 * Send a rate-limited alert after repeated critical-source failures.
+	 */
+	private static function maybe_alert_source_failure( string $key, string $label, string $message, int $failures ): void {
+		$alert_key = self::SOURCE_ALERT_PREFIX . md5( $key );
+		if ( get_transient( $alert_key ) ) {
+			return;
+		}
+		set_transient( $alert_key, '1', 12 * HOUR_IN_SECONDS );
+		wp_mail(
+			Mailer::recipient_email(),
+			'InfoSecNexus source warning: ' . $label,
+			sprintf( "%s has failed %d consecutive checks. The last-good copy remains in use when available.\n\n%s", $label, $failures, $message )
+		);
 	}
 
 	/**
@@ -210,7 +305,7 @@ final class Live_Intelligence {
 	}
 
 	/**
-	 * Build long-form, source-backed posts for every newsroom category.
+	 * Build one canonical rolling brief plus conservative breaking stories.
 	 *
 	 * @param string              $date Human-readable site date.
 	 * @param array<string,mixed> $data Normalized live source data.
@@ -222,211 +317,395 @@ final class Live_Intelligence {
 			return array();
 		}
 
-		$configs = self::category_configs();
-		$posts   = array();
+		$selected   = self::select_rolling_items( $items );
+		$item_ids   = array_values( array_filter( array_map( static fn( array $item ): string => (string) ( $item['id'] ?? '' ), $selected ) ) );
+		$categories = array( 'cybersecurity' );
+		foreach ( $selected as $item ) {
+			$categories = array_merge( $categories, (array) ( $item['categories'] ?? array() ) );
+		}
+		$categories = array_values( array_unique( array_map( 'sanitize_key', $categories ) ) );
 
-		foreach ( $configs as $slug => $config ) {
-			$selected = self::items_for_category( $items, $slug, (int) $config['item_limit'] );
-			if ( empty( $selected ) ) {
+		$lead_titles = array_values( array_filter( array_map( static fn( array $item ): string => (string) ( $item['title'] ?? '' ), array_slice( $selected, 0, 2 ) ) ) );
+		$excerpt = wp_trim_words(
+			sprintf(
+				'Current cybersecurity intelligence for %1$s, led by %2$s. Verified source links, affected products, exploitation signals, and practical response priorities are included.',
+				$date,
+				implode( ' and ', $lead_titles )
+			),
+			42,
+			'.'
+		);
+		$fingerprint = hash( 'sha256', self::CONTENT_SCHEMA_VERSION . '|rolling|' . $date . '|' . self::items_fingerprint( $selected ) );
+		$posts = array(
+			array(
+				'kind'        => 'rolling',
+				'story_key'   => 'rolling-' . sanitize_title( $date ),
+				'title'       => sprintf( 'Live Cybersecurity Brief for %s: Active Threats, CVEs, and Vendor Advisories', $date ),
+				'slug'        => 'live-cybersecurity-brief',
+				'dated_slug'  => true,
+				'categories'  => $categories,
+				'excerpt'     => $excerpt,
+				'content'     => self::render_rolling_article( $date, $selected, $data ),
+				'sources'     => self::source_pairs( $selected ),
+				'fingerprint' => $fingerprint,
+				'source_ids'  => $item_ids,
+				'severity'    => self::brief_severity( $selected ),
+				'score'       => self::brief_score( $selected ),
+			),
+		);
+
+		$breaking_count = 0;
+		foreach ( $items as $item ) {
+			if ( $breaking_count >= 2 || ! self::is_breaking_item( $item ) ) {
+				continue;
+			}
+			$story_key = self::story_key( $item );
+			$title     = (string) ( $item['title'] ?? '' );
+			$summary   = self::clean_text( (string) ( $item['description'] ?? '' ), 42 );
+			if ( '' === $story_key || '' === $title || '' === $summary ) {
 				continue;
 			}
 
-			$top_titles = array_values(
-				array_filter(
-					array_map(
-						static fn( array $item ): string => (string) ( $item['title'] ?? '' ),
-						array_slice( $selected, 0, 2 )
-					)
-				)
-			);
-			$excerpt = sprintf(
-				'%1$s Updated for %2$s. Lead coverage includes %3$s.',
-				(string) $config['intro'],
-				$date,
-				implode( ' and ', $top_titles )
-			);
-			$excerpt = wp_trim_words( $excerpt, 38, '.' );
-
-			$item_ids = array_map(
-				static fn( array $item ): string => (string) ( $item['id'] ?? '' ),
-				$selected
-			);
-			$fingerprint = hash(
-				'sha256',
-				self::CONTENT_SCHEMA_VERSION . '|' . (string) ( $data['fingerprint'] ?? '' ) . '|' . $slug . '|' . implode( '|', $item_ids )
-			);
-
 			$posts[] = array(
-				'title'       => sprintf( (string) $config['title'], $date ),
-				'slug'        => (string) $config['post_slug'],
-				'categories'  => array( $slug ),
-				'excerpt'     => $excerpt,
-				'content'     => self::render_article( $date, $config, $selected, $data ),
-				'sources'     => self::source_pairs( $selected ),
-				'fingerprint' => $fingerprint,
-				'source_ids'  => array_values( array_filter( $item_ids ) ),
+				'kind'        => 'breaking',
+				'story_key'   => $story_key,
+				'title'       => $title,
+				'slug'        => sanitize_title( $story_key . '-' . wp_trim_words( $title, 7, '' ) ),
+				'dated_slug'  => false,
+				'categories'  => array_values( array_unique( (array) ( $item['categories'] ?? array( 'cybersecurity' ) ) ) ),
+				'excerpt'     => $summary,
+				'content'     => self::render_breaking_article( $date, $item ),
+				'sources'     => self::source_pairs( array( $item ) ),
+				'fingerprint' => hash( 'sha256', self::CONTENT_SCHEMA_VERSION . '|breaking|' . $story_key . '|' . self::items_fingerprint( array( $item ) ) ),
+				'source_ids'  => array( (string) ( $item['id'] ?? $story_key ) ),
+				'severity'    => (string) ( $item['severity'] ?? 'Known Exploited' ),
+				'score'       => $item['score'] ?? null,
 			);
+			++$breaking_count;
 		}
 
 		return $posts;
 	}
 
 	/**
-	 * Add time-limited context that was individually checked against its source.
+	 * Keep urgent records first while guaranteeing useful direct-vendor coverage.
 	 *
-	 * These records supplement structured feeds for important current stories that
-	 * do not have a stable machine-readable endpoint.
-	 *
+	 * @param array<int,array<string,mixed>> $items Priority-sorted normalized items.
 	 * @return array<int,array<string,mixed>>
 	 */
-	private static function collect_verified_context(): array {
-		$records = array(
-			array(
-				'id'          => 'verified-linux-432-cves-july-2026',
-				'source_key'  => 'verified_context',
-				'source'      => 'The Register',
-				'type'        => 'reported_news',
-				'title'       => 'Linux kernel team published 432 CVE records across two days',
-				'description' => 'The publication burst covered hundreds of kernel CVE records. Administrators should map fixed kernel versions to their distributions instead of treating the count as proof that every host is exposed.',
-				'url'         => 'https://www.theregister.com/security/2026/07/22/linux-kernel-team-publishes-432-cves-in-two-days/5276497',
-				'published'   => '2026-07-22T17:58:00Z',
-				'severity'    => '',
-				'score'       => null,
-				'cve'         => '',
-				'vendor'      => 'Linux',
-				'product'     => 'Linux kernel',
-				'due_date'    => '',
-				'action'      => '',
-				'priority'    => 62,
-				'active_until' => '2026-08-10',
-			),
-			array(
-				'id'          => 'verified-first-2026-vulnerability-forecast',
-				'source_key'  => 'verified_context',
-				'source'      => 'Forum of Incident Response and Security Teams',
-				'type'        => 'official_context',
-				'title'       => 'FIRST raises its 2026 vulnerability forecast to about 66,000 CVEs',
-				'description' => 'FIRST reported that disclosures were running above its original forecast and linked the wider uncertainty range partly to AI-assisted vulnerability discovery.',
-				'url'         => 'https://www.first.org/newsroom/releases/20260615',
-				'published'   => '2026-06-15T09:00:00Z',
-				'severity'    => '',
-				'score'       => null,
-				'cve'         => '',
-				'vendor'      => 'FIRST',
-				'product'     => '2026 Vulnerability Forecast',
-				'due_date'    => '',
-				'action'      => '',
-				'priority'    => 63,
-				'active_until' => '2026-08-31',
-			),
-			array(
-				'id'          => 'verified-cve-2026-55255-langflow',
-				'source_key'  => 'verified_context',
-				'source'      => 'NIST NVD and CISA KEV',
-				'type'        => 'kev',
-				'title'       => 'CVE-2026-55255: Langflow cross-user flow authorization bypass',
-				'description' => 'Before version 1.9.1, an authenticated attacker could specify another user\'s flow ID and execute that flow. The CNA rates the issue 8.4 High, and CISA lists active exploitation.',
-				'url'         => 'https://nvd.nist.gov/vuln/detail/CVE-2026-55255',
-				'published'   => '2026-07-07T17:45:10Z',
-				'severity'    => 'Known Exploited',
-				'score'       => 8.4,
-				'cve'         => 'CVE-2026-55255',
-				'vendor'      => 'Langflow',
-				'product'     => 'Langflow before 1.9.1',
-				'due_date'    => '2026-07-10',
-				'action'      => 'Apply the current Langflow fix and follow CISA KEV remediation guidance.',
-				'priority'    => 121,
-				'active_until' => '2026-08-15',
-			),
-			array(
-				'id'          => 'verified-cve-2026-57092-windows-vmswitch',
-				'source_key'  => 'verified_context',
-				'source'      => 'NIST NVD and Microsoft',
-				'type'        => 'vulnerability',
-				'title'       => 'CVE-2026-57092: Windows VMSwitch use-after-free privilege escalation',
-				'description' => 'Microsoft describes a network-reachable VMSwitch use-after-free that lets an authorized attacker elevate privileges. The Microsoft CNA rates it 9.9 Critical.',
-				'url'         => 'https://nvd.nist.gov/vuln/detail/CVE-2026-57092',
-				'published'   => '2026-07-14T18:45:52Z',
-				'severity'    => 'CRITICAL',
-				'score'       => 9.9,
-				'cve'         => 'CVE-2026-57092',
-				'vendor'      => 'Microsoft',
-				'product'     => 'Windows VMSwitch',
-				'due_date'    => '',
-				'action'      => '',
-				'priority'    => 105,
-				'active_until' => '2026-08-15',
-			),
-			array(
-				'id'          => 'verified-github-bounty-restructure-july-2026',
-				'source_key'  => 'verified_context',
-				'source'      => 'GitHub Security Blog',
-				'type'        => 'official_news',
-				'title'       => 'GitHub restructures public and VIP bug bounty payouts',
-				'description' => 'GitHub says reports submitted from July 27 use a new static public payout table, while qualified VIP researchers receive higher rates and closer program access.',
-				'url'         => 'https://github.blog/security/next-chapter-restructuring-githubs-bug-bounty-program/',
-				'published'   => '2026-07-22T12:00:00Z',
-				'severity'    => '',
-				'score'       => null,
-				'cve'         => '',
-				'vendor'      => 'GitHub',
-				'product'     => 'Bug Bounty Program',
-				'due_date'    => '',
-				'action'      => '',
-				'priority'    => 61,
-				'active_until' => '2026-08-10',
-			),
-			array(
-				'id'          => 'verified-openai-hugging-face-incident-july-2026',
-				'source_key'  => 'verified_context',
-				'source'      => 'OpenAI',
-				'type'        => 'official_news',
-				'title'       => 'OpenAI and Hugging Face address a model-evaluation security incident',
-				'description' => 'OpenAI reported that evaluation models chained vulnerabilities across research and production systems to reach test solutions, prompting stronger containment, monitoring, and evaluation controls.',
-				'url'         => 'https://openai.com/index/hugging-face-model-evaluation-security-incident/',
-				'published'   => '2026-07-21T12:00:00Z',
-				'severity'    => '',
-				'score'       => null,
-				'cve'         => '',
-				'vendor'      => 'OpenAI',
-				'product'     => 'Model evaluation infrastructure',
-				'due_date'    => '',
-				'action'      => '',
-				'priority'    => 64,
-				'active_until' => '2026-08-10',
-			),
-			array(
-				'id'          => 'verified-kimi-k3-aisi-july-2026',
-				'source_key'  => 'verified_context',
-				'source'      => 'UK AI Security Institute',
-				'type'        => 'official_news',
-				'title'       => 'UK AISI and CAISI publish a preliminary Kimi K3 cyber assessment',
-				'description' => 'The joint assessment found Kimi K3 below leading frontier models and reported zero arbitrary-code-execution successes across 41 ExploitBench samples.',
-				'url'         => 'https://www.aisi.gov.uk/blog/preliminary-assessment-of-kimi-k3s-cyber-capabilities',
-				'published'   => '2026-07-24T12:00:00Z',
-				'severity'    => '',
-				'score'       => null,
-				'cve'         => '',
-				'vendor'      => 'Moonshot AI',
-				'product'     => 'Kimi K3',
-				'due_date'    => '',
-				'action'      => '',
-				'priority'    => 59,
-				'active_until' => '2026-08-15',
-			),
-		);
-
-		$today = current_time( 'Y-m-d' );
-		$items = array();
-		foreach ( $records as $record ) {
-			if ( $today > (string) $record['active_until'] ) {
-				continue;
+	private static function select_rolling_items( array $items ): array {
+		$selected = array();
+		$add_item = static function ( array $item ) use ( &$selected ): void {
+			$key = (string) ( $item['cve'] ?? '' );
+			if ( '' === $key ) {
+				$key = (string) ( $item['id'] ?? self::canonical_source_url( (string) ( $item['url'] ?? '' ) ) );
 			}
-			unset( $record['active_until'] );
-			$items[] = self::item( $record );
+			if ( '' !== $key ) {
+				$selected[ strtolower( $key ) ] = $item;
+			}
+		};
+
+		foreach ( array_slice( $items, 0, 10 ) as $item ) {
+			$add_item( $item );
 		}
 
-		return $items;
+		$pinned_sources = array(
+			'sonicwall_psirt',
+			'paloalto_psirt',
+			'cisco_psirt',
+			'wordpress_security',
+			'ubuntu',
+			'microsoft_security',
+			'github_security',
+			'openai',
+		);
+		foreach ( $pinned_sources as $source_key ) {
+			foreach ( $items as $item ) {
+				if ( $source_key === (string) ( $item['source_key'] ?? '' ) ) {
+					$add_item( $item );
+					break;
+				}
+			}
+			if ( count( $selected ) >= 16 ) {
+				break;
+			}
+		}
+
+		foreach ( $items as $item ) {
+			if ( count( $selected ) >= 16 ) {
+				break;
+			}
+			$add_item( $item );
+		}
+
+		return array_slice( array_values( $selected ), 0, 16 );
+	}
+
+	/**
+	 * Render the cross-desk rolling article without internal debug narration.
+	 *
+	 * @param string                         $date Human-readable date.
+	 * @param array<int,array<string,mixed>> $items Current source items.
+	 * @param array<string,mixed>            $data Collection metadata.
+	 */
+	private static function render_rolling_article( string $date, array $items, array $data ): string {
+		$counts  = self::summary_counts( $items );
+		$sources = self::source_pairs( $items );
+		$checked = strtotime( (string) ( $data['checked_at'] ?? '' ) );
+		$as_of   = false !== $checked ? wp_date( 'F j, Y g:i a T', $checked ) : $date;
+
+		$content  = '<p class="isnx-live-deck">A continuously updated operational brief built from current government, vulnerability-database, open-source, and vendor security advisories.</p>';
+		$content .= '<p>As of <strong>' . esc_html( $as_of ) . '</strong>, this edition tracks ' . esc_html( (string) count( $items ) ) . ' prioritized developments, including ' . esc_html( (string) $counts['kev'] ) . ' known-exploited entries, ' . esc_html( (string) $counts['critical'] ) . ' critical records, and ' . esc_html( (string) $counts['high'] ) . ' high-severity records. Treat the list as a starting point: final urgency depends on deployed versions, exposure, privilege, and available compensating controls.</p>';
+		$content .= '<!--more-->';
+		$content .= '<h2>Executive security snapshot</h2>';
+		$content .= '<p>The highest-value work is to connect each advisory to a real asset and an accountable owner. Known exploitation and direct vendor warnings move ahead of ordinary backlog scoring, while newly disclosed records still require version and reachability checks before a response team declares exposure.</p>';
+
+		$content .= '<h2>Top developments for ' . esc_html( $date ) . '</h2>';
+		foreach ( array_slice( $items, 0, 10 ) as $index => $item ) {
+			$categories = (array) ( $item['categories'] ?? array() );
+			$label      = self::category_label_for_item( $categories );
+			$insight    = self::item_insight( $item, $label, (int) $index );
+			$content   .= self::render_newsroom_item( $item, $insight );
+		}
+
+		$content .= '<h2>Coverage by security desk</h2>';
+		$desks = array(
+			'critical-cves' => 'Exploited and critical vulnerabilities',
+			'linux-administration' => 'Linux and open-source operations',
+			'windows-security' => 'Windows and Microsoft security',
+			'network-security' => 'Network, VPN, firewall, and edge security',
+			'web-security' => 'Web applications, APIs, and WordPress',
+			'devops' => 'DevOps and software supply chain',
+			'artificial-intelligence' => 'AI and agent security',
+			'cloud-security' => 'Cloud and identity controls',
+		);
+		foreach ( $desks as $slug => $heading ) {
+			$desk_items = array_values( array_filter( $items, static fn( array $item ): bool => in_array( $slug, (array) ( $item['categories'] ?? array() ), true ) ) );
+			if ( empty( $desk_items ) ) {
+				continue;
+			}
+			$content .= '<h3>' . esc_html( $heading ) . '</h3><ul>';
+			foreach ( array_slice( $desk_items, 0, 3 ) as $item ) {
+				$content .= '<li><a href="' . esc_url( (string) $item['url'] ) . '" rel="nofollow noopener" target="_blank">' . esc_html( (string) $item['title'] ) . '</a> - ' . esc_html( self::clean_text( (string) ( $item['description'] ?? '' ), 28 ) ) . '</li>';
+			}
+			$content .= '</ul>';
+		}
+
+		$content .= '<h2>Priority actions for today</h2><ol>';
+		$content .= '<li><strong>Confirm exposure:</strong> match CVEs and vendor advisories to exact products, versions, internet reachability, and business-critical roles.</li>';
+		$content .= '<li><strong>Move exploited items first:</strong> patch, isolate, or disable affected paths for confirmed known-exploited technology before routine CVSS-only work.</li>';
+		$content .= '<li><strong>Preserve evidence:</strong> review authentication, process, endpoint, network, and management-plane telemetry before rebooting or replacing an affected system.</li>';
+		$content .= '<li><strong>Validate remediation:</strong> prove that the fixed version is running, required restarts are complete, controls still report healthy, and exceptions have owners and deadlines.</li>';
+		$content .= '</ol>';
+
+		$content .= self::render_references( $sources );
+		return $content;
+	}
+
+	/**
+	 * Render a source-specific breaking article for confirmed exploitation.
+	 *
+	 * @param string              $date Human-readable date.
+	 * @param array<string,mixed> $item Breaking source item.
+	 */
+	private static function render_breaking_article( string $date, array $item ): string {
+		$subject = trim( implode( ' ', array_filter( array( (string) ( $item['vendor'] ?? '' ), (string) ( $item['product'] ?? '' ) ) ) ) );
+		$subject = '' !== $subject ? $subject : (string) ( $item['cve'] ?? 'the affected technology' );
+		$label   = self::category_label_for_item( (array) ( $item['categories'] ?? array() ) );
+		$insight = self::item_insight( $item, $label, 0 );
+		$actions = self::operational_actions( $item );
+		$checks  = self::validation_checks( $item );
+
+		$content  = '<p class="isnx-live-deck">An official source reports active exploitation. Teams running ' . esc_html( $subject ) . ' should verify exposure and begin risk-reduction work now.</p>';
+		$content .= '<p>' . esc_html( (string) ( $item['description'] ?? '' ) ) . '</p>';
+		$content .= '<!--more-->';
+		$content .= '<h2>What changed</h2>';
+		$content .= '<p>On ' . esc_html( $date ) . ', this issue entered the urgent InfoSecNexus queue because exploitation is identified by an authoritative source. The source record, affected versions, and vendor remediation remain the controlling references; asset inventory and network context determine which systems should move first.</p>';
+		$content .= '<h2>Why this matters</h2><p>' . esc_html( $insight['why'] ) . '</p>';
+		$content .= '<p>Exploit-first prioritization does not mean patching blindly. Confirm the vulnerable component is installed, identify the reachable attack path, preserve evidence of suspicious activity, and protect critical workloads while the permanent fix is deployed.</p>';
+		$content .= '<h2>Immediate response plan</h2><ol>';
+		foreach ( $actions as $action ) {
+			$content .= '<li>' . esc_html( $action ) . '</li>';
+		}
+		$content .= '</ol>';
+		if ( ! empty( $item['due_date'] ) || ! empty( $item['action'] ) ) {
+			$content .= '<h2>Official remediation direction</h2><p>';
+			if ( ! empty( $item['due_date'] ) ) {
+				$content .= '<strong>CISA due date: ' . esc_html( (string) $item['due_date'] ) . '.</strong> ';
+			}
+			$content .= esc_html( (string) ( $item['action'] ?? 'Follow the current vendor advisory and CISA guidance.' ) ) . '</p>';
+		}
+		$content .= '<h2>Detection and validation</h2><p>' . esc_html( $insight['verify'] ) . '</p><ul>';
+		foreach ( $checks as $check ) {
+			$content .= '<li>' . esc_html( $check ) . '</li>';
+		}
+		$content .= '</ul>';
+		$content .= '<h2>Accuracy note</h2><p>Severity, affected-version ranges, and remediation details can change as the vendor and vulnerability databases add evidence. Recheck the linked primary records before closing the incident or approving a long-lived exception.</p>';
+		$content .= self::render_references( self::source_pairs( array( $item ) ) );
+		return $content;
+	}
+
+	/**
+	 * Render one concise source development with corroborating metadata.
+	 *
+	 * @param array<string,mixed> $item Source item.
+	 * @param array{why:string,verify:string} $insight Item-specific analysis.
+	 */
+	private static function render_newsroom_item( array $item, array $insight ): string {
+		$published = strtotime( (string) ( $item['published'] ?? '' ) );
+		$date      = false !== $published ? wp_date( 'F j, Y g:i a T', $published ) : 'Publication time not supplied';
+		$severity  = (string) ( $item['severity'] ?? '' );
+		$score     = isset( $item['score'] ) && is_numeric( $item['score'] ) ? ' | CVSS ' . number_format_i18n( (float) $item['score'], 1 ) : '';
+		$content   = '<section class="isnx-live-item"><h3>' . esc_html( (string) $item['title'] ) . '</h3>';
+		$content  .= '<p class="isnx-live-item__meta">' . esc_html( (string) ( $item['source'] ?? '' ) . ' | ' . $date . ( '' !== $severity ? ' | ' . $severity : '' ) . $score ) . '</p>';
+		$content  .= '<p>' . esc_html( self::clean_text( (string) ( $item['description'] ?? '' ), 75 ) ) . '</p>';
+		$content  .= '<p><strong>Why it matters:</strong> ' . esc_html( $insight['why'] ) . '</p>';
+		$content  .= '<p><strong>What to verify:</strong> ' . esc_html( $insight['verify'] ) . '</p>';
+		$content  .= '<p><a href="' . esc_url( (string) $item['url'] ) . '" rel="nofollow noopener" target="_blank">Open the original source record</a></p></section>';
+		return $content;
+	}
+
+	/**
+	 * Render de-duplicated source references.
+	 *
+	 * @param array<int,string[]> $sources Source title/URL pairs.
+	 */
+	private static function render_references( array $sources ): string {
+		if ( empty( $sources ) ) {
+			return '';
+		}
+		$content = '<h2>Primary sources and references</h2><ul class="isnx-references">';
+		foreach ( $sources as $source ) {
+			$content .= '<li><a href="' . esc_url( (string) ( $source[1] ?? '' ) ) . '" rel="nofollow noopener" target="_blank">' . esc_html( (string) ( $source[0] ?? 'Source record' ) ) . '</a></li>';
+		}
+		return $content . '</ul>';
+	}
+
+	/**
+	 * Decide whether an item deserves its own stable breaking URL.
+	 */
+	private static function is_breaking_item( array $item ): bool {
+		if ( empty( $item['active_exploitation'] ) ) {
+			return false;
+		}
+		$published = strtotime( (string) ( $item['published'] ?? '' ) );
+		if ( false === $published || $published < time() - ( 48 * HOUR_IN_SECONDS ) ) {
+			return false;
+		}
+		$references = self::item_references( $item );
+		$source_key = (string) ( $item['source_key'] ?? '' );
+		return 'cisa_kev' === $source_key || count( $references ) >= 2 || in_array( $source_key, array( 'sonicwall_psirt', 'paloalto_psirt', 'cisco_psirt', 'wordpress_security' ), true );
+	}
+
+	/**
+	 * Return a stable identifier for cross-refresh breaking-story deduplication.
+	 */
+	private static function story_key( array $item ): string {
+		if ( ! empty( $item['cve'] ) ) {
+			return strtolower( (string) $item['cve'] );
+		}
+		$url = self::canonical_source_url( (string) ( $item['url'] ?? '' ) );
+		return '' !== $url ? 'advisory-' . substr( hash( 'sha256', $url ), 0, 16 ) : '';
+	}
+
+	/**
+	 * Fingerprint selected source facts, references, and exploitation state.
+	 */
+	private static function items_fingerprint( array $items ): string {
+		$facts = array_map(
+			static function ( array $item ): array {
+				return array(
+					'id' => (string) ( $item['id'] ?? '' ), 'title' => (string) ( $item['title'] ?? '' ),
+					'description' => (string) ( $item['description'] ?? '' ), 'published' => (string) ( $item['published'] ?? '' ),
+					'severity' => (string) ( $item['severity'] ?? '' ), 'score' => $item['score'] ?? null,
+					'action' => (string) ( $item['action'] ?? '' ), 'references' => self::item_references( $item ),
+					'active' => ! empty( $item['active_exploitation'] ),
+				);
+			},
+			$items
+		);
+		return hash( 'sha256', (string) wp_json_encode( $facts ) );
+	}
+
+	/**
+	 * Build item-specific response actions from the affected technology.
+	 *
+	 * @return string[]
+	 */
+	private static function operational_actions( array $item ): array {
+		$text = strtolower( implode( ' ', array( (string) ( $item['title'] ?? '' ), (string) ( $item['vendor'] ?? '' ), (string) ( $item['product'] ?? '' ) ) ) );
+		$actions = array(
+			'Identify exact product versions, owners, exposure paths, and business-critical dependencies.',
+			'Apply the latest vendor remediation or isolate the vulnerable path when immediate patching is not possible.',
+			'Review available telemetry for exploitation attempts before restarting, rebuilding, or rotating evidence away.',
+			'Validate the fixed version and control health, then record any exception with an owner and expiry date.',
+		);
+		if ( 1 === preg_match( '/\b(sonicwall|cisco|palo alto|firewall|vpn|router|gateway)\b/', $text ) ) {
+			$actions[0] = 'Inventory internet-facing and management-plane appliances, including standby nodes and unsupported firmware.';
+			$actions[2] = 'Review administrator logins, configuration exports, new accounts, VPN activity, and outbound connections; rotate credentials if compromise cannot be excluded.';
+		} elseif ( 1 === preg_match( '/\b(linux|ubuntu|kernel|gnu|sudo)\b/', $text ) ) {
+			$actions[0] = 'Map the advisory to distribution package versions and confirm the kernel or library currently loaded by each workload.';
+			$actions[3] = 'Verify reboot or service-restart state, loaded modules, application health, and monitoring after remediation.';
+		} elseif ( 1 === preg_match( '/\b(wordpress|web|api|http|php|apache|nginx)\b/', $text ) ) {
+			$actions[0] = 'Confirm the vulnerable plugin, component, route, role, and authentication state on every public application instance.';
+			$actions[2] = 'Review web, WAF, authentication, process, and outbound-request logs for exploit indicators before cleanup.';
+		} elseif ( 1 === preg_match( '/\b(windows|microsoft|sharepoint|exchange|entra)\b/', $text ) ) {
+			$actions[0] = 'Map affected Windows builds and server roles, prioritizing public, identity, management, and privileged systems.';
+			$actions[3] = 'Confirm installed build numbers, required restarts, EDR health, authentication behavior, and service availability.';
+		}
+		return $actions;
+	}
+
+	/**
+	 * Build validation checks for one affected technology.
+	 *
+	 * @return string[]
+	 */
+	private static function validation_checks( array $item ): array {
+		$subject = trim( implode( ' ', array_filter( array( (string) ( $item['vendor'] ?? '' ), (string) ( $item['product'] ?? '' ) ) ) ) );
+		$subject = '' !== $subject ? $subject : 'the affected component';
+		return array(
+			'Confirm the installed and running version of ' . $subject . ' against the current vendor advisory.',
+			'Check whether the vulnerable interface is reachable from untrusted networks or lower-privileged identities.',
+			'Look for new accounts, privilege changes, crashes, child processes, or unusual outbound traffic associated with the component.',
+			'Run a post-remediation service and security-control health check and retain evidence with the change record.',
+		);
+	}
+
+	/**
+	 * Choose the article-analysis desk best matching an item.
+	 */
+	private static function category_label_for_item( array $categories ): string {
+		$labels = array(
+			'critical-cves' => 'Critical CVE', 'linux-administration' => 'Linux Security', 'devops' => 'DevOps Security',
+			'artificial-intelligence' => 'AI Security', 'cloud-security' => 'Cloud Security', 'windows-security' => 'Windows Security',
+			'network-security' => 'Network Security', 'web-security' => 'Web Security', 'cybersecurity' => 'Cybersecurity',
+		);
+		foreach ( $labels as $slug => $label ) {
+			if ( in_array( $slug, $categories, true ) ) {
+				return $label;
+			}
+		}
+		return 'Cybersecurity';
+	}
+
+	/**
+	 * Return the highest briefing severity.
+	 */
+	private static function brief_severity( array $items ): string {
+		$severity = '';
+		foreach ( $items as $item ) {
+			$severity = self::higher_severity( $severity, (string) ( $item['severity'] ?? '' ) );
+		}
+		return $severity;
+	}
+
+	/**
+	 * Return the highest available CVSS score.
+	 */
+	private static function brief_score( array $items ): ?float {
+		$scores = array_values( array_filter( array_map( static fn( array $item ) => isset( $item['score'] ) && is_numeric( $item['score'] ) ? (float) $item['score'] : null, $items ), static fn( $score ): bool => null !== $score ) );
+		return empty( $scores ) ? null : max( $scores );
 	}
 
 	/**
@@ -477,6 +756,7 @@ final class Live_Intelligence {
 					'due_date'    => (string) ( $row['dueDate'] ?? '' ),
 					'action'      => (string) ( $row['requiredAction'] ?? '' ),
 					'priority'    => 120,
+					'active_exploitation' => true,
 				)
 			);
 		}
@@ -652,9 +932,19 @@ final class Live_Intelligence {
 		require_once ABSPATH . WPINC . '/feed.php';
 
 		$cache_filter = static fn(): int => self::CACHE_TTL;
+		$timeout_filter = static function ( $feed ): void {
+			if ( is_object( $feed ) && method_exists( $feed, 'set_timeout' ) ) {
+				$feed->set_timeout( 20 );
+			}
+		};
 		add_filter( 'wp_feed_cache_transient_lifetime', $cache_filter );
+		add_action( 'wp_feed_options', $timeout_filter );
 		$feed = fetch_feed( $url );
+		remove_action( 'wp_feed_options', $timeout_filter );
 		remove_filter( 'wp_feed_cache_transient_lifetime', $cache_filter );
+		if ( is_wp_error( $feed ) && 'cisa_advisory' === $source_key ) {
+			$feed = self::fetch_cisa_feed_fallback( $url );
+		}
 
 		if ( is_wp_error( $feed ) ) {
 			return $feed;
@@ -685,24 +975,33 @@ final class Live_Intelligence {
 				$cve = strtoupper( $matches[0] );
 			}
 
+			$score = null;
+			if ( preg_match( '/\bCVSS(?:\s*v?\d(?:\.\d)?)?(?:\s*(?:base\s*)?score)?\s*[:=-]?\s*(10(?:\.0)?|[0-9](?:\.\d))\b/i', $search_text, $score_match ) ) {
+				$score = (float) $score_match[1];
+			}
+			$severity = self::severity_from_text( $search_text, $score );
+			$active   = self::has_confirmed_exploitation_language( $search_text );
+			$direct_vendor = in_array( $source_key, array( 'sonicwall_psirt', 'paloalto_psirt', 'cisco_psirt', 'wordpress_security', 'ubuntu' ), true );
+
 			$items[] = self::item(
 				array(
 					'id'          => $source_key . '-' . md5( $link ),
 					'source_key'  => $source_key,
 					'source'      => $source,
-					'type'        => 'official_news',
+					'type'        => $direct_vendor ? 'vendor_advisory' : 'official_news',
 					'title'       => $title,
 					'description' => $description,
 					'url'         => $link,
 					'published'   => $published > 0 ? gmdate( 'c', $published ) : '',
-					'severity'    => '',
-					'score'       => null,
+					'severity'    => $active ? 'Known Exploited' : $severity,
+					'score'       => $score,
 					'cve'         => $cve,
 					'vendor'      => $source,
 					'product'     => '',
 					'due_date'    => '',
 					'action'      => '',
-					'priority'    => 55,
+					'priority'    => $active ? 118 : ( $direct_vendor ? 82 : 55 ),
+					'active_exploitation' => $active,
 				)
 			);
 
@@ -712,6 +1011,64 @@ final class Live_Intelligence {
 		}
 
 		return $items;
+	}
+
+	/**
+	 * Parse CISA's official RSS response when its edge rejects WordPress' HTTP transport.
+	 *
+	 * @return \SimplePie\SimplePie|\WP_Error
+	 */
+	private static function fetch_cisa_feed_fallback( string $url ) {
+		$host = strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) );
+		if ( 'www.cisa.gov' !== $host ) {
+			return new \WP_Error( 'invalid_cisa_feed', 'The CISA feed fallback only accepts www.cisa.gov.' );
+		}
+
+		$context = stream_context_create(
+			array(
+				'http' => array(
+					'timeout'    => 20,
+					'user_agent' => 'WordPress/' . get_bloginfo( 'version' ) . '; ' . home_url( '/' ),
+					'header'     => "Accept: application/rss+xml, application/xml;q=0.9, */*;q=0.8\r\n",
+				),
+				'ssl' => array(
+					'verify_peer'      => true,
+					'verify_peer_name' => true,
+				),
+			)
+		);
+
+		// The fixed, allowlisted CISA URL is parsed locally and never written to disk.
+		$maximum_bytes = 5 * MB_IN_BYTES;
+		$body          = @file_get_contents( $url, false, $context, 0, $maximum_bytes + 1 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+		if ( false === $body || '' === $body ) {
+			return new \WP_Error( 'cisa_feed_unavailable', 'CISA returned no readable RSS content.' );
+		}
+		if ( strlen( $body ) > $maximum_bytes ) {
+			return new \WP_Error( 'cisa_feed_too_large', 'CISA returned an unexpectedly large RSS response.' );
+		}
+
+		require_once ABSPATH . WPINC . '/class-simplepie.php';
+		$feed = new \SimplePie\SimplePie();
+		$feed->set_raw_data( $body );
+		$feed->enable_cache( false );
+		if ( ! $feed->init() ) {
+			return new \WP_Error( 'cisa_feed_parse_error', (string) ( $feed->error() ?: 'CISA RSS parsing failed.' ) );
+		}
+
+		return $feed;
+	}
+
+	/**
+	 * Detect explicit exploitation language while respecting common negations.
+	 */
+	private static function has_confirmed_exploitation_language( string $text ): bool {
+		$negative = '/\b(?:not|isn\'t|is\s+not|are\s+not|was\s+not|were\s+not|has\s+not|have\s+not|no\s+(?:known\s+)?(?:evidence|indication|reports?)\s+of|not\s+aware\s+of)\b.{0,80}\b(?:active(?:ly)?\s+exploit(?:ed|ation)?|exploited\s+in\s+the\s+wild|known\s+exploited|weaponized)\b/i';
+		if ( 1 === preg_match( $negative, $text ) ) {
+			return false;
+		}
+
+		return 1 === preg_match( '/\b(?:active(?:ly)?\s+exploited|active\s+exploitation|exploitation\s+(?:has\s+been\s+)?observed|exploited\s+in\s+the\s+wild|known\s+exploited|under\s+active\s+attack|weaponized)\b/i', $text );
 	}
 
 	/**
@@ -764,11 +1121,15 @@ final class Live_Intelligence {
 				continue;
 			}
 
-			$key = ! empty( $item['cve'] ) ? strtolower( (string) $item['cve'] ) : strtolower( (string) $item['url'] );
-			if ( isset( $unique[ $key ] ) ) {
-				continue;
+			$key = ! empty( $item['cve'] ) ? strtolower( (string) $item['cve'] ) : self::canonical_source_url( (string) $item['url'] );
+			if ( '' === $key ) {
+				$key = strtolower( (string) ( $item['id'] ?? $item['title'] ) );
 			}
 
+			$item['references'] = self::item_references( $item );
+			if ( isset( $unique[ $key ] ) ) {
+				$item = self::merge_items( $unique[ $key ], $item );
+			}
 			$item['categories'] = self::item_categories( $item );
 			$unique[ $key ]     = $item;
 		}
@@ -777,7 +1138,7 @@ final class Live_Intelligence {
 		usort(
 			$items,
 			static function ( array $left, array $right ): int {
-				$priority = (int) ( $right['priority'] ?? 0 ) <=> (int) ( $left['priority'] ?? 0 );
+				$priority = self::effective_priority( $right ) <=> self::effective_priority( $left );
 				if ( 0 !== $priority ) {
 					return $priority;
 				}
@@ -801,7 +1162,151 @@ final class Live_Intelligence {
 		$item['vendor']      = sanitize_text_field( (string) ( $item['vendor'] ?? '' ) );
 		$item['product']     = sanitize_text_field( (string) ( $item['product'] ?? '' ) );
 		$item['url']         = esc_url_raw( (string) ( $item['url'] ?? '' ) );
+		$item['active_exploitation'] = ! empty( $item['active_exploitation'] ) || 'kev' === (string) ( $item['type'] ?? '' );
+		$item['references']  = self::item_references( $item );
 		return $item;
+	}
+
+	/**
+	 * Merge matching CVE/advisory records instead of dropping corroboration.
+	 *
+	 * @param array<string,mixed> $left Existing item.
+	 * @param array<string,mixed> $right Additional source item.
+	 * @return array<string,mixed>
+	 */
+	private static function merge_items( array $left, array $right ): array {
+		$primary   = self::item_quality( $right ) > self::item_quality( $left ) ? $right : $left;
+		$secondary = $primary === $right ? $left : $right;
+		$primary['references'] = array_values(
+			array_reduce(
+				array_merge( self::item_references( $left ), self::item_references( $right ) ),
+				static function ( array $carry, array $reference ): array {
+					$url = (string) ( $reference['url'] ?? '' );
+					if ( '' !== $url ) {
+						$carry[ $url ] = $reference;
+					}
+					return $carry;
+				},
+				array()
+			)
+		);
+
+		if ( strlen( (string) ( $secondary['description'] ?? '' ) ) > strlen( (string) ( $primary['description'] ?? '' ) ) ) {
+			$primary['description'] = $secondary['description'];
+		}
+		foreach ( array( 'cve', 'vendor', 'product', 'due_date', 'action' ) as $field ) {
+			if ( empty( $primary[ $field ] ) && ! empty( $secondary[ $field ] ) ) {
+				$primary[ $field ] = $secondary[ $field ];
+			}
+		}
+		$cve = (string) ( $primary['cve'] ?? $secondary['cve'] ?? '' );
+		if (
+			'' !== $cve
+			&& false === stripos( (string) ( $primary['title'] ?? '' ), $cve )
+			&& false !== stripos( (string) ( $secondary['title'] ?? '' ), $cve )
+		) {
+			$primary['title'] = $secondary['title'];
+		}
+
+		$left_score  = isset( $left['score'] ) && is_numeric( $left['score'] ) ? (float) $left['score'] : null;
+		$right_score = isset( $right['score'] ) && is_numeric( $right['score'] ) ? (float) $right['score'] : null;
+		if ( null !== $left_score || null !== $right_score ) {
+			$primary['score'] = max( (float) ( $left_score ?? 0 ), (float) ( $right_score ?? 0 ) );
+		}
+		$primary['severity'] = self::higher_severity( (string) ( $left['severity'] ?? '' ), (string) ( $right['severity'] ?? '' ) );
+		$primary['active_exploitation'] = ! empty( $left['active_exploitation'] ) || ! empty( $right['active_exploitation'] ) || 'kev' === (string) ( $left['type'] ?? '' ) || 'kev' === (string) ( $right['type'] ?? '' );
+		$primary['type'] = $primary['active_exploitation'] ? 'kev' : (string) ( $primary['type'] ?? 'advisory' );
+		$primary['priority'] = max( (int) ( $left['priority'] ?? 0 ), (int) ( $right['priority'] ?? 0 ) ) + min( 8, count( $primary['references'] ) * 2 );
+
+		$left_time  = strtotime( (string) ( $left['published'] ?? '' ) );
+		$right_time = strtotime( (string) ( $right['published'] ?? '' ) );
+		if ( false !== $right_time && ( false === $left_time || $right_time > $left_time ) ) {
+			$primary['published'] = $right['published'];
+		}
+
+		return $primary;
+	}
+
+	/**
+	 * Build the normalized reference list stored on each item.
+	 *
+	 * @param array<string,mixed> $item Source item.
+	 * @return array<int,array{source:string,title:string,url:string}>
+	 */
+	private static function item_references( array $item ): array {
+		$references = is_array( $item['references'] ?? null ) ? $item['references'] : array();
+		$url        = esc_url_raw( (string) ( $item['url'] ?? '' ) );
+		if ( '' !== $url ) {
+			$references[] = array(
+				'source' => sanitize_text_field( (string) ( $item['source'] ?? '' ) ),
+				'title'  => self::clean_text( (string) ( $item['title'] ?? '' ), 30 ),
+				'url'    => $url,
+			);
+		}
+		return array_values( array_filter( $references, static fn( array $reference ): bool => ! empty( $reference['url'] ) ) );
+	}
+
+	/**
+	 * Prefer primary-vendor and exploitation records when merging fields.
+	 */
+	private static function item_quality( array $item ): int {
+		$quality = (int) ( $item['priority'] ?? 0 );
+		$quality += ! empty( $item['active_exploitation'] ) ? 40 : 0;
+		$quality += 'vendor_advisory' === (string) ( $item['type'] ?? '' ) ? 20 : 0;
+		$quality += min( 20, (int) floor( strlen( (string) ( $item['description'] ?? '' ) ) / 80 ) );
+		return $quality;
+	}
+
+	/**
+	 * Add freshness and corroboration to the base source priority.
+	 */
+	private static function effective_priority( array $item ): int {
+		$priority = (int) ( $item['priority'] ?? 0 );
+		$published = strtotime( (string) ( $item['published'] ?? '' ) );
+		if ( false !== $published ) {
+			$age_hours = max( 0, ( time() - $published ) / HOUR_IN_SECONDS );
+			$priority += max( 0, 36 - (int) floor( $age_hours / 3 ) );
+		}
+		$priority += min( 12, count( self::item_references( $item ) ) * 3 );
+		return $priority;
+	}
+
+	/**
+	 * Normalize a source URL for duplicate detection.
+	 */
+	private static function canonical_source_url( string $url ): string {
+		$parts = wp_parse_url( $url );
+		if ( ! is_array( $parts ) || empty( $parts['host'] ) ) {
+			return strtolower( untrailingslashit( $url ) );
+		}
+		$path = (string) ( $parts['path'] ?? '/' );
+		return strtolower( (string) $parts['host'] . untrailingslashit( $path ) );
+	}
+
+	/**
+	 * Return the more urgent of two severity labels.
+	 */
+	private static function higher_severity( string $left, string $right ): string {
+		$ranks = array( '' => 0, 'LOW' => 1, 'MEDIUM' => 2, 'MODERATE' => 2, 'HIGH' => 3, 'CRITICAL' => 4, 'KNOWN EXPLOITED' => 5 );
+		$left_key  = strtoupper( trim( $left ) );
+		$right_key = strtoupper( trim( $right ) );
+		return ( $ranks[ $right_key ] ?? 0 ) > ( $ranks[ $left_key ] ?? 0 ) ? $right : $left;
+	}
+
+	/**
+	 * Infer a normalized severity from explicit language or a CVSS score.
+	 */
+	private static function severity_from_text( string $text, ?float $score ): string {
+		if ( 1 === preg_match( '/\bcritical\b/i', $text ) || ( null !== $score && $score >= 9.0 ) ) {
+			return 'CRITICAL';
+		}
+		if ( 1 === preg_match( '/\bhigh(?: severity)?\b/i', $text ) || ( null !== $score && $score >= 7.0 ) ) {
+			return 'HIGH';
+		}
+		if ( 1 === preg_match( '/\bmedium|moderate\b/i', $text ) || ( null !== $score && $score >= 4.0 ) ) {
+			return 'MEDIUM';
+		}
+		return '';
 	}
 
 	/**
@@ -1744,12 +2249,15 @@ final class Live_Intelligence {
 	private static function source_pairs( array $items ): array {
 		$sources = array();
 		foreach ( $items as $item ) {
-			$url   = (string) ( $item['url'] ?? '' );
-			$title = (string) ( $item['source'] ?? '' );
-			if ( '' === $url || '' === $title ) {
-				continue;
+			foreach ( self::item_references( $item ) as $reference ) {
+				$url   = (string) ( $reference['url'] ?? '' );
+				$title = (string) ( $reference['source'] ?? '' );
+				$entry = (string) ( $reference['title'] ?? '' );
+				if ( '' === $url || '' === $title ) {
+					continue;
+				}
+				$sources[ $url ] = array( $title . ( '' !== $entry ? ': ' . $entry : '' ), $url );
 			}
-			$sources[ $url ] = array( $title . ': ' . (string) ( $item['title'] ?? '' ), $url );
 		}
 		return array_values( $sources );
 	}

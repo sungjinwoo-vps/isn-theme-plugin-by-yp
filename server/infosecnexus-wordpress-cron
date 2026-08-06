@@ -1,0 +1,1 @@
+*/5 * * * * infosecnexus /usr/bin/flock -n /tmp/infosecnexus-wp-cron.lock /usr/bin/wp --path=/home/infosecnexus/htdocs/infosecnexus.com cron event run --due-now --quiet --skip-plugins=elementor >/dev/null 2>&1
