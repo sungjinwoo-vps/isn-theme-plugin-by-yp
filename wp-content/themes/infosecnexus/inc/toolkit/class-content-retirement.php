@@ -74,7 +74,7 @@ final class Content_Retirement {
 	 * @param \WP_Query $query Public query.
 	 */
 	public static function exclude_retired_from_public_queries( \WP_Query $query ): void {
-		if ( is_admin() || $query->is_singular() || 'post' !== self::query_post_type( $query ) ) {
+		if ( ( defined( 'WP_CLI' ) && WP_CLI ) || is_admin() || $query->is_singular() || 'post' !== self::query_post_type( $query ) ) {
 			return;
 		}
 

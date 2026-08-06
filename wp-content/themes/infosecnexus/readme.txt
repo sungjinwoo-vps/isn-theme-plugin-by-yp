@@ -3,7 +3,7 @@ Contributors: infosecnexus
 Requires at least: 6.5
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.1.37
+Stable tag: 0.1.38
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,6 +25,9 @@ InfoSecNexus WordPress Theme, Copyright 2026 InfoSecNexus.
 InfoSecNexus is distributed under the terms of the GNU GPL.
 
 == Changelog ==
+
+= 0.1.38 =
+Keeps staged legacy posts visible to administrative WP-CLI inventory and guarded finalization commands while continuing to exclude them from public archives, search, and sitemaps.
 
 = 0.1.37 =
 Replaces repetitive category batches with one continuously updated daily cybersecurity brief and conservative confirmed-exploitation alerts. Adds independent official-source caches, SonicWall and other direct vendor advisories, cross-source deduplication, source-health monitoring, server-cron support, topic-aware real WebP photography, a two-day news sitemap, and a reversible noindex-first retirement workflow for legacy generated URLs.
