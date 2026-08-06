@@ -314,9 +314,10 @@ final class Post_Artwork {
 	 * @return array<string,string>
 	 */
 	private static function select_photo( \WP_Post $post ): array {
-		$pools      = self::photo_library();
-		$categories = wp_get_post_categories( $post->ID, array( 'fields' => 'slugs' ) );
-		$category   = '';
+		$pools         = self::photo_library();
+		$categories    = wp_get_post_categories( $post->ID, array( 'fields' => 'slugs' ) );
+		$category      = '';
+		$newsroom_kind = sanitize_key( (string) get_post_meta( $post->ID, '_infosecnexus_newsroom_kind', true ) );
 		if ( is_array( $categories ) ) {
 			foreach ( $categories as $category_slug ) {
 				if ( isset( $pools[ $category_slug ] ) ) {
@@ -337,13 +338,15 @@ final class Post_Artwork {
 			'artificial-intelligence' => array( ' ai ', 'agent', 'model', 'prompt', 'langflow', 'openai', 'hugging face' ),
 			'network-security'        => array( 'network', 'router', 'firewall', 'vpn', 'edge device', 'dns', 'fortinet', 'cisco', 'check point', 'd-link' ),
 			'cloud-security'          => array( 'cloud', 'azure', 'aws', 'kubernetes', 'cluster', 'managed service' ),
-			'devops'                  => array( 'devops', 'pipeline', 'github', 'docker', 'container', 'runner' ),
+			'devops'                  => array( 'devops', 'pipeline', 'github', 'docker', 'container', 'runner', 'teamcity', 'jetbrains', 'jenkins', 'continuous integration', 'build server', 'ci/cd' ),
 			'web-security'            => array( 'web', 'wordpress', 'api', 'application', 'browser', 'apache', 'nginx', 'php' ),
 			'critical-cves'           => array( 'cve-', 'vulnerability', 'exploit', 'zero-day' ),
 			'tutorials'               => array( 'tutorial', 'guide', 'checklist', 'runbook', 'how to' ),
 		);
 
-		if ( '' === $category ) {
+		if ( 'rolling' === $newsroom_kind ) {
+			$category = 'cybersecurity';
+		} elseif ( 'breaking' === $newsroom_kind || '' === $category || 'cybersecurity' === $category ) {
 			$padded_context = ' ' . $context . ' ';
 			foreach ( $keyword_pools as $pool => $keywords ) {
 				foreach ( $keywords as $keyword ) {
@@ -442,6 +445,9 @@ final class Post_Artwork {
 				'linux log review'           => 'Qpj1LAgh4bY',
 			),
 			'devops' => array(
+				'teamcity'              => 'oYzjGQ7LCVE',
+				'jetbrains'             => 'oYzjGQ7LCVE',
+				'build server'          => 'oYzjGQ7LCVE',
 				'ci/cd secrets'          => 'EHn4lNPnsbA',
 				'container image scanning' => 'zUrEj_OwLQM',
 				'infrastructure as code' => '2ruZpB0SkbU',
