@@ -94,31 +94,31 @@ if ( ! empty( $rolling_posts ) && $rolling_posts[0] instanceof \WP_Post ) {
 
 $latest_cards = array(
 	array(
-		'title'    => __( 'Security Operations Metrics That Actually Reduce Risk', 'infosecnexus' ),
-		'excerpt'  => __( 'Track owner, exposure, age, and verification so security work becomes measurable.', 'infosecnexus' ),
+		'title'    => __( 'Cybersecurity Operations and Threat Intelligence', 'infosecnexus' ),
+		'excerpt'  => __( 'Follow confirmed threats, active exploitation, defensive guidance, and response priorities.', 'infosecnexus' ),
 		'category' => __( 'Cyber Security', 'infosecnexus' ),
 		'image'    => 'hero-shield.png',
-		'url'      => $post_url( 'security-operations-metrics-that-reduce-risk', $cyber_url ),
-		'date'     => __( 'July 21, 2026', 'infosecnexus' ),
-		'read'     => __( '2 min read', 'infosecnexus' ),
+		'url'      => $cyber_url,
+		'date'     => __( 'Live desk', 'infosecnexus' ),
+		'read'     => __( 'Updated daily', 'infosecnexus' ),
 	),
 	array(
-		'title'    => __( 'Cloud Storage Exposure Checklist', 'infosecnexus' ),
-		'excerpt'  => __( 'Public access, encryption, logging, retention, and ownership checks for cloud teams.', 'infosecnexus' ),
+		'title'    => __( 'Cloud, Network, and Infrastructure Security', 'infosecnexus' ),
+		'excerpt'  => __( 'Review vendor advisories, exposed services, platform changes, and practical hardening steps.', 'infosecnexus' ),
 		'category' => __( 'Cloud Security', 'infosecnexus' ),
 		'image'    => 'cloud-security.png',
-		'url'      => $post_url( 'cloud-storage-exposure-checklist', $cloud_url ),
-		'date'     => __( 'July 21, 2026', 'infosecnexus' ),
-		'read'     => __( '2 min read', 'infosecnexus' ),
+		'url'      => $cloud_url,
+		'date'     => __( 'Live desk', 'infosecnexus' ),
+		'read'     => __( 'Updated daily', 'infosecnexus' ),
 	),
 	array(
-		'title'    => __( 'AI Data Leakage Controls for Internal Tools', 'infosecnexus' ),
-		'excerpt'  => __( 'Reduce prompt, file, connector, retrieval, and logging exposure in AI workflows.', 'infosecnexus' ),
+		'title'    => __( 'AI, Application, and Software Supply Chain Risk', 'infosecnexus' ),
+		'excerpt'  => __( 'Track model, agent, application, dependency, and build-pipeline security developments.', 'infosecnexus' ),
 		'category' => __( 'AI Security', 'infosecnexus' ),
 		'image'    => 'data-center.png',
-		'url'      => $post_url( 'ai-data-leakage-controls-internal-tools', $ai_url ),
-		'date'     => __( 'July 21, 2026', 'infosecnexus' ),
-		'read'     => __( '2 min read', 'infosecnexus' ),
+		'url'      => $ai_url,
+		'date'     => __( 'Live desk', 'infosecnexus' ),
+		'read'     => __( 'Updated daily', 'infosecnexus' ),
 	),
 );
 
@@ -148,19 +148,6 @@ $cves = array(
 	array( 'id' => 'Patch Ops', 'name' => __( 'Owner, deadline, and verification tracking', 'infosecnexus' ), 'severity' => 'Medium', 'score' => '6.9' ),
 	array( 'id' => 'Exceptions', 'name' => __( 'Temporary mitigation review cadence', 'infosecnexus' ), 'severity' => 'Low', 'score' => '4.2' ),
 );
-
-$latest_posts = get_posts(
-	array(
-		'post_type'           => 'post',
-		'post_status'         => 'publish',
-		'posts_per_page'      => 3,
-		'ignore_sticky_posts' => true,
-	)
-);
-
-if ( ! empty( $latest_posts ) ) {
-	$latest_cards = array_map( $post_card_data, $latest_posts );
-}
 
 $critical_posts = get_posts(
 	array(
@@ -216,6 +203,30 @@ $secondary_breaking_posts = get_posts(
 if ( count( $secondary_breaking_posts ) > 1 ) {
 	$secondary_severity = $normalize_severity( sanitize_text_field( (string) get_post_meta( $secondary_breaking_posts[1]->ID, '_infosecnexus_live_severity', true ) ) );
 	$side_stories[1]    = $post_card_data( $secondary_breaking_posts[1], $secondary_severity, 'linux-circuit.png' );
+}
+
+$featured_post_ids = array_values(
+	array_unique(
+		array_filter(
+			array_merge(
+				array( $hero_post_id ),
+				array_map( static fn( \WP_Post $post ): int => (int) $post->ID, $secondary_breaking_posts )
+			)
+		)
+	)
+);
+$latest_posts      = get_posts(
+	array(
+		'post_type'           => 'post',
+		'post_status'         => 'publish',
+		'posts_per_page'      => 3,
+		'post__not_in'        => $featured_post_ids,
+		'ignore_sticky_posts' => true,
+	)
+);
+
+if ( ! empty( $latest_posts ) ) {
+	$latest_cards = array_slice( array_merge( array_map( $post_card_data, $latest_posts ), $latest_cards ), 0, 3 );
 }
 ?>
 <main id="primary" class="site-main">

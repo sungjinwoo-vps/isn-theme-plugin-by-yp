@@ -11,15 +11,26 @@ test('home page renders header, content, and footer', async ({ page }) => {
   await expect(page.locator('.site-footer')).toBeVisible();
 });
 
-test('homepage post cards use distinct generated artwork', async ({ page, request }) => {
+test('different homepage posts use distinct generated artwork', async ({ page, request }) => {
   await page.goto(baseURL, { waitUntil: 'networkidle' });
 
   const artwork = page.locator('img[src*="/infosecnexus-artwork/"]');
   const count = await artwork.count();
-  expect(count).toBeGreaterThanOrEqual(3);
+  expect(count).toBeGreaterThanOrEqual(2);
 
-  const sources = await artwork.evaluateAll((images) => images.map((image) => image.currentSrc || image.src));
-  expect(new Set(sources).size).toBe(count);
+  const placements = await artwork.evaluateAll((images) => images.map((image) => ({
+    article: image.closest('a')?.href || image.alt,
+    source: image.currentSrc || image.src
+  })));
+  const sourcesByArticle = new Map();
+  placements.forEach(({ article, source }) => {
+    if (!sourcesByArticle.has(article)) {
+      sourcesByArticle.set(article, source);
+    }
+  });
+  const sources = [...sourcesByArticle.values()];
+  expect(sources.length).toBeGreaterThanOrEqual(2);
+  expect(new Set(sources).size).toBe(sources.length);
 
   const pixelHashes = await Promise.all(
     sources.map(async (source) => {
@@ -28,7 +39,7 @@ test('homepage post cards use distinct generated artwork', async ({ page, reques
       return createHash('sha256').update(await response.body()).digest('hex');
     })
   );
-  expect(new Set(pixelHashes).size).toBe(count);
+  expect(new Set(pixelHashes).size).toBe(sources.length);
 });
 
 test('header controls are keyboard reachable', async ({ page }, testInfo) => {

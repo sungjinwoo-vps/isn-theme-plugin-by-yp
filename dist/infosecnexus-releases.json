@@ -1,7 +1,7 @@
 {
     "plugin":  {
                    "slug":  "infosecnexus-toolkit",
-                   "version":  "0.1.39",
+                   "version":  "0.1.40",
                    "plugin":  "infosecnexus-toolkit/infosecnexus-toolkit.php",
                    "requires_php":  "8.1",
                    "package":  "https://raw.githubusercontent.com/sungjinwoo-vps/isn-theme-plugin-by-yp/stable/dist/infosecnexus-toolkit.zip",
@@ -9,23 +9,23 @@
                    "homepage":  "https://infosecnexus.com/",
                    "last_updated":  "2026-08-06",
                    "sections":  {
-                                    "changelog":  "Keeps the optional legacy bridge aligned with the theme product-aware breaking-news artwork release.",
+                                    "changelog":  "Keeps the optional legacy bridge aligned with the theme non-repeating homepage newsroom release.",
                                     "description":  "Legacy bridge for older InfoSecNexus installs. Current toolkit features are bundled into the InfoSecNexus theme."
                                 },
                    "requires":  "6.5"
                },
-    "generatedAt":  "2026-08-06T17:48:39Z",
+    "generatedAt":  "2026-08-06T18:02:47Z",
     "manifestVersion":  1,
     "theme":  {
                   "slug":  "infosecnexus",
-                  "version":  "0.1.39",
+                  "version":  "0.1.40",
                   "requires_php":  "8.1",
                   "package":  "https://raw.githubusercontent.com/sungjinwoo-vps/isn-theme-plugin-by-yp/stable/dist/infosecnexus-theme.zip",
                   "tested":  "7.0",
                   "homepage":  "https://infosecnexus.com/",
                   "last_updated":  "2026-08-06",
                   "sections":  {
-                                   "changelog":  "Matches breaking-news artwork from vendor and product context before generic categories, including TeamCity, JetBrains, CI/CD, and build-server coverage.",
+                                   "changelog":  "Prevents featured rolling and breaking posts from repeating in the Latest Intelligence grid and uses honest live coverage-desk fallbacks during short publication history.",
                                    "description":  "Cybersecurity newsroom theme for InfoSecNexus."
                                },
                   "requires":  "6.5"

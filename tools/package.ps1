@@ -104,7 +104,7 @@ $releaseManifest = @{
         last_updated = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd")
         sections = @{
             description = "Cybersecurity newsroom theme for InfoSecNexus."
-            changelog = "Matches breaking-news artwork from vendor and product context before generic categories, including TeamCity, JetBrains, CI/CD, and build-server coverage."
+            changelog = "Prevents featured rolling and breaking posts from repeating in the Latest Intelligence grid and uses honest live coverage-desk fallbacks during short publication history."
         }
     }
     plugin = @{
@@ -119,7 +119,7 @@ $releaseManifest = @{
         last_updated = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd")
         sections = @{
             description = "Legacy bridge for older InfoSecNexus installs. Current toolkit features are bundled into the InfoSecNexus theme."
-            changelog = "Keeps the optional legacy bridge aligned with the theme product-aware breaking-news artwork release."
+            changelog = "Keeps the optional legacy bridge aligned with the theme non-repeating homepage newsroom release."
         }
     }
 }
