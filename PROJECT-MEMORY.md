@@ -716,6 +716,12 @@ Both use distinct real WebP editorial images and appear in the two-day
 does not contain staged legacy posts. Nginx was adjusted so `.xml` requests
 reach WordPress instead of the static-file 404 handler.
 
+The first unattended day rollover was verified immediately afterward: server
+cron published post ID `1094`, `/2026-08-07-live-cybersecurity-brief/`, at
+2026-08-07 00:00:19 in the WordPress site timezone. The news sitemap then
+contained exactly the new rolling brief, the previous rolling brief, and the
+confirmed breaking post, with no staged legacy URLs.
+
 Legacy-content retirement is intentionally reversible:
 
 - Exactly 159 generated legacy post URLs were inventoried and staged. The
