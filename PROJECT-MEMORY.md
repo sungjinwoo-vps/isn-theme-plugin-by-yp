@@ -598,7 +598,11 @@ project backups.
 
 ## 16. Known Constraints And Future Options
 
-- Exact daily publishing time requires server cron; WP-Cron is traffic-driven.
+- Production news scheduling now uses `/etc/cron.d/infosecnexus-wordpress`
+  every five minutes to run due WordPress events under the site owner. The
+  newsroom event recurs every 15 minutes; critical sources use a 15-minute
+  cache and general sources use a 30-minute cache. `DISABLE_WP_CRON` is enabled
+  so visitor traffic does not control publication timing.
 - A cloud WAF/DDoS layer must be configured through Cloudflare, Sucuri, or an
   equivalent edge provider. Nginx hardening alone does not satisfy Sucuri's
   `Website Firewall Not Detected` check.
@@ -653,6 +657,10 @@ through the current checkpoint:
 28. `3909ef7` - Migrated public and outbound mail to the primary Zoho mailbox.
 29. `0d2e790` - Blocked automated contact spam before storage or email delivery.
 30. `2b5ee35` - Added the hardened production Nginx configuration for CloudPanel.
+31. `1ff4e3b` - Shipped the rolling newsroom and reversible legacy-content retirement workflow.
+32. `1189217` - Kept staged posts visible to the guarded retirement CLI.
+33. `8bae5e5` - Matched breaking-news artwork to the affected product context.
+34. `2019b21` - Prevented the rolling and featured breaking stories from repeating in the homepage grid.
 
 The CloudPanel v2 deployment files are:
 
@@ -675,7 +683,69 @@ centered footer brand, legal pages, search modal, dark mode, smooth scrolling,
 reading progress, delayed back-to-top button, category templates, SEO content,
 responsive post layout, and theme settings that survive updates.
 
-## 18. Definition Of Done
+## 18. Rolling Newsroom And Content Retirement (2026-08-06)
+
+The `stable` branch and production site are on InfoSecNexus `0.1.40`. GitHub
+release `auto-v0.1.40` publishes the native WordPress update manifest and ZIP
+assets. The live update manifest was verified to advertise theme and optional
+legacy bridge version `0.1.40`.
+
+The old category-per-day generator was replaced with a source-driven newsroom:
+
+- One canonical rolling cybersecurity brief is created per site day and updated
+  in place throughout that day. It is frozen when the date changes.
+- At most two separate breaking posts are allowed per day, and only for
+  officially confirmed active exploitation.
+- Items are merged by CVE/advisory identity and canonical URL before writing.
+- Direct sources include CISA KEV and advisories, NIST NVD, SonicWall PSIRT,
+  Palo Alto, Cisco, WordPress, GitHub Advisory Database, Ubuntu, Microsoft,
+  GitHub Security, and OpenAI.
+- Source failures retain a last-good copy, record health, and can alert after
+  repeated failures. Cache purge runs after publication so anonymous visitors
+  receive the same posts as administrators.
+- Production status checked on 2026-08-06 at 18:00:39 UTC contained 120
+  normalized items. All 12 configured source checks were healthy and fresh;
+  SonicWall PSIRT supplied one current item.
+
+The first live rolling post is ID `1089` at
+`/2026-08-06-live-cybersecurity-brief/`. The first confirmed breaking post is
+ID `1091` at
+`/cve-2026-63077-cve-2026-63077-jetbrains-teamcity-deserialization-of-untrusted-data/`.
+Both use distinct real WebP editorial images and appear in the two-day
+`/news-sitemap.xml`. The core post sitemap contains current newsroom posts and
+does not contain staged legacy posts. Nginx was adjusted so `.xml` requests
+reach WordPress instead of the static-file 404 handler.
+
+Legacy-content retirement is intentionally reversible:
+
+- Exactly 159 generated legacy post URLs were inventoried and staged. The
+  durable inventory is `docs/retirement-inventory-2026-08-06.csv` with SHA-256
+  `fcb10681886e54e1830531d7b27110b9d0f3c88a37f958cfdadff2ef432b76b7`.
+- A staged URL remains an exact `200` response with both HTML robots metadata
+  and `X-Robots-Tag: noindex, follow, noarchive`. It is hidden from homepage,
+  archives, category pages, internal search, and XML sitemaps.
+- Do not hard-delete these posts while Google still indexes their URLs. Search
+  Console temporary Removals may be requested manually for speed; its public
+  API does not expose that operation. Keep the crawlable `noindex` response
+  until deindexing is confirmed.
+- After confirmation, use the guarded content-retirement finalization command
+  with its explicit `--confirm=DELETE` flag. Finalization deletes the staged
+  posts and preserves their paths as `410 Gone`. Never run it speculatively.
+
+Production backups made before this migration are stored under
+`/home/infosecnexus/backups/newsroom-20260806T170923Z`. A separate pre-`0.1.40`
+theme archive is under
+`/home/infosecnexus/backups/homepage-20260806T180434Zn`. Confirm archive and
+database checksums before using either rollback point.
+
+Verification for this checkpoint included JavaScript and CSS linting, PHP
+syntax checks, PHPStan level 3 with zero errors on the changed frontend and
+artwork modules, logged-out header/sitemap/retirement checks, desktop and mobile
+visual inspection, and 14 of 14 live Playwright tests. The server's temporary
+test scripts, test directories, and uploaded release ZIPs were removed from
+`/tmp` after verification.
+
+## 19. Definition Of Done
 
 A task is not complete merely because code was edited. For this project, done
 normally means:
