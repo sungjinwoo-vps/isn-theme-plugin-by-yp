@@ -738,6 +738,15 @@ Legacy-content retirement is intentionally reversible:
   with its explicit `--confirm=DELETE` flag. Finalization deletes the staged
   posts and preserves their paths as `410 Gone`. Never run it speculatively.
 
+Google Search Console's Pages report was still processing on 2026-08-07. A
+public Google `site:infosecnexus.com` reconnaissance pass found 11 legacy URLs
+still discoverable in search. Every URL matched the 159-entry retirement
+inventory and was live-verified as `200` with
+`X-Robots-Tag: noindex, follow, noarchive`. The preliminary list is stored at
+`docs/google-site-discovered-old-urls-2026-08-07.csv`. Public `site:` results
+are not exhaustive, so this list must be reconciled with the Search Console
+export after processing completes; it is not authorization to hard-delete.
+
 Production backups made before this migration are stored under
 `/home/infosecnexus/backups/newsroom-20260806T170923Z`. A separate pre-`0.1.40`
 theme archive is under
