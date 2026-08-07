@@ -746,6 +746,11 @@ inventory and was live-verified as `200` with
 `docs/google-site-discovered-old-urls-2026-08-07.csv`. Public `site:` results
 are not exhaustive, so this list must be reconciled with the Search Console
 export after processing completes; it is not authorization to hard-delete.
+On 2026-08-07, the site owner submitted exact temporary-removal requests for
+all 11 URLs in that preliminary list. Search Console showed all 11 requests as
+`Processing request`. Do not cancel, duplicate, or broaden those requests to a
+site-wide prefix; retain the crawlable `noindex` responses until permanent
+deindexing is confirmed.
 
 Production backups made before this migration are stored under
 `/home/infosecnexus/backups/newsroom-20260806T170923Z`. A separate pre-`0.1.40`
