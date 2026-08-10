@@ -21,6 +21,9 @@ test('homepage uses one permanent live brief without repeating it in the latest 
   expect(latestPaths).not.toContain('/live-cybersecurity-brief/');
   expect(latestPaths.some((path) => /\/\d{4}-\d{2}-\d{2}-live-cybersecurity-brief\/$/.test(path))).toBeFalsy();
 
+  await page.goto(`${baseURL}/live-cybersecurity-brief/`, { waitUntil: 'networkidle' });
+  await expect(page.locator('nav.post-navigation')).toHaveCount(0);
+
   const sitemap = await request.get(`${baseURL}/news-sitemap.xml`);
   expect(sitemap.ok()).toBeTruthy();
   expect(await sitemap.text()).not.toContain('/live-cybersecurity-brief/');

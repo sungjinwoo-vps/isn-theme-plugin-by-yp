@@ -1560,7 +1560,17 @@ textarea::placeholder {
 
 .entry-content--gated {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 1.35rem;
+  min-width: 0;
+}
+
+.post-gate__teaser,
+.post-gate__rest {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .post-gate__teaser > :last-child,

@@ -1,7 +1,7 @@
 {
     "plugin":  {
                    "slug":  "infosecnexus-toolkit",
-                   "version":  "0.1.41",
+                   "version":  "0.1.42",
                    "plugin":  "infosecnexus-toolkit/infosecnexus-toolkit.php",
                    "requires_php":  "8.1",
                    "package":  "https://raw.githubusercontent.com/sungjinwoo-vps/isn-theme-plugin-by-yp/stable/dist/infosecnexus-toolkit.zip",
@@ -9,23 +9,23 @@
                    "homepage":  "https://infosecnexus.com/",
                    "last_updated":  "2026-08-10",
                    "sections":  {
-                                    "changelog":  "Keeps the optional legacy bridge aligned with the theme permanent live-brief URL and rolling-news consolidation release.",
+                                    "changelog":  "Keeps the optional legacy bridge aligned with the theme mobile live-brief layout patch.",
                                     "description":  "Legacy bridge for older InfoSecNexus installs. Current toolkit features are bundled into the InfoSecNexus theme."
                                 },
                    "requires":  "6.5"
                },
-    "generatedAt":  "2026-08-10T11:42:30Z",
+    "generatedAt":  "2026-08-10T12:30:52Z",
     "manifestVersion":  1,
     "theme":  {
                   "slug":  "infosecnexus",
-                  "version":  "0.1.41",
+                  "version":  "0.1.42",
                   "requires_php":  "8.1",
                   "package":  "https://raw.githubusercontent.com/sungjinwoo-vps/isn-theme-plugin-by-yp/stable/dist/infosecnexus-theme.zip",
                   "tested":  "7.0",
                   "homepage":  "https://infosecnexus.com/",
                   "last_updated":  "2026-08-10",
                   "sections":  {
-                                   "changelog":  "Consolidates rolling cybersecurity coverage at one permanent live-brief URL, redirects superseded daily editions, removes repetitive rolling cards from archives and sitemaps, and groups near-identical advisory records.",
+                                   "changelog":  "Prevents long live-advisory text from widening mobile articles and removes retired daily-edition navigation from the permanent hub.",
                                    "description":  "Cybersecurity newsroom theme for InfoSecNexus."
                                },
                   "requires":  "6.5"
