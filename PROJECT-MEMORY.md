@@ -661,6 +661,9 @@ through the current checkpoint:
 32. `1189217` - Kept staged posts visible to the guarded retirement CLI.
 33. `8bae5e5` - Matched breaking-news artwork to the affected product context.
 34. `2019b21` - Prevented the rolling and featured breaking stories from repeating in the homepage grid.
+35. `2d43f0d` - Consolidated all rolling coverage at one permanent live-brief URL.
+36. `878c115` - Fixed the permanent brief's mobile article layout and retired-post navigation.
+37. `fb64e63` - Kept staged daily briefs out of OR-based custom homepage queries.
 
 The CloudPanel v2 deployment files are:
 
@@ -683,17 +686,23 @@ centered footer brand, legal pages, search modal, dark mode, smooth scrolling,
 reading progress, delayed back-to-top button, category templates, SEO content,
 responsive post layout, and theme settings that survive updates.
 
-## 18. Rolling Newsroom And Content Retirement (2026-08-06)
+## 18. Rolling Newsroom And Content Retirement (2026-08-06 To 2026-08-10)
 
-The `stable` branch and production site are on InfoSecNexus `0.1.40`. GitHub
-release `auto-v0.1.40` publishes the native WordPress update manifest and ZIP
-assets. The live update manifest was verified to advertise theme and optional
-legacy bridge version `0.1.40`.
+The `stable` branch and production site are on InfoSecNexus `0.1.43`. GitHub
+release `auto-v0.1.43` publishes the native WordPress update manifest and ZIP
+assets. The live update manifest and WordPress updater were verified against
+theme and optional legacy bridge version `0.1.43`.
 
-The old category-per-day generator was replaced with a source-driven newsroom:
+The old category-per-day generator was replaced with a source-driven newsroom,
+then consolidated into a permanent rolling hub:
 
-- One canonical rolling cybersecurity brief is created per site day and updated
-  in place throughout that day. It is frozen when the date changes.
+- Exactly one rolling cybersecurity post uses the permanent path
+  `/live-cybersecurity-brief/`. Its title, modified time, article body, source
+  set, and featured image may refresh as verified intelligence changes, but its
+  slug and canonical URL do not change at midnight.
+- Same-day refreshes update post ID `1169` in place. A content fingerprint
+  prevents needless database writes when the normalized source set is
+  unchanged.
 - At most two separate breaking posts are allowed per day, and only for
   officially confirmed active exploitation.
 - Items are merged by CVE/advisory identity and canonical URL before writing.
@@ -703,24 +712,20 @@ The old category-per-day generator was replaced with a source-driven newsroom:
 - Source failures retain a last-good copy, record health, and can alert after
   repeated failures. Cache purge runs after publication so anonymous visitors
   receive the same posts as administrators.
-- Production status checked on 2026-08-06 at 18:00:39 UTC contained 120
-  normalized items. All 12 configured source checks were healthy and fresh;
-  SonicWall PSIRT supplied one current item.
-
-The first live rolling post is ID `1089` at
-`/2026-08-06-live-cybersecurity-brief/`. The first confirmed breaking post is
-ID `1091` at
-`/cve-2026-63077-cve-2026-63077-jetbrains-teamcity-deserialization-of-untrusted-data/`.
-Both use distinct real WebP editorial images and appear in the two-day
-`/news-sitemap.xml`. The core post sitemap contains current newsroom posts and
-does not contain staged legacy posts. Nginx was adjusted so `.xml` requests
-reach WordPress instead of the static-file 404 handler.
-
-The first unattended day rollover was verified immediately afterward: server
-cron published post ID `1094`, `/2026-08-07-live-cybersecurity-brief/`, at
-2026-08-07 00:00:19 in the WordPress site timezone. The news sitemap then
-contained exactly the new rolling brief, the previous rolling brief, and the
-confirmed breaking post, with no staged legacy URLs.
+- Historical rolling IDs `1089`, `1094`, `1124`, `1154`, and `1165` retain
+  their former dated paths only as permanent `301` redirects to post ID `1169`.
+  They are excluded from archives, internal search, related navigation, and
+  core/news sitemaps.
+- The core post sitemap contains the permanent hub once and no dated rolling or
+  staged daily URLs. The two-day News sitemap is reserved for qualifying
+  `breaking` posts and intentionally excludes the continuously updated rolling
+  hub.
+- Production WordPress cron is traffic-independent. The `infosecnexus` user's
+  crontab invokes `wp cron event run --due-now` every five minutes under
+  `flock`; the live newsroom event itself recurs every 15 minutes. Verification
+  confirmed that its next-run timestamp advanced without a browser request.
+- NVIDIA, Intel, and AMD feeds/categories are a future vendor-coverage phase.
+  They were deliberately not mixed into the URL-consolidation release.
 
 Legacy-content retirement is intentionally reversible:
 
@@ -756,14 +761,24 @@ Production backups made before this migration are stored under
 `/home/infosecnexus/backups/newsroom-20260806T170923Z`. A separate pre-`0.1.40`
 theme archive is under
 `/home/infosecnexus/backups/homepage-20260806T180434Zn`. Confirm archive and
-database checksums before using either rollback point.
+database checksums before using either rollback point. The pre-`0.1.43` theme
+rollback archive is
+`/home/infosecnexus/backups/homequery-20260810T125732Z/infosecnexus-theme-0.1.42.tar.gz`
+with SHA-256
+`dc40610cb381004079997fb2bb049d221981ee02ea23eea443df4072bbfd2e2d`.
 
-Verification for this checkpoint included JavaScript and CSS linting, PHP
-syntax checks, PHPStan level 3 with zero errors on the changed frontend and
-artwork modules, logged-out header/sitemap/retirement checks, desktop and mobile
-visual inspection, and 14 of 14 live Playwright tests. The server's temporary
-test scripts, test directories, and uploaded release ZIPs were removed from
-`/tmp` after verification.
+Release `0.1.43` fixed a query-composition defect where a custom top-level `OR`
+metadata query could admit staged posts despite the public retirement filter.
+The filter now wraps the existing metadata query and active-content clause in
+an outer `AND`. This hides staged cards without changing any of the 159 staged
+posts, their Search Console requests, or their exact crawlable noindex URLs.
+
+Verification for the current checkpoint included JavaScript and CSS linting,
+production PHP 8.4 syntax checks, logged-out redirect/header/sitemap checks,
+desktop and mobile visual inspection, and 16 of 16 live Playwright tests. The
+anonymous homepage contained zero dated rolling links and zero legacy daily
+links; a historical rolling URL returned `301`, while a sampled staged URL
+remained `200` with `X-Robots-Tag: noindex, follow, noarchive`.
 
 ## 19. Definition Of Done
 
