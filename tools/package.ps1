@@ -104,7 +104,7 @@ $releaseManifest = @{
         last_updated = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd")
         sections = @{
             description = "Cybersecurity newsroom theme for InfoSecNexus."
-            changelog = "Prevents featured rolling and breaking posts from repeating in the Latest Intelligence grid and uses honest live coverage-desk fallbacks during short publication history."
+            changelog = "Consolidates rolling cybersecurity coverage at one permanent live-brief URL, redirects superseded daily editions, removes repetitive rolling cards from archives and sitemaps, and groups near-identical advisory records."
         }
     }
     plugin = @{
@@ -119,7 +119,7 @@ $releaseManifest = @{
         last_updated = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd")
         sections = @{
             description = "Legacy bridge for older InfoSecNexus installs. Current toolkit features are bundled into the InfoSecNexus theme."
-            changelog = "Keeps the optional legacy bridge aligned with the theme non-repeating homepage newsroom release."
+            changelog = "Keeps the optional legacy bridge aligned with the theme permanent live-brief URL and rolling-news consolidation release."
         }
     }
 }

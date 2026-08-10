@@ -25,7 +25,7 @@ final class Live_Intelligence {
 	private const GENERAL_SOURCE_TTL = 30 * MINUTE_IN_SECONDS;
 	private const LOOKBACK_DAYS = 7;
 	private const MAX_ITEMS = 220;
-	private const CONTENT_SCHEMA_VERSION = '9';
+	private const CONTENT_SCHEMA_VERSION = '10';
 
 	/**
 	 * Hide retired generator notes immediately while the database migration runs.
@@ -319,12 +319,6 @@ final class Live_Intelligence {
 
 		$selected   = self::select_rolling_items( $items );
 		$item_ids   = array_values( array_filter( array_map( static fn( array $item ): string => (string) ( $item['id'] ?? '' ), $selected ) ) );
-		$categories = array( 'cybersecurity' );
-		foreach ( $selected as $item ) {
-			$categories = array_merge( $categories, (array) ( $item['categories'] ?? array() ) );
-		}
-		$categories = array_values( array_unique( array_map( 'sanitize_key', $categories ) ) );
-
 		$lead_titles = array_values( array_filter( array_map( static fn( array $item ): string => (string) ( $item['title'] ?? '' ), array_slice( $selected, 0, 2 ) ) ) );
 		$excerpt = wp_trim_words(
 			sprintf(
@@ -339,11 +333,11 @@ final class Live_Intelligence {
 		$posts = array(
 			array(
 				'kind'        => 'rolling',
-				'story_key'   => 'rolling-' . sanitize_title( $date ),
+				'story_key'   => 'rolling-live-cybersecurity',
 				'title'       => sprintf( 'Live Cybersecurity Brief for %s: Active Threats, CVEs, and Vendor Advisories', $date ),
 				'slug'        => 'live-cybersecurity-brief',
-				'dated_slug'  => true,
-				'categories'  => $categories,
+				'dated_slug'  => false,
+				'categories'  => array( 'cybersecurity' ),
 				'excerpt'     => $excerpt,
 				'content'     => self::render_rolling_article( $date, $selected, $data ),
 				'sources'     => self::source_pairs( $selected ),
@@ -395,13 +389,36 @@ final class Live_Intelligence {
 	 */
 	private static function select_rolling_items( array $items ): array {
 		$selected = array();
-		$add_item = static function ( array $item ) use ( &$selected ): void {
-			$key = (string) ( $item['cve'] ?? '' );
-			if ( '' === $key ) {
-				$key = (string) ( $item['id'] ?? self::canonical_source_url( (string) ( $item['url'] ?? '' ) ) );
+		$topics   = array();
+		$add_item = static function ( array $item ) use ( &$selected, &$topics ): void {
+			$key = self::item_identity_key( $item );
+			if ( '' === $key || isset( $selected[ $key ] ) ) {
+				return;
 			}
-			if ( '' !== $key ) {
-				$selected[ strtolower( $key ) ] = $item;
+
+			$topic = self::item_topic_key( $item );
+			if ( '' !== $topic && isset( $topics[ $topic ] ) ) {
+				$existing_key  = $topics[ $topic ];
+				$existing      = $selected[ $existing_key ];
+				$related_cves  = (array) ( $existing['related_cves'] ?? array() );
+				$related_cves  = array_merge( $related_cves, array( (string) ( $existing['cve'] ?? '' ), (string) ( $item['cve'] ?? '' ) ) );
+				$references    = array_merge( self::item_references( $existing ), self::item_references( $item ) );
+				$reference_map = array();
+				foreach ( $references as $reference ) {
+					$url = (string) ( $reference['url'] ?? '' );
+					if ( '' !== $url ) {
+						$reference_map[ $url ] = $reference;
+					}
+				}
+				$existing['references']   = array_values( $reference_map );
+				$existing['related_cves'] = array_values( array_unique( array_filter( array_map( 'strtoupper', $related_cves ) ) ) );
+				$selected[ $existing_key ] = $existing;
+				return;
+			}
+
+			$selected[ $key ] = $item;
+			if ( '' !== $topic ) {
+				$topics[ $topic ] = $key;
 			}
 		};
 
@@ -421,7 +438,7 @@ final class Live_Intelligence {
 		);
 		foreach ( $pinned_sources as $source_key ) {
 			foreach ( $items as $item ) {
-				if ( $source_key === (string) ( $item['source_key'] ?? '' ) ) {
+				if ( (string) ( $item['source_key'] ?? '' ) === $source_key ) {
 					$add_item( $item );
 					break;
 				}
@@ -559,6 +576,10 @@ final class Live_Intelligence {
 		$content   = '<section class="isnx-live-item"><h3>' . esc_html( (string) $item['title'] ) . '</h3>';
 		$content  .= '<p class="isnx-live-item__meta">' . esc_html( (string) ( $item['source'] ?? '' ) . ' | ' . $date . ( '' !== $severity ? ' | ' . $severity : '' ) . $score ) . '</p>';
 		$content  .= '<p>' . esc_html( self::clean_text( (string) ( $item['description'] ?? '' ), 75 ) ) . '</p>';
+		$related_cves = array_values( array_filter( (array) ( $item['related_cves'] ?? array() ) ) );
+		if ( count( $related_cves ) > 1 ) {
+			$content .= '<p><strong>Related identifiers:</strong> ' . esc_html( implode( ', ', array_slice( $related_cves, 0, 12 ) ) ) . '</p>';
+		}
 		$content  .= '<p><strong>Why it matters:</strong> ' . esc_html( $insight['why'] ) . '</p>';
 		$content  .= '<p><strong>What to verify:</strong> ' . esc_html( $insight['verify'] ) . '</p>';
 		$content  .= '<p><a href="' . esc_url( (string) $item['url'] ) . '" rel="nofollow noopener" target="_blank">Open the original source record</a></p></section>';
@@ -1121,10 +1142,10 @@ final class Live_Intelligence {
 				continue;
 			}
 
-			$key = ! empty( $item['cve'] ) ? strtolower( (string) $item['cve'] ) : self::canonical_source_url( (string) $item['url'] );
-			if ( '' === $key ) {
-				$key = strtolower( (string) ( $item['id'] ?? $item['title'] ) );
+			if ( empty( $item['cve'] ) ) {
+				$item['cve'] = self::extract_primary_cve( $item );
 			}
+			$key = self::item_identity_key( $item );
 
 			$item['references'] = self::item_references( $item );
 			if ( isset( $unique[ $key ] ) ) {
@@ -1147,6 +1168,53 @@ final class Live_Intelligence {
 		);
 
 		return $items;
+	}
+
+	/**
+	 * Return a stable identity for an advisory across feeds and refreshes.
+	 */
+	private static function item_identity_key( array $item ): string {
+		$cve = self::extract_primary_cve( $item );
+		if ( '' !== $cve ) {
+			return strtolower( $cve );
+		}
+
+		$url = self::canonical_source_url( (string) ( $item['url'] ?? '' ) );
+		if ( '' !== $url ) {
+			return $url;
+		}
+
+		$fallback = trim( (string) ( $item['id'] ?? $item['title'] ?? '' ) );
+		return '' !== $fallback ? strtolower( $fallback ) : '';
+	}
+
+	/**
+	 * Extract the first CVE identifier even when a feed omitted its CVE field.
+	 */
+	private static function extract_primary_cve( array $item ): string {
+		$cve = strtoupper( trim( (string) ( $item['cve'] ?? '' ) ) );
+		if ( 1 === preg_match( '/^CVE-\d{4}-\d{4,}$/', $cve ) ) {
+			return $cve;
+		}
+
+		$text = implode( ' ', array( (string) ( $item['title'] ?? '' ), (string) ( $item['description'] ?? '' ) ) );
+		return 1 === preg_match( '/\bCVE-\d{4}-\d{4,}\b/i', $text, $matches ) ? strtoupper( $matches[0] ) : '';
+	}
+
+	/**
+	 * Group near-identical records that differ only by CVE identifier.
+	 */
+	private static function item_topic_key( array $item ): string {
+		$title = html_entity_decode( wp_strip_all_tags( (string) ( $item['title'] ?? '' ) ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+		$title = (string) preg_replace( '/\b(?:CVE-\d{4}-\d{4,}|GHSA-[a-z0-9-]+)\b[\s:;,-]*/i', '', $title );
+		$title = strtolower( (string) preg_replace( '/[^a-z0-9]+/i', ' ', $title ) );
+		$title = trim( (string) preg_replace( '/\s+/', ' ', $title ) );
+		if ( 24 > strlen( $title ) ) {
+			return '';
+		}
+
+		$source = sanitize_key( (string) ( $item['source_key'] ?? $item['vendor'] ?? '' ) );
+		return $source . '|' . $title;
 	}
 
 	/**

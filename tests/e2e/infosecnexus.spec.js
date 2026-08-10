@@ -11,6 +11,21 @@ test('home page renders header, content, and footer', async ({ page }) => {
   await expect(page.locator('.site-footer')).toBeVisible();
 });
 
+test('homepage uses one permanent live brief without repeating it in the latest grid', async ({ page, request }) => {
+  await page.goto(baseURL, { waitUntil: 'networkidle' });
+
+  const heroPath = new URL(await page.locator('.home-hero__lead').getAttribute('href')).pathname;
+  expect(heroPath).toBe('/live-cybersecurity-brief/');
+
+  const latestPaths = await page.locator('.latest-grid .intel-card').evaluateAll((cards) => cards.map((card) => new URL(card.href).pathname));
+  expect(latestPaths).not.toContain('/live-cybersecurity-brief/');
+  expect(latestPaths.some((path) => /\/\d{4}-\d{2}-\d{2}-live-cybersecurity-brief\/$/.test(path))).toBeFalsy();
+
+  const sitemap = await request.get(`${baseURL}/news-sitemap.xml`);
+  expect(sitemap.ok()).toBeTruthy();
+  expect(await sitemap.text()).not.toContain('/live-cybersecurity-brief/');
+});
+
 test('different homepage posts use distinct generated artwork', async ({ page, request }) => {
   await page.goto(baseURL, { waitUntil: 'networkidle' });
 

@@ -101,7 +101,7 @@ final class Demo_Content {
 			<p><?php esc_html_e( 'This content repair is non-destructive for your Customizer and feature settings.', 'infosecnexus' ); ?></p>
 			<hr>
 			<h2><?php esc_html_e( 'Live Cybersecurity Briefings', 'infosecnexus' ); ?></h2>
-			<p><?php esc_html_e( 'Maintain one rolling daily brief from CISA, NIST, GitHub, Ubuntu, Microsoft, SonicWall, Cisco, Palo Alto, WordPress, OpenAI, and other official sources. Critical feeds refresh every 15 minutes and general feeds every 30 minutes.', 'infosecnexus' ); ?></p>
+			<p><?php esc_html_e( 'Maintain one permanent live brief from CISA, NIST, GitHub, Ubuntu, Microsoft, SonicWall, Cisco, Palo Alto, WordPress, OpenAI, and other official sources. The same URL refreshes throughout the day without creating repetitive daily posts.', 'infosecnexus' ); ?></p>
 			<p><a class="button button-primary" href="<?php echo esc_url( $daily_url ); ?>"><?php esc_html_e( 'Refresh Live Briefings Now', 'infosecnexus' ); ?></a></p>
 			<?php if ( '' !== $checked_at ) : ?>
 				<p>
@@ -940,8 +940,9 @@ final class Demo_Content {
 				}
 			}
 
-			$post_slug = ! empty( $post['dated_slug'] ) ? $date_slug . '-' . $post['slug'] : (string) $post['slug'];
-			$existing  = get_page_by_path( $post_slug, OBJECT, 'post' );
+			$post_slug  = ! empty( $post['dated_slug'] ) ? $date_slug . '-' . $post['slug'] : (string) $post['slug'];
+			$existing   = get_page_by_path( $post_slug, OBJECT, 'post' );
+			$is_rolling = 'rolling' === sanitize_key( (string) ( $post['kind'] ?? '' ) );
 			if (
 				$existing
 				&& hash_equals(
@@ -949,6 +950,13 @@ final class Demo_Content {
 					(string) $post['fingerprint']
 				)
 			) {
+				if ( $is_rolling ) {
+					$superseded = Content_Retirement::consolidate_rolling_posts( (int) $existing->ID );
+					if ( ! empty( $superseded ) ) {
+						$changed += count( $superseded );
+						$changed_ids = array_merge( $changed_ids, array( (int) $existing->ID ), $superseded );
+					}
+				}
 				continue;
 			}
 
@@ -989,6 +997,11 @@ final class Demo_Content {
 				Post_Artwork::ensure( $post_id );
 				++$changed;
 				$changed_ids[] = $post_id;
+				if ( $is_rolling ) {
+					$superseded = Content_Retirement::consolidate_rolling_posts( $post_id );
+					$changed += count( $superseded );
+					$changed_ids = array_merge( $changed_ids, $superseded );
+				}
 			}
 		}
 

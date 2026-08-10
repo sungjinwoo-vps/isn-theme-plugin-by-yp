@@ -73,6 +73,7 @@ $rolling_posts = get_posts(
 		'post_type'           => 'post',
 		'post_status'         => 'publish',
 		'posts_per_page'      => 1,
+		'name'                => 'live-cybersecurity-brief',
 		'ignore_sticky_posts' => true,
 		'meta_query'          => array(
 			array(
@@ -222,6 +223,18 @@ $latest_posts      = get_posts(
 		'posts_per_page'      => 3,
 		'post__not_in'        => $featured_post_ids,
 		'ignore_sticky_posts' => true,
+		'meta_query'          => array(
+			'relation' => 'OR',
+			array(
+				'key'     => '_infosecnexus_newsroom_kind',
+				'compare' => 'NOT EXISTS',
+			),
+			array(
+				'key'     => '_infosecnexus_newsroom_kind',
+				'value'   => 'rolling',
+				'compare' => '!=',
+			),
+		),
 	)
 );
 

@@ -15,6 +15,8 @@ namespace InfoSecNexus\Theme\Toolkit;
 final class Content_Retirement {
 	private const STATE_META             = '_infosecnexus_retirement_state';
 	private const RETIRED_AT_META        = '_infosecnexus_retired_at';
+	private const SUPERSEDED_BY_META     = '_infosecnexus_newsroom_superseded_by';
+	private const SUPERSEDED_AT_META     = '_infosecnexus_newsroom_superseded_at';
 	private const INVENTORY_OPTION       = 'infosecnexus_content_retirement_inventory';
 	private const GONE_PATHS_OPTION      = 'infosecnexus_content_retirement_gone_paths';
 	private const NEWS_SITEMAP_QUERY_VAR = 'infosecnexus_news_sitemap';
@@ -146,6 +148,16 @@ final class Content_Retirement {
 			self::render_news_sitemap();
 		}
 
+		if ( is_singular( 'post' ) ) {
+			$post_id   = (int) get_queried_object_id();
+			$target_id = (int) get_post_meta( $post_id, self::SUPERSEDED_BY_META, true );
+			$target    = $target_id > 0 && $target_id !== $post_id ? get_post( $target_id ) : null;
+			if ( $target instanceof \WP_Post && 'publish' === $target->post_status ) {
+				wp_safe_redirect( get_permalink( $target ), 301, 'InfoSecNexus' );
+				exit;
+			}
+		}
+
 		if ( ! is_404() || ! self::is_finalized_path( self::request_path() ) ) {
 			return;
 		}
@@ -159,6 +171,48 @@ final class Content_Retirement {
 			wp_die( esc_html__( 'This briefing has been permanently retired.', 'infosecnexus' ), '', array( 'response' => 410 ) );
 		}
 		exit;
+	}
+
+	/**
+	 * Consolidate dated rolling briefs into one permanent live-news URL.
+	 *
+	 * @param int $canonical_id Permanent rolling brief post ID.
+	 * @return int[] Newly superseded post IDs.
+	 */
+	public static function consolidate_rolling_posts( int $canonical_id ): array {
+		if ( $canonical_id <= 0 || 'publish' !== get_post_status( $canonical_id ) ) {
+			return array();
+		}
+
+		$posts = get_posts(
+			array(
+				'post_type'           => 'post',
+				'post_status'         => 'publish',
+				'posts_per_page'      => -1,
+				'post__not_in'        => array( $canonical_id ),
+				'ignore_sticky_posts' => true,
+				'suppress_filters'    => true,
+				'fields'              => 'ids',
+				'meta_query'          => array(
+					array(
+						'key'   => '_infosecnexus_newsroom_kind',
+						'value' => 'rolling',
+					),
+				),
+			)
+		);
+
+		$changed = array();
+		foreach ( array_map( 'absint', $posts ) as $post_id ) {
+			if ( $post_id <= 0 || self::is_staged( $post_id ) || (int) get_post_meta( $post_id, self::SUPERSEDED_BY_META, true ) === $canonical_id ) {
+				continue;
+			}
+			update_post_meta( $post_id, self::SUPERSEDED_BY_META, $canonical_id );
+			update_post_meta( $post_id, self::SUPERSEDED_AT_META, gmdate( 'c' ) );
+			$changed[] = $post_id;
+		}
+
+		return $changed;
 	}
 
 	/**
@@ -453,6 +507,10 @@ final class Content_Retirement {
 						'key'   => '_infosecnexus_newsroom_post',
 						'value' => '1',
 					),
+					array(
+						'key'   => '_infosecnexus_newsroom_kind',
+						'value' => 'breaking',
+					),
 					self::active_content_clause(),
 				),
 			)
@@ -508,21 +566,28 @@ final class Content_Retirement {
 	}
 
 	/**
-	 * Reusable query clause for anything not staged.
+	 * Reusable query clause for content that is neither staged nor superseded.
 	 *
-	 * @return array<int|string,array<string,string>|string>
+	 * @return array<int|string,mixed>
 	 */
 	private static function active_content_clause(): array {
 		return array(
-			'relation' => 'OR',
+			'relation' => 'AND',
 			array(
-				'key'     => self::STATE_META,
-				'compare' => 'NOT EXISTS',
+				'relation' => 'OR',
+				array(
+					'key'     => self::STATE_META,
+					'compare' => 'NOT EXISTS',
+				),
+				array(
+					'key'     => self::STATE_META,
+					'value'   => 'staged',
+					'compare' => '!=',
+				),
 			),
 			array(
-				'key'     => self::STATE_META,
-				'value'   => 'staged',
-				'compare' => '!=',
+				'key'     => self::SUPERSEDED_BY_META,
+				'compare' => 'NOT EXISTS',
 			),
 		);
 	}
