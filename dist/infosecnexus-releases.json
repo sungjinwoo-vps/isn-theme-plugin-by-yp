@@ -1,7 +1,7 @@
 {
     "plugin":  {
                    "slug":  "infosecnexus-toolkit",
-                   "version":  "0.1.42",
+                   "version":  "0.1.43",
                    "plugin":  "infosecnexus-toolkit/infosecnexus-toolkit.php",
                    "requires_php":  "8.1",
                    "package":  "https://raw.githubusercontent.com/sungjinwoo-vps/isn-theme-plugin-by-yp/stable/dist/infosecnexus-toolkit.zip",
@@ -9,23 +9,23 @@
                    "homepage":  "https://infosecnexus.com/",
                    "last_updated":  "2026-08-10",
                    "sections":  {
-                                    "changelog":  "Keeps the optional legacy bridge aligned with the theme mobile live-brief layout patch.",
+                                    "changelog":  "Keeps the optional legacy bridge aligned with the theme staged-content query isolation release.",
                                     "description":  "Legacy bridge for older InfoSecNexus installs. Current toolkit features are bundled into the InfoSecNexus theme."
                                 },
                    "requires":  "6.5"
                },
-    "generatedAt":  "2026-08-10T12:30:52Z",
+    "generatedAt":  "2026-08-10T12:52:40Z",
     "manifestVersion":  1,
     "theme":  {
                   "slug":  "infosecnexus",
-                  "version":  "0.1.42",
+                  "version":  "0.1.43",
                   "requires_php":  "8.1",
                   "package":  "https://raw.githubusercontent.com/sungjinwoo-vps/isn-theme-plugin-by-yp/stable/dist/infosecnexus-theme.zip",
                   "tested":  "7.0",
                   "homepage":  "https://infosecnexus.com/",
                   "last_updated":  "2026-08-10",
                   "sections":  {
-                                   "changelog":  "Prevents long live-advisory text from widening mobile articles and removes retired daily-edition navigation from the permanent hub.",
+                                   "changelog":  "Keeps staged legacy daily briefs out of custom homepage queries while preserving their noindex retirement URLs.",
                                    "description":  "Cybersecurity newsroom theme for InfoSecNexus."
                                },
                   "requires":  "6.5"

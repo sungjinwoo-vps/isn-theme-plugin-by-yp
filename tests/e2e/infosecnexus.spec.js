@@ -20,6 +20,7 @@ test('homepage uses one permanent live brief without repeating it in the latest 
   const latestPaths = await page.locator('.latest-grid .intel-card').evaluateAll((cards) => cards.map((card) => new URL(card.href).pathname));
   expect(latestPaths).not.toContain('/live-cybersecurity-brief/');
   expect(latestPaths.some((path) => /\/\d{4}-\d{2}-\d{2}-live-cybersecurity-brief\/$/.test(path))).toBeFalsy();
+  expect(latestPaths.some((path) => /\/\d{4}-\d{2}-\d{2}-(?:daily-cve-watch|cyber-security-brief|linux-security-brief|devops-security-brief|ai-security-brief|tutorial-run-daily-vulnerability-standup|cloud-security-brief|windows-security-brief|network-security-brief|web-security-brief)/.test(path))).toBeFalsy();
 
   await page.goto(`${baseURL}/live-cybersecurity-brief/`, { waitUntil: 'networkidle' });
   await expect(page.locator('nav.post-navigation')).toHaveCount(0);

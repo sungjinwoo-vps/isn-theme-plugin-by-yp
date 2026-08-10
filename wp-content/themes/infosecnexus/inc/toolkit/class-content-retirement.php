@@ -546,10 +546,22 @@ final class Content_Retirement {
 	 * @param \WP_Query $query Query to constrain.
 	 */
 	private static function append_active_content_meta_query( \WP_Query $query ): void {
-		$meta_query   = $query->get( 'meta_query' );
-		$meta_query   = is_array( $meta_query ) ? $meta_query : array();
-		$meta_query[] = self::active_content_clause();
-		$query->set( 'meta_query', $meta_query );
+		$meta_query = $query->get( 'meta_query' );
+		$meta_query = is_array( $meta_query ) ? $meta_query : array();
+
+		if ( empty( $meta_query ) ) {
+			$query->set( 'meta_query', array( self::active_content_clause() ) );
+			return;
+		}
+
+		$query->set(
+			'meta_query',
+			array(
+				'relation' => 'AND',
+				$meta_query,
+				self::active_content_clause(),
+			)
+		);
 	}
 
 	/**

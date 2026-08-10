@@ -3,7 +3,7 @@ Contributors: infosecnexus
 Requires at least: 6.5
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.1.42
+Stable tag: 0.1.43
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -18,6 +18,9 @@ InfoSecNexus Toolkit is now a legacy bridge. Current content blocks, conditional
 This plugin is no longer required for current InfoSecNexus theme installs. Update the InfoSecNexus theme, then deactivate and delete this legacy bridge when you are ready.
 
 == Changelog ==
+
+= 0.1.43 =
+Keeps the optional legacy bridge aligned with the theme's staged-content query isolation release.
 
 = 0.1.42 =
 Keeps the optional legacy bridge aligned with the theme's mobile live-brief layout patch.
