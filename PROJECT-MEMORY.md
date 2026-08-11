@@ -4,7 +4,7 @@
 > project. Then run the startup checklist in the next section. This is the
 > authoritative continuity handoff for the current project state.
 
-Last updated: 2026-08-05 (Asia/Kolkata)
+Last updated: 2026-08-11 (Asia/Kolkata)
 
 ## 1. Current Snapshot
 
@@ -14,9 +14,9 @@ Last updated: 2026-08-05 (Asia/Kolkata)
 - Main release branch: `stable`
 - Repository visibility: public, which permits unauthenticated WordPress update
   downloads. Moving it to private requires an authenticated update service.
-- Current theme version: `0.1.36`
-- Current known release: `auto-v0.1.36`
-- Current known code commit: `2b5ee35` (`Add hardened production Nginx config`)
+- Current theme version: `0.1.44`
+- Current known release: `auto-v0.1.44`
+- Current known code commit: `f49ed9d` (`Fix permanent briefing metadata and artwork`)
 - WordPress was running version 7.0.2 at this checkpoint.
 - The live site is theme-first. The InfoSecNexus Toolkit features are bundled
   into the theme and the separate toolkit plugin is not required on this site.
@@ -686,12 +686,12 @@ centered footer brand, legal pages, search modal, dark mode, smooth scrolling,
 reading progress, delayed back-to-top button, category templates, SEO content,
 responsive post layout, and theme settings that survive updates.
 
-## 18. Rolling Newsroom And Content Retirement (2026-08-06 To 2026-08-10)
+## 18. Rolling Newsroom And Content Retirement (2026-08-06 To 2026-08-11)
 
-The `stable` branch and production site are on InfoSecNexus `0.1.43`. GitHub
-release `auto-v0.1.43` publishes the native WordPress update manifest and ZIP
+The `stable` branch and production site are on InfoSecNexus `0.1.44`. GitHub
+release `auto-v0.1.44` publishes the native WordPress update manifest and ZIP
 assets. The live update manifest and WordPress updater were verified against
-theme and optional legacy bridge version `0.1.43`.
+theme and optional legacy bridge version `0.1.44`.
 
 The old category-per-day generator was replaced with a source-driven newsroom,
 then consolidated into a permanent rolling hub:
@@ -703,6 +703,14 @@ then consolidated into a permanent rolling hub:
 - Same-day refreshes update post ID `1169` in place. A content fingerprint
   prevents needless database writes when the normalized source set is
   unchanged.
+- The rolling article keeps its original publication date for stable
+  `datePublished` history, while the public metadata explicitly renders its
+  latest WordPress modified date as `Updated ...` with a semantic W3C
+  `datetime`. The NewsArticle schema continues to expose both distinct dates.
+- Rolling artwork refresh now ignores photographs attached only to staged or
+  superseded posts. This lets the permanent reader-facing hub reclaim its
+  preferred topic-matched source without allowing two active public posts to
+  reserve the same photograph or triggering repeated regeneration.
 - At most two separate breaking posts are allowed per day, and only for
   officially confirmed active exploitation.
 - Items are merged by CVE/advisory identity and canonical URL before writing.
@@ -802,12 +810,31 @@ The filter now wraps the existing metadata query and active-content clause in
 an outer `AND`. This hides staged cards without changing any of the 159 staged
 posts, their Search Console requests, or their exact crawlable noindex URLs.
 
+Release `0.1.44` corrected two presentation defects on the permanent rolling
+hub. Post ID `1169` now displays its modified date instead of looking one day
+old, and its generated featured image moved from unrelated mail-app artwork to
+the dedicated curated source `Bd7gNnWJBkU`. The production attachment changed
+from ID `1170` to `1194`; the latter records the public source page
+`https://unsplash.com/photos/Bd7gNnWJBkU`. A source audit on 2026-08-11 matched
+the current NVD items and CISA KEV item `CVE-2026-8037` against their official
+live records. The permanent URL remained self-canonical and returned `200`, a
+sample historical rolling URL returned `301` to it, and a sample staged daily
+URL remained exact `200` with `X-Robots-Tag: noindex, follow, noarchive`.
+
+The pre-`0.1.44` database and theme backup is stored under
+`/home/infosecnexus/backups/rolling-meta-20260811T122222Z`. The database export
+SHA-256 is `a11ab023ebdc36aee63277f0ae091b5a3b0837c9efb90d822f27eb7854b098dd`;
+the `0.1.43` theme archive SHA-256 is
+`4996bae8855d38cf4ad91d64705dcead45494b00f319830fca8768ac96003953`.
+
 Verification for the current checkpoint included JavaScript and CSS linting,
-production PHP 8.4 syntax checks, logged-out redirect/header/sitemap checks,
-desktop and mobile visual inspection, and 16 of 16 live Playwright tests. The
-anonymous homepage contained zero dated rolling links and zero legacy daily
-links; a historical rolling URL returned `301`, while a sampled staged URL
-remained `200` with `X-Robots-Tag: noindex, follow, noarchive`.
+an npm dependency audit with zero reported vulnerabilities, production PHP 8.4
+syntax checks, focused PHPStan analysis, logged-out redirect/header/sitemap
+checks, desktop and mobile visual inspection, and 16 of 16 live Playwright
+tests. The anonymous homepage contained theme assets versioned `0.1.44`, the
+new rolling artwork, zero dated rolling links, and zero legacy daily links; a
+historical rolling URL returned `301`, while a sampled staged URL remained
+`200` with `X-Robots-Tag: noindex, follow, noarchive`.
 
 ## 19. Definition Of Done
 
