@@ -14,10 +14,10 @@ Last updated: 2026-08-11 (Asia/Kolkata)
 - Main release branch: `stable`
 - Repository visibility: public, which permits unauthenticated WordPress update
   downloads. Moving it to private requires an authenticated update service.
-- Current theme version: `0.1.44`
-- Current known release: `auto-v0.1.44`
-- Current known code commit: `f49ed9d` (`Fix permanent briefing metadata and artwork`)
-- WordPress was running version 7.0.2 at this checkpoint.
+- Current theme version: `0.1.45`
+- Current known release: `auto-v0.1.45`
+- Current known code commit: `bea9c22` (`Fix rolling dates across archive surfaces`)
+- WordPress was running version 7.0.3 at this checkpoint.
 - The live site is theme-first. The InfoSecNexus Toolkit features are bundled
   into the theme and the separate toolkit plugin is not required on this site.
 - Latest known verification: the complete desktop/mobile Playwright suite
@@ -827,14 +827,40 @@ SHA-256 is `a11ab023ebdc36aee63277f0ae091b5a3b0837c9efb90d822f27eb7854b098dd`;
 the `0.1.43` theme archive SHA-256 is
 `4996bae8855d38cf4ad91d64705dcead45494b00f319830fca8768ac96003953`.
 
-Verification for the current checkpoint included JavaScript and CSS linting,
-an npm dependency audit with zero reported vulnerabilities, production PHP 8.4
-syntax checks, focused PHPStan analysis, logged-out redirect/header/sitemap
-checks, desktop and mobile visual inspection, and 16 of 16 live Playwright
-tests. The anonymous homepage contained theme assets versioned `0.1.44`, the
-new rolling artwork, zero dated rolling links, and zero legacy daily links; a
-historical rolling URL returned `301`, while a sampled staged URL remained
-`200` with `X-Robots-Tag: noindex, follow, noarchive`.
+Release `0.1.45` made the permanent rolling brief's modified date consistent
+on every post-list surface. Archive cards, the Latest Briefings sidebar,
+homepage data, related briefings, and Elementor query cards now share one date
+helper and display `Updated <date>` for post ID `1169`; ordinary posts continue
+to display their publication date. This fixed the category-page mismatch where
+the rolling card showed August 11 while the sidebar still showed August 10.
+
+The pre-`0.1.45` database and theme backup is stored under
+`/home/infosecnexus/backups/rolling-date-20260811-194532`. The database export
+SHA-256 is `a4d89992fb0596ec9591ba1f3d85788cbfba1a52bcc2414398773553c71d5a1e`;
+the `0.1.44` theme archive SHA-256 is
+`b2e28618ec7c4b7857fcdc4cebbdf44843a140f65e1e1e5705efa02e52022cb0`.
+
+Live anonymous verification after the `0.1.45` deployment confirmed theme
+assets versioned `0.1.45`, two matching `Updated 11/08/2026` labels on the
+Cyber Security archive, no stale July 27 rolling title, and the same permanent
+post identity (`1169`, `/live-cybersecurity-brief/`). A historical dated URL
+returned `301` to the permanent hub. All 18 desktop/mobile Playwright checks
+passed, including rolling-date consistency, duplicate hiding, distinct post
+artwork, secure public forms, SEO/agent discovery, and accessibility smoke
+coverage. The 159 staged legacy posts remain published only so their exact URLs
+can serve crawlable `noindex`; this is why the WordPress admin post count is
+still high. A sampled staged URL remained exact `200` with
+`X-Robots-Tag: noindex, follow, noarchive` and staged posts stayed absent from
+the public category archive.
+
+Verification for the previous `0.1.44` checkpoint included JavaScript and CSS
+linting, an npm dependency audit with zero reported vulnerabilities, production
+PHP 8.4 syntax checks, focused PHPStan analysis, logged-out
+redirect/header/sitemap checks, desktop and mobile visual inspection, and 16
+of 16 live Playwright tests. The anonymous homepage contained theme assets
+versioned `0.1.44`, the new rolling artwork, zero dated rolling links, and zero
+legacy daily links; a historical rolling URL returned `301`, while a sampled
+staged URL remained `200` with `X-Robots-Tag: noindex, follow, noarchive`.
 
 ## 19. Definition Of Done
 
