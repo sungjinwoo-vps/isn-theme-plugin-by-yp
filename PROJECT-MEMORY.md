@@ -771,6 +771,21 @@ require `Validate fix`. Do not finalize the 159-URL retirement batch until the
 indexed-URL export has been reconciled against the inventory and no staged URL
 is confirmed indexed.
 
+The Indexed Pages export downloaded on 2026-08-11 contained 159 unique URLs
+from Google's 2026-08-07 snapshot. Exact URL-set reconciliation found that 141
+of those URLs belong to the 159-entry retirement inventory; 18 retirement URLs
+were absent from the indexed export. A live audit of the full inventory found
+all 159 URLs returning `200` with `X-Robots-Tag: noindex, follow, noarchive` and
+no anomalies. Across the 159 exported Google URLs, the current live state was
+141 retired `200 + noindex` URLs, 11 valid indexable `200` URLs, five intentional
+`404` URLs, and two dated rolling URLs returning `301` to
+`/live-cybersecurity-brief/`. This proves the implementation is correct but the
+Google index snapshot has not caught up, so final deletion remains blocked on a
+later export showing zero retirement-inventory overlap. The durable
+reconciliation artifact is
+`docs/search-console-indexed-reconciliation-2026-08-11.csv` with SHA-256
+`47480e31b1431df7a4e0d201b1a5a48bc61ae578a40ffce6f97fd251a0e975f1`.
+
 Production backups made before this migration are stored under
 `/home/infosecnexus/backups/newsroom-20260806T170923Z`. A separate pre-`0.1.40`
 theme archive is under
