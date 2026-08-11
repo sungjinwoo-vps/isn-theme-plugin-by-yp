@@ -28,8 +28,20 @@ function reading_time( ?int $post_id = null ): int {
  * Render post meta.
  */
 function post_meta(): void {
+	$post_id  = get_the_ID();
+	$is_live  = 'rolling' === (string) get_post_meta( $post_id, '_infosecnexus_newsroom_kind', true );
+	$datetime = $is_live
+		? get_post_modified_time( DATE_W3C, false, $post_id )
+		: get_the_date( DATE_W3C, $post_id );
+	if ( $is_live ) {
+		/* translators: %s: date when the rolling briefing was last updated. */
+		$date = sprintf( __( 'Updated %s', 'infosecnexus' ), get_the_modified_date( '', $post_id ) );
+	} else {
+		$date = get_the_date( '', $post_id );
+	}
+
 	echo '<div class="entry-meta">';
-	echo '<span>' . esc_html( get_the_date() ) . '</span>';
+	echo '<time datetime="' . esc_attr( $datetime ) . '">' . esc_html( $date ) . '</time>';
 	echo '<span>' . esc_html( get_the_author() ) . '</span>';
 	/* translators: %d: estimated reading time in minutes. */
 	echo '<span>' . esc_html( sprintf( _n( '%d min read', '%d min read', reading_time(), 'infosecnexus' ), reading_time() ) ) . '</span>';

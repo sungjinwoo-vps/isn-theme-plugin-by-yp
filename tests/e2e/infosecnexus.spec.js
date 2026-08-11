@@ -24,6 +24,8 @@ test('homepage uses one permanent live brief without repeating it in the latest 
 
   await page.goto(`${baseURL}/live-cybersecurity-brief/`, { waitUntil: 'networkidle' });
   await expect(page.locator('nav.post-navigation')).toHaveCount(0);
+  await expect(page.locator('.single-hero .entry-meta time')).toContainText('Updated');
+  await expect(page.locator('.single-hero .entry-meta time')).toHaveAttribute('datetime', /^\d{4}-\d{2}-\d{2}T/);
 
   const sitemap = await request.get(`${baseURL}/news-sitemap.xml`);
   expect(sitemap.ok()).toBeTruthy();

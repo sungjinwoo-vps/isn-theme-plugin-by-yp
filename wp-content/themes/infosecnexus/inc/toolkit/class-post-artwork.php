@@ -13,13 +13,15 @@ namespace InfoSecNexus\Theme\Toolkit;
  * Download licensed editorial photography, optimize it to WebP, and attach it.
  */
 final class Post_Artwork {
-	private const VERSION              = '8';
-	private const BACKFILL_HOOK        = 'infosecnexus_backfill_post_artwork';
-	private const BACKFILL_OPTION      = 'infosecnexus_post_artwork_backfill_version';
-	private const GENERATED_META       = '_infosecnexus_generated_artwork';
-	private const ATTACHMENT_POST_META = '_infosecnexus_artwork_post_id';
+	private const VERSION                = '8';
+	private const BACKFILL_HOOK          = 'infosecnexus_backfill_post_artwork';
+	private const BACKFILL_OPTION        = 'infosecnexus_post_artwork_backfill_version';
+	private const GENERATED_META         = '_infosecnexus_generated_artwork';
+	private const ATTACHMENT_POST_META   = '_infosecnexus_artwork_post_id';
 	private const ATTACHMENT_SOURCE_META = '_infosecnexus_artwork_source';
-	private const BATCH_SIZE           = 6;
+	private const RETIREMENT_STATE_META  = '_infosecnexus_retirement_state';
+	private const SUPERSEDED_BY_META     = '_infosecnexus_newsroom_superseded_by';
+	private const BATCH_SIZE             = 6;
 
 	/**
 	 * Post IDs queued for one cache purge at request shutdown.
@@ -153,16 +155,21 @@ final class Post_Artwork {
 		if ( $thumbnail_id > 0 && '' === $generated ) {
 			return $thumbnail_id;
 		}
-		if ( $thumbnail_id > 0 && str_starts_with( $generated, self::VERSION . ':' ) ) {
-			$thumbnail_path = get_attached_file( $thumbnail_id );
-			if ( is_string( $thumbnail_path ) && file_exists( $thumbnail_path ) ) {
-				return $thumbnail_id;
-			}
-		}
 
 		$post = get_post( $post_id );
 		if ( ! $post instanceof \WP_Post || 'post' !== $post->post_type || ! self::supported() ) {
 			return 0;
+		}
+
+		if ( $thumbnail_id > 0 && str_starts_with( $generated, self::VERSION . ':' ) ) {
+			$thumbnail_path = get_attached_file( $thumbnail_id );
+			if (
+				is_string( $thumbnail_path )
+				&& file_exists( $thumbnail_path )
+				&& ! self::preferred_artwork_needs_refresh( $post, $thumbnail_id )
+			) {
+				return $thumbnail_id;
+			}
 		}
 
 		$upload = wp_upload_dir();
@@ -260,6 +267,27 @@ final class Post_Artwork {
 		}
 
 		return $attachment_id;
+	}
+
+	/**
+	 * Refresh a rolling post when an inactive legacy post blocked its preferred photo.
+	 *
+	 * @param \WP_Post $post         Rolling post.
+	 * @param int      $thumbnail_id Current featured-image attachment ID.
+	 * @return bool
+	 */
+	private static function preferred_artwork_needs_refresh( \WP_Post $post, int $thumbnail_id ): bool {
+		if ( 'rolling' !== (string) get_post_meta( $post->ID, '_infosecnexus_newsroom_kind', true ) ) {
+			return false;
+		}
+
+		$preferred = self::preferred_photo_ids( 'cybersecurity', strtolower( $post->post_title ) );
+		$expected  = (string) ( $preferred[0] ?? '' );
+		$current   = (string) get_post_meta( $thumbnail_id, self::ATTACHMENT_SOURCE_META, true );
+
+		return '' !== $expected
+			&& $expected !== $current
+			&& ! self::photo_in_use( $expected, $post->ID );
 	}
 
 	/**
@@ -672,7 +700,7 @@ final class Post_Artwork {
 	}
 
 	/**
-	 * Check whether another published post already uses a source photo.
+	 * Check whether another active public post already uses a source photo.
 	 */
 	private static function photo_in_use( string $source_id, int $post_id ): bool {
 		$attachments = get_posts(
@@ -689,12 +717,31 @@ final class Post_Artwork {
 
 		foreach ( $attachments as $attachment ) {
 			$parent_id = $attachment instanceof \WP_Post ? (int) $attachment->post_parent : 0;
-			if ( $parent_id > 0 && 'publish' === get_post_status( $parent_id ) ) {
+			if ( $parent_id > 0 && self::post_reserves_photo( $parent_id ) ) {
 				return true;
 			}
 		}
 
 		return false;
+	}
+
+	/**
+	 * Retired and superseded posts remain published for crawler responses, but
+	 * must not reserve editorial photography from current reader-facing posts.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return bool
+	 */
+	private static function post_reserves_photo( int $post_id ): bool {
+		if ( 'publish' !== get_post_status( $post_id ) ) {
+			return false;
+		}
+
+		if ( 'staged' === (string) get_post_meta( $post_id, self::RETIREMENT_STATE_META, true ) ) {
+			return false;
+		}
+
+		return (int) get_post_meta( $post_id, self::SUPERSEDED_BY_META, true ) <= 0;
 	}
 
 	/**
