@@ -128,8 +128,14 @@ final class Related_Posts {
 	 */
 	private static function render_meta( int $post_id ): void {
 		$author_id = (int) get_post_field( 'post_author', $post_id );
+		$date      = function_exists( '\\InfoSecNexus\\Theme\\Template_Tags\\post_date_data' )
+			? \InfoSecNexus\Theme\Template_Tags\post_date_data( $post_id )
+			: array(
+				'datetime' => (string) get_the_date( DATE_W3C, $post_id ),
+				'label'    => (string) get_the_date( '', $post_id ),
+			);
 		echo '<div class="entry-meta">';
-		echo '<span>' . esc_html( get_the_date( '', $post_id ) ) . '</span>';
+		echo '<time datetime="' . esc_attr( $date['datetime'] ) . '">' . esc_html( $date['label'] ) . '</time>';
 		echo '<span>' . esc_html( get_the_author_meta( 'display_name', $author_id ) ) . '</span>';
 		/* translators: %d: estimated reading time in minutes. */
 		echo '<span>' . esc_html( sprintf( _n( '%d min read', '%d min read', self::reading_time( $post_id ), 'infosecnexus' ), self::reading_time( $post_id ) ) ) . '</span>';

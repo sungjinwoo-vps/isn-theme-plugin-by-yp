@@ -29,6 +29,7 @@ $post_card_data = static function ( \WP_Post $post, string $severity = '', strin
 	$category    = ! empty( $categories ) ? $categories[0]->name : __( 'Cyber Security', 'infosecnexus' );
 	$full_title  = get_the_title( $post );
 	$raw_excerpt = has_excerpt( $post->ID ) ? get_the_excerpt( $post ) : wp_strip_all_tags( (string) $post->post_content );
+	$date        = \InfoSecNexus\Theme\Template_Tags\post_date_data( (int) $post->ID );
 
 	return array(
 		'post_id'    => (int) $post->ID,
@@ -38,7 +39,7 @@ $post_card_data = static function ( \WP_Post $post, string $severity = '', strin
 		'category'   => $category,
 		'image'      => $fallback_image,
 		'url'        => get_permalink( $post ),
-		'date'       => get_the_date( '', $post ),
+		'date'       => $date['label'],
 		'read'       => sprintf(
 			/* translators: %d: reading time in minutes. */
 			_n( '%d min read', '%d min read', \InfoSecNexus\Theme\Template_Tags\reading_time( (int) $post->ID ), 'infosecnexus' ),

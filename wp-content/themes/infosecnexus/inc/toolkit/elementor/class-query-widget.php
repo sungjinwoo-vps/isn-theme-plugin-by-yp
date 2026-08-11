@@ -100,12 +100,18 @@ abstract class Query_Widget extends Widget_Base {
 		echo '<div class="isnx-widget-grid">';
 		while ( $query->have_posts() ) {
 			$query->the_post();
+			$date = function_exists( '\\InfoSecNexus\\Theme\\Template_Tags\\post_date_data' )
+				? \InfoSecNexus\Theme\Template_Tags\post_date_data( (int) get_the_ID() )
+				: array(
+					'datetime' => (string) get_the_date( DATE_W3C ),
+					'label'    => (string) get_the_date(),
+				);
 			echo '<article class="isnx-widget-card">';
 			if ( has_post_thumbnail() ) {
 				echo '<a class="isnx-widget-card__image" href="' . esc_url( get_permalink() ) . '">' . get_the_post_thumbnail( get_the_ID(), 'medium_large', array( 'loading' => 'lazy', 'decoding' => 'async', 'sizes' => '(max-width: 760px) calc(100vw - 32px), 360px' ) ) . '</a>';
 			}
 			echo '<h3><a href="' . esc_url( get_permalink() ) . '">' . esc_html( get_the_title() ) . '</a></h3>';
-			echo '<time datetime="' . esc_attr( get_the_date( DATE_W3C ) ) . '">' . esc_html( get_the_date() ) . '</time>';
+			echo '<time datetime="' . esc_attr( $date['datetime'] ) . '">' . esc_html( $date['label'] ) . '</time>';
 			echo '</article>';
 		}
 		wp_reset_postdata();

@@ -32,6 +32,18 @@ test('homepage uses one permanent live brief without repeating it in the latest 
   expect(await sitemap.text()).not.toContain('/live-cybersecurity-brief/');
 });
 
+test('rolling brief uses its updated date throughout archive surfaces', async ({ page }) => {
+  await page.goto(`${baseURL}/category/cybersecurity/`, { waitUntil: 'networkidle' });
+
+  const rollingCard = page.locator('.post-card').filter({ has: page.locator('a[href$="/live-cybersecurity-brief/"]') }).first();
+  await expect(rollingCard.locator('.entry-meta time')).toContainText('Updated');
+  await expect(rollingCard.locator('.entry-meta time')).toHaveAttribute('datetime', /^\d{4}-\d{2}-\d{2}T/);
+
+  const latestItem = page.locator('.sidebar-post-list li').filter({ has: page.locator('a[href$="/live-cybersecurity-brief/"]') });
+  await expect(latestItem.locator('time')).toContainText('Updated');
+  await expect(latestItem.locator('time')).toHaveAttribute('datetime', /^\d{4}-\d{2}-\d{2}T/);
+});
+
 test('different homepage posts use distinct generated artwork', async ({ page, request }) => {
   await page.goto(baseURL, { waitUntil: 'networkidle' });
 

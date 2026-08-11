@@ -28,6 +28,22 @@ function Get-FileVersion {
     return $match.Groups[1].Value.Trim()
 }
 
+function Get-ChangelogEntry {
+    param(
+        [string]$Path,
+        [string]$Version
+    )
+
+    $text = Get-Content -LiteralPath $Path -Raw
+    $pattern = "(?ms)^=\s*" + [regex]::Escape($Version) + "\s*=\s*\r?\n(?<entry>.+?)(?=\r?\n=|\z)"
+    $match = [regex]::Match($text, $pattern)
+    if (-not $match.Success) {
+        throw "Unable to find changelog for version $Version in $Path"
+    }
+
+    return ($match.Groups["entry"].Value.Trim() -replace '\s+', ' ')
+}
+
 if ([string]::IsNullOrWhiteSpace($ThemeVersion)) {
     $ThemeVersion = Get-FileVersion -Path (Join-Path $repoRoot "wp-content/themes/infosecnexus/style.css") -Pattern 'Version:\s*([^\r\n]+)'
 }
@@ -35,6 +51,9 @@ if ([string]::IsNullOrWhiteSpace($ThemeVersion)) {
 if ([string]::IsNullOrWhiteSpace($ToolkitVersion)) {
     $ToolkitVersion = Get-FileVersion -Path (Join-Path $repoRoot "wp-content/plugins/infosecnexus-toolkit/infosecnexus-toolkit.php") -Pattern 'Version:\s*([^\r\n]+)'
 }
+
+$themeChangelog = Get-ChangelogEntry -Path (Join-Path $repoRoot "wp-content/themes/infosecnexus/readme.txt") -Version $ThemeVersion
+$toolkitChangelog = Get-ChangelogEntry -Path (Join-Path $repoRoot "wp-content/plugins/infosecnexus-toolkit/readme.txt") -Version $ToolkitVersion
 
 function New-CleanZip {
     param(
@@ -104,7 +123,7 @@ $releaseManifest = @{
         last_updated = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd")
         sections = @{
             description = "Cybersecurity newsroom theme for InfoSecNexus."
-            changelog = "Shows the permanent rolling brief's modified date and restores its preferred topic-matched editorial artwork."
+            changelog = $themeChangelog
         }
     }
     plugin = @{
@@ -119,7 +138,7 @@ $releaseManifest = @{
         last_updated = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd")
         sections = @{
             description = "Legacy bridge for older InfoSecNexus installs. Current toolkit features are bundled into the InfoSecNexus theme."
-            changelog = "Keeps the optional legacy bridge aligned with the theme rolling-date and preferred-artwork correction release."
+            changelog = $toolkitChangelog
         }
     }
 }

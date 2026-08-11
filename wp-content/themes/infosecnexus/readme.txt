@@ -3,7 +3,7 @@ Contributors: infosecnexus
 Requires at least: 6.5
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.1.44
+Stable tag: 0.1.45
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,6 +25,9 @@ InfoSecNexus WordPress Theme, Copyright 2026 InfoSecNexus.
 InfoSecNexus is distributed under the terms of the GNU GPL.
 
 == Changelog ==
+
+= 0.1.45 =
+Uses the permanent rolling brief's modified date consistently in archive cards, curated sidebars, homepage data, related briefings, and Elementor query cards.
 
 = 0.1.44 =
 Shows the permanent rolling brief's modified date as an explicit update and reclaims its preferred topic-matched artwork from staged or superseded legacy posts.

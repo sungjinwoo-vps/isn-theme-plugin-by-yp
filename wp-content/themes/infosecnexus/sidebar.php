@@ -29,10 +29,11 @@ if ( is_home() || is_archive() || is_search() ) {
 					<?php
 					while ( $infosecnexus_latest->have_posts() ) :
 						$infosecnexus_latest->the_post();
+						$infosecnexus_date = \InfoSecNexus\Theme\Template_Tags\post_date_data( (int) get_the_ID() );
 						?>
 						<li>
 							<a href="<?php the_permalink(); ?>"><?php the_title(); ?></a>
-							<span><?php echo esc_html( get_the_date() ); ?></span>
+							<span><time datetime="<?php echo esc_attr( $infosecnexus_date['datetime'] ); ?>"><?php echo esc_html( $infosecnexus_date['label'] ); ?></time></span>
 						</li>
 					<?php endwhile; ?>
 				</ul>
