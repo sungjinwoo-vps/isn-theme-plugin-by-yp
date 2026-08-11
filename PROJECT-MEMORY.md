@@ -757,6 +757,20 @@ all 11 URLs in that preliminary list. Search Console showed all 11 requests as
 site-wide prefix; retain the crawlable `noindex` responses until permanent
 deindexing is confirmed.
 
+On 2026-08-11, Search Console showed all 11 exact requests as `Temporarily
+removed`. This is successful short-term suppression, not permanent deindexing;
+Google documents that temporary removals last about six months. The Page
+Indexing report separately showed six examples excluded by `noindex`, five
+examples reported as `404`, and six examples as crawled but currently not
+indexed. Representative live checks confirmed that staged inventory URLs still
+return exact `200` responses with `X-Robots-Tag: noindex, follow, noarchive`,
+while a sampled pre-inventory July 24 URL returns `404`. The root feed remains
+`200`, and the InfoSecNexus REST namespace returns `200` with `X-Robots-Tag:
+noindex`. These report groups are expected or stale crawl snapshots and do not
+require `Validate fix`. Do not finalize the 159-URL retirement batch until the
+indexed-URL export has been reconciled against the inventory and no staged URL
+is confirmed indexed.
+
 Production backups made before this migration are stored under
 `/home/infosecnexus/backups/newsroom-20260806T170923Z`. A separate pre-`0.1.40`
 theme archive is under
