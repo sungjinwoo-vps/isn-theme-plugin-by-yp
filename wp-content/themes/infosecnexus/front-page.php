@@ -155,8 +155,12 @@ $critical_posts = get_posts(
 	array(
 		'post_type'           => 'post',
 		'post_status'         => 'publish',
-		'posts_per_page'      => 5,
+		'posts_per_page'      => 10,
 		'ignore_sticky_posts' => true,
+		'orderby'             => array(
+			'date' => 'DESC',
+			'ID'   => 'DESC',
+		),
 		'meta_query'          => array(
 			array(
 				'key'   => '_infosecnexus_newsroom_kind',
@@ -166,15 +170,40 @@ $critical_posts = get_posts(
 	)
 );
 
+$unique_critical_posts = array();
+$critical_story_keys   = array();
+foreach ( $critical_posts as $critical_post ) {
+	$title_key = strtolower( trim( wp_strip_all_tags( get_the_title( $critical_post ) ) ) );
+	if ( preg_match( '/\bCVE-\d{4}-\d{4,}\b/i', $title_key, $cve_match ) ) {
+		$story_key = 'cve:' . strtolower( $cve_match[0] );
+	} else {
+		$story_key = sanitize_text_field( (string) get_post_meta( $critical_post->ID, '_infosecnexus_story_key', true ) );
+	}
+	if ( '' === $story_key ) {
+		$story_key = '' !== $title_key
+			? 'title:' . md5( preg_replace( '/\s+/', ' ', $title_key ) )
+			: 'post:' . (int) $critical_post->ID;
+	}
+	if ( isset( $critical_story_keys[ $story_key ] ) ) {
+		continue;
+	}
+	$critical_story_keys[ $story_key ] = true;
+	$unique_critical_posts[]           = $critical_post;
+	if ( count( $unique_critical_posts ) >= 5 ) {
+		break;
+	}
+}
+$critical_posts = $unique_critical_posts;
+
 if ( ! empty( $critical_posts ) ) {
 	$cves = array();
 	foreach ( $critical_posts as $critical_post ) {
 		$critical_title = get_the_title( $critical_post );
-		$match  = array();
-		$label  = preg_match( '/CVE-\d{4}-\d+/i', $critical_title, $match ) ? strtoupper( $match[0] ) : wp_trim_words( $critical_title, 3, '' );
+		$match          = array();
+		$label          = preg_match( '/CVE-\d{4}-\d+/i', $critical_title, $match ) ? strtoupper( $match[0] ) : wp_trim_words( $critical_title, 3, '' );
 		$severity = $normalize_severity( sanitize_text_field( (string) get_post_meta( $critical_post->ID, '_infosecnexus_live_severity', true ) ) );
-		$score    = get_post_meta( $critical_post->ID, '_infosecnexus_live_score', true );
-		$cves[] = array(
+		$score          = get_post_meta( $critical_post->ID, '_infosecnexus_live_score', true );
+		$cves[]         = array(
 			'id'       => $label,
 			'name'     => wp_trim_words( $critical_title, 8, '' ),
 			'severity' => $severity,
@@ -187,24 +216,9 @@ if ( ! empty( $critical_posts ) ) {
 	$side_stories[0]   = $post_card_data( $critical_posts[0], $priority_severity, 'lock-chip.png' );
 }
 
-$secondary_breaking_posts = get_posts(
-	array(
-		'post_type'           => 'post',
-		'post_status'         => 'publish',
-		'posts_per_page'      => 2,
-		'ignore_sticky_posts' => true,
-		'meta_query'          => array(
-			array(
-				'key'   => '_infosecnexus_newsroom_kind',
-				'value' => 'breaking',
-			),
-		),
-	)
-);
-
-if ( count( $secondary_breaking_posts ) > 1 ) {
-	$secondary_severity = $normalize_severity( sanitize_text_field( (string) get_post_meta( $secondary_breaking_posts[1]->ID, '_infosecnexus_live_severity', true ) ) );
-	$side_stories[1]    = $post_card_data( $secondary_breaking_posts[1], $secondary_severity, 'linux-circuit.png' );
+if ( count( $critical_posts ) > 1 ) {
+	$secondary_severity = $normalize_severity( sanitize_text_field( (string) get_post_meta( $critical_posts[1]->ID, '_infosecnexus_live_severity', true ) ) );
+	$side_stories[1]    = $post_card_data( $critical_posts[1], $secondary_severity, 'linux-circuit.png' );
 }
 
 $featured_post_ids = array_values(
@@ -212,7 +226,7 @@ $featured_post_ids = array_values(
 		array_filter(
 			array_merge(
 				array( $hero_post_id ),
-				array_map( static fn( \WP_Post $post ): int => (int) $post->ID, $secondary_breaking_posts )
+				array_map( static fn( \WP_Post $post ): int => (int) $post->ID, array_slice( $critical_posts, 0, 2 ) )
 			)
 		)
 	)

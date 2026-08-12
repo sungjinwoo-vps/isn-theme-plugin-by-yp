@@ -13,7 +13,7 @@ namespace InfoSecNexus\Theme\Toolkit;
  * Download licensed editorial photography, optimize it to WebP, and attach it.
  */
 final class Post_Artwork {
-	private const VERSION                = '8';
+	private const VERSION                = '9';
 	private const BACKFILL_HOOK          = 'infosecnexus_backfill_post_artwork';
 	private const BACKFILL_OPTION        = 'infosecnexus_post_artwork_backfill_version';
 	private const GENERATED_META         = '_infosecnexus_generated_artwork';
@@ -270,20 +270,35 @@ final class Post_Artwork {
 	}
 
 	/**
-	 * Refresh a rolling post when an inactive legacy post blocked its preferred photo.
+	 * Refresh generated artwork when a stronger title-specific photo is available.
 	 *
-	 * @param \WP_Post $post         Rolling post.
+	 * @param \WP_Post $post         Post being checked.
 	 * @param int      $thumbnail_id Current featured-image attachment ID.
 	 * @return bool
 	 */
 	private static function preferred_artwork_needs_refresh( \WP_Post $post, int $thumbnail_id ): bool {
-		if ( 'rolling' !== (string) get_post_meta( $post->ID, '_infosecnexus_newsroom_kind', true ) ) {
-			return false;
+		$title      = strtolower( $post->post_title );
+		$current    = (string) get_post_meta( $thumbnail_id, self::ATTACHMENT_SOURCE_META, true );
+		$categories = array(
+			'windows-security',
+			'network-security',
+			'linux-administration',
+			'devops',
+			'artificial-intelligence',
+			'cloud-security',
+			'web-security',
+			'critical-cves',
+			'tutorials',
+			'cybersecurity',
+		);
+		$expected   = '';
+		foreach ( $categories as $category ) {
+			$preferred = self::preferred_photo_ids( $category, $title );
+			if ( ! empty( $preferred[0] ) ) {
+				$expected = (string) $preferred[0];
+				break;
+			}
 		}
-
-		$preferred = self::preferred_photo_ids( 'cybersecurity', strtolower( $post->post_title ) );
-		$expected  = (string) ( $preferred[0] ?? '' );
-		$current   = (string) get_post_meta( $thumbnail_id, self::ATTACHMENT_SOURCE_META, true );
 
 		return '' !== $expected
 			&& $expected !== $current
@@ -302,25 +317,46 @@ final class Post_Artwork {
 				'post_type'      => 'post',
 				'post_status'    => 'publish',
 				'posts_per_page' => max( 1, $limit ),
-				'orderby'        => 'date',
-				'order'          => 'DESC',
+				'orderby'        => array(
+					'date' => 'DESC',
+					'ID'   => 'DESC',
+				),
 				'fields'         => 'ids',
 				'no_found_rows'  => true,
 				'meta_query'     => array(
-					'relation' => 'OR',
+					'relation' => 'AND',
 					array(
-						'key'     => '_thumbnail_id',
+						'relation' => 'OR',
+						array(
+							'key'     => self::RETIREMENT_STATE_META,
+							'compare' => 'NOT EXISTS',
+						),
+						array(
+							'key'     => self::RETIREMENT_STATE_META,
+							'value'   => 'staged',
+							'compare' => '!=',
+						),
+					),
+					array(
+						'key'     => self::SUPERSEDED_BY_META,
 						'compare' => 'NOT EXISTS',
 					),
 					array(
-						'key'     => '_thumbnail_id',
-						'value'   => '0',
-						'compare' => '=',
-					),
-					array(
-						'key'     => self::GENERATED_META,
-						'value'   => self::VERSION . ':',
-						'compare' => 'NOT LIKE',
+						'relation' => 'OR',
+						array(
+							'key'     => '_thumbnail_id',
+							'compare' => 'NOT EXISTS',
+						),
+						array(
+							'key'     => '_thumbnail_id',
+							'value'   => '0',
+							'compare' => '=',
+						),
+						array(
+							'key'     => self::GENERATED_META,
+							'value'   => self::VERSION . ':',
+							'compare' => 'NOT LIKE',
+						),
 					),
 				),
 			)
@@ -339,6 +375,7 @@ final class Post_Artwork {
 	/**
 	 * Pick an unused real photo that fits the article topic.
 	 *
+	 * @param \WP_Post $post Post needing artwork.
 	 * @return array<string,string>
 	 */
 	private static function select_photo( \WP_Post $post ): array {
@@ -361,7 +398,7 @@ final class Post_Artwork {
 		);
 
 		$keyword_pools = array(
-			'windows-security'        => array( 'windows', 'microsoft', 'sharepoint', 'exchange', 'active directory', 'vmswitch' ),
+			'windows-security'        => array( 'windows', 'microsoft', 'winsock', 'ancillary function driver', 'sharepoint', 'exchange', 'active directory', 'vmswitch' ),
 			'linux-administration'    => array( 'linux', 'ubuntu', 'kernel', 'gnu', 'inetutils', 'snap-confine' ),
 			'artificial-intelligence' => array( ' ai ', 'agent', 'model', 'prompt', 'langflow', 'openai', 'hugging face' ),
 			'network-security'        => array( 'network', 'router', 'firewall', 'vpn', 'edge device', 'dns', 'fortinet', 'cisco', 'check point', 'd-link' ),
@@ -375,12 +412,17 @@ final class Post_Artwork {
 		if ( 'rolling' === $newsroom_kind ) {
 			$category = 'cybersecurity';
 		} elseif ( 'breaking' === $newsroom_kind || '' === $category || 'cybersecurity' === $category ) {
-			$padded_context = ' ' . $context . ' ';
-			foreach ( $keyword_pools as $pool => $keywords ) {
-				foreach ( $keywords as $keyword ) {
-					if ( false !== strpos( $padded_context, $keyword ) ) {
-						$category = $pool;
-						break 2;
+			$keyword_contexts = array(
+				' ' . strtolower( $post->post_title ) . ' ',
+				' ' . $context . ' ',
+			);
+			foreach ( $keyword_contexts as $keyword_context ) {
+				foreach ( $keyword_pools as $pool => $keywords ) {
+					foreach ( $keywords as $keyword ) {
+						if ( false !== strpos( $keyword_context, $keyword ) ) {
+							$category = $pool;
+							break 3;
+						}
 					}
 				}
 			}
@@ -449,6 +491,8 @@ final class Post_Artwork {
 	/**
 	 * Reserve strong title-to-photo matches before generic daily posts are migrated.
 	 *
+	 * @param string $category Selected topic pool.
+	 * @param string $title    Lowercase post title.
 	 * @return string[]
 	 */
 	private static function preferred_photo_ids( string $category, string $title ): array {
@@ -460,8 +504,8 @@ final class Post_Artwork {
 				'exploitability signals' => '9SoCnyQmkzI',
 			),
 			'cybersecurity' => array(
-				'live cybersecurity brief'      => 'Bd7gNnWJBkU',
-				'live cybersecurity news brief' => 'Bd7gNnWJBkU',
+				'live cybersecurity brief'      => 'commons:cyber-shield-9107702',
+				'live cybersecurity news brief' => 'commons:cyber-shield-9107702',
 				'security operations metrics' => 'Fa9b57hffnM',
 				'phishing defense'            => 'LPZy4da9aRo',
 				'threat intelligence triage'  => '0aRycsfH57A',
@@ -496,12 +540,18 @@ final class Post_Artwork {
 				'cloud logging baseline'  => '2JJ3wBHu4_0',
 			),
 			'windows-security' => array(
+				'ancillary function driver' => '-jCY4oEMA3o',
+				'winsock'                   => '-jCY4oEMA3o',
+				'microsoft windows'         => '-jCY4oEMA3o',
 				'live windows security brief' => 'commons:windows-bsod-dell',
-				'windows endpoint hardening' => 'hcjoTJMWCzs',
+				'windows endpoint hardening' => '-jCY4oEMA3o',
 				'active directory review'    => 'FlPc9_VocJ4',
 				'powershell logging'          => '-Z8cI1gs4zk',
 			),
 			'network-security' => array(
+				'cisco secure firewall'       => 'commons:cisco-asa-5510',
+				'cisco asa'                   => 'commons:cisco-asa-5510',
+				'secure firewall threat defense' => 'commons:cisco-asa-5510',
 				'network segmentation checks' => 'y4GHs9GEFdM',
 				'vpn access review'            => 'vE5AKQRUs7c',
 				'dns monitoring ideas'         => 'w0aMCZIW6Qc',
@@ -569,12 +619,18 @@ final class Post_Artwork {
 				'cloud storage exposure',
 				'cloud logging baseline',
 				'live windows security brief',
+				'ancillary function driver',
+				'winsock',
+				'microsoft windows',
 				'windows endpoint hardening',
 				'active directory review',
 				'powershell logging',
 				'network segmentation checks',
 				'vpn access review',
 				'dns monitoring ideas',
+				'cisco secure firewall',
+				'cisco asa',
+				'secure firewall threat defense',
 				'api authentication mistakes',
 				'web application security headers',
 				'login security checklist',
@@ -701,6 +757,10 @@ final class Post_Artwork {
 
 	/**
 	 * Check whether another active public post already uses a source photo.
+	 *
+	 * @param string $source_id Artwork source identifier.
+	 * @param int    $post_id   Post currently selecting artwork.
+	 * @return bool
 	 */
 	private static function photo_in_use( string $source_id, int $post_id ): bool {
 		$attachments = get_posts(
@@ -747,7 +807,9 @@ final class Post_Artwork {
 	/**
 	 * Download one source photo and create a consistently cropped local WebP.
 	 *
+	 * @param string               $path  Destination WebP path.
 	 * @param array<string,string> $photo Photo record.
+	 * @return bool
 	 */
 	private static function download_and_render_photo( string $path, array $photo ): bool {
 		require_once ABSPATH . 'wp-admin/includes/file.php';
@@ -901,6 +963,22 @@ final class Post_Artwork {
 			'creator'  => 'QueenBarenziah',
 			'license'  => 'CC BY-SA 4.0',
 		);
+		$cyber_shield = array(
+			'id'       => 'commons:cyber-shield-9107702',
+			'page'     => 'https://commons.wikimedia.org/wiki/File:900-plus_take_part_in_Virginia_Guard-hosted_exercise_Cyber_Shield_(9107702).jpg',
+			'download' => 'https://commons.wikimedia.org/wiki/Special:Redirect/file/900-plus_take_part_in_Virginia_Guard-hosted_exercise_Cyber_Shield_(9107702).jpg?width=1600',
+			'provider' => 'Wikimedia Commons',
+			'creator'  => 'U.S. Army photo by Sgt. 1st Class Jon Soucy',
+			'license'  => 'Public domain',
+		);
+		$cisco_asa    = array(
+			'id'       => 'commons:cisco-asa-5510',
+			'page'     => 'https://commons.wikimedia.org/wiki/File:Cisco_ASA_5510.jpg',
+			'download' => 'https://commons.wikimedia.org/wiki/Special:Redirect/file/Cisco_ASA_5510.jpg?width=1600',
+			'provider' => 'Wikimedia Commons',
+			'creator'  => 'ShakataGaNai',
+			'license'  => 'CC BY-SA 3.0',
+		);
 
 		return array(
 			'critical-cves' => array(
@@ -915,6 +993,7 @@ final class Post_Artwork {
 				$photo( 'lD1nt9ePX0s' ),
 			),
 			'cybersecurity' => array(
+				$cyber_shield,
 				$photo( 'Bd7gNnWJBkU' ),
 				$photo( 'Fa9b57hffnM' ),
 				$photo( 'LPZy4da9aRo' ),
@@ -973,11 +1052,10 @@ final class Post_Artwork {
 				$photo( '-jCY4oEMA3o' ),
 				$photo( 'fvl0zO_q0_k' ),
 				$photo( 'FlPc9_VocJ4' ),
-				$photo( 'hcjoTJMWCzs' ),
 				$photo( '-Z8cI1gs4zk' ),
-				$photo( '1H0zGBPOiDY' ),
 			),
 			'network-security' => array(
+				$cisco_asa,
 				$photo( 'w0aMCZIW6Qc' ),
 				$photo( 'KzUCuqTTAVw' ),
 				$photo( 'oZgzVU_B3sE' ),
