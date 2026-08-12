@@ -4,7 +4,7 @@
 > project. Then run the startup checklist in the next section. This is the
 > authoritative continuity handoff for the current project state.
 
-Last updated: 2026-08-11 (Asia/Kolkata)
+Last updated: 2026-08-12 (Asia/Kolkata)
 
 ## 1. Current Snapshot
 
@@ -14,9 +14,9 @@ Last updated: 2026-08-11 (Asia/Kolkata)
 - Main release branch: `stable`
 - Repository visibility: public, which permits unauthenticated WordPress update
   downloads. Moving it to private requires an authenticated update service.
-- Current theme version: `0.1.45`
-- Current known release: `auto-v0.1.45`
-- Current known code commit: `bea9c22` (`Fix rolling dates across archive surfaces`)
+- Current theme version: `0.1.47`
+- Current known release: `auto-v0.1.47`
+- Current known code commit: `004b24c` (`Fix bundled advisory product classification`)
 - WordPress was running version 7.0.3 at this checkpoint.
 - The live site is theme-first. The InfoSecNexus Toolkit features are bundled
   into the theme and the separate toolkit plugin is not required on this site.
@@ -861,6 +861,40 @@ of 16 live Playwright tests. The anonymous homepage contained theme assets
 versioned `0.1.44`, the new rolling artwork, zero dated rolling links, and zero
 legacy daily links; a historical rolling URL returned `301`, while a sampled
 staged URL remained `200` with `X-Robots-Tag: noindex, follow, noarchive`.
+
+Release `0.1.46` repaired the active newsroom's product artwork mappings. The
+permanent rolling brief (post `1169`) uses cyber-operations photography from
+curated source `commons:cyber-shield-9107702`; Cisco ASA post `1208` uses an
+actual Cisco ASA 5510 image from `commons:cisco-asa-5510`; and Microsoft WinSock
+post `1210` uses a Windows Update image from source `-jCY4oEMA3o`. The homepage
+also deduplicates breaking cards by story identity. The release artifact SHA-256
+was `105a3a56bd56fb1f21fefca83cb233716db6449b17f7340af1b1f3a1c6777aad`.
+
+Release `0.1.47` fixed bundled multi-CVE source descriptions contaminating a
+post's taxonomy and guidance. Classification now uses the advisory subject
+fields rather than unrelated text elsewhere in a source bundle, focused source
+records win description merges, and generic feed names are never presented as
+affected vendors. After the forced production refresh, Cisco post `1208` has
+only `critical-cves`, `cybersecurity`, and `network-security`, uses edge-appliance
+guidance, and retains `commons:cisco-asa-5510`. Microsoft post `1210` has only
+`critical-cves`, `cybersecurity`, and `windows-security`, uses Windows guidance,
+and retains `-jCY4oEMA3o`. The anonymous homepage shows distinct artwork for
+both posts and no MacBook image for the Microsoft advisory.
+
+The pre-`0.1.47` database and theme backup is stored under
+`/home/infosecnexus/backups/classification-release-20260812-201244`. The database
+export SHA-256 is `e1297a26d17906e6b58e0674a35c390e7d3f7f76e440dcdcbcbf075c37e1d04e`;
+the `0.1.46` theme archive SHA-256 is
+`44942930f9b095862c74d96273744eb5614711d52e059364b8beda3a7367744e`.
+
+Live verification for `0.1.47` included JavaScript and CSS linting, an npm audit
+with zero vulnerabilities, production PHP 8.4 syntax checks, focused PHPStan,
+a targeted bundled-advisory classifier regression, exact server-side post and
+artwork audits, anonymous header and HTML checks, desktop/mobile visual review,
+and all 18 Playwright tests. The release theme ZIP SHA-256 is
+`1127ba49f54f310189c8b94cc97b7e71a72f51a71628951342c1af59179d794f`.
+The public site returned `200`, served assets versioned `0.1.47`, and retained
+its security headers after cache purge.
 
 ## 19. Definition Of Done
 
