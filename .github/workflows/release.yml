@@ -41,6 +41,7 @@ jobs:
           $version = $env:RELEASE_VERSION
           $manifestUrl = $env:RELEASE_MANIFEST_URL
 
+          # The theme and legacy compatibility plugin are versioned independently.
           $files = @{
             "wp-content/themes/infosecnexus/style.css" = @(
               @{ Pattern = "Version:\s*[^\r\n]+"; Replacement = "Version: $version" }
@@ -49,13 +50,6 @@ jobs:
               @{ Pattern = "define\( 'INFOSECNEXUS_VERSION', '[^']+' \);"; Replacement = "define( 'INFOSECNEXUS_VERSION', '$version' );" }
             )
             "wp-content/themes/infosecnexus/readme.txt" = @(
-              @{ Pattern = "Stable tag:\s*[^\r\n]+"; Replacement = "Stable tag: $version" }
-            )
-            "wp-content/plugins/infosecnexus-toolkit/infosecnexus-toolkit.php" = @(
-              @{ Pattern = "Version:\s*[^\r\n]+"; Replacement = "Version: $version" },
-              @{ Pattern = "define\( 'INFOSECNEXUS_TOOLKIT_VERSION', '[^']+' \);"; Replacement = "define( 'INFOSECNEXUS_TOOLKIT_VERSION', '$version' );" }
-            )
-            "wp-content/plugins/infosecnexus-toolkit/readme.txt" = @(
               @{ Pattern = "Stable tag:\s*[^\r\n]+"; Replacement = "Stable tag: $version" }
             )
             "wp-content/themes/infosecnexus/inc/updater.php" = @(
