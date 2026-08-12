@@ -3,7 +3,7 @@ Contributors: infosecnexus
 Requires at least: 6.5
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.1.46
+Stable tag: 0.1.47
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,6 +25,9 @@ InfoSecNexus WordPress Theme, Copyright 2026 InfoSecNexus.
 InfoSecNexus is distributed under the terms of the GNU GPL.
 
 == Changelog ==
+
+= 0.1.47 =
+Keeps bundled multi-CVE advisory text from leaking unrelated product categories or guidance into breaking posts, repairs active post taxonomy and copy, and preserves product-aware artwork.
 
 = 0.1.46 =
 Assigns product-aware Windows and Cisco artwork, replaces the rolling brief's generic laptop image with real cyber-operations photography, migrates active generated images, and prevents duplicate breaking cards on the homepage.

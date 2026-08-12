@@ -25,7 +25,7 @@ final class Live_Intelligence {
 	private const GENERAL_SOURCE_TTL = 30 * MINUTE_IN_SECONDS;
 	private const LOOKBACK_DAYS = 7;
 	private const MAX_ITEMS = 220;
-	private const CONTENT_SCHEMA_VERSION = '10';
+	private const CONTENT_SCHEMA_VERSION = '11';
 
 	/**
 	 * Hide retired generator notes immediately while the database migration runs.
@@ -526,8 +526,7 @@ final class Live_Intelligence {
 	 * @param array<string,mixed> $item Breaking source item.
 	 */
 	private static function render_breaking_article( string $date, array $item ): string {
-		$subject = trim( implode( ' ', array_filter( array( (string) ( $item['vendor'] ?? '' ), (string) ( $item['product'] ?? '' ) ) ) ) );
-		$subject = '' !== $subject ? $subject : (string) ( $item['cve'] ?? 'the affected technology' );
+		$subject = self::affected_subject( $item, 'the affected technology' );
 		$label   = self::category_label_for_item( (array) ( $item['categories'] ?? array() ) );
 		$insight = self::item_insight( $item, $label, 0 );
 		$actions = self::operational_actions( $item );
@@ -683,8 +682,7 @@ final class Live_Intelligence {
 	 * @return string[]
 	 */
 	private static function validation_checks( array $item ): array {
-		$subject = trim( implode( ' ', array_filter( array( (string) ( $item['vendor'] ?? '' ), (string) ( $item['product'] ?? '' ) ) ) ) );
-		$subject = '' !== $subject ? $subject : 'the affected component';
+		$subject = self::affected_subject( $item, 'the affected component' );
 		return array(
 			'Confirm the installed and running version of ' . $subject . ' against the current vendor advisory.',
 			'Check whether the vulnerable interface is reachable from untrusted networks or lower-privileged identities.',
@@ -698,9 +696,15 @@ final class Live_Intelligence {
 	 */
 	private static function category_label_for_item( array $categories ): string {
 		$labels = array(
-			'critical-cves' => 'Critical CVE', 'linux-administration' => 'Linux Security', 'devops' => 'DevOps Security',
-			'artificial-intelligence' => 'AI Security', 'cloud-security' => 'Cloud Security', 'windows-security' => 'Windows Security',
-			'network-security' => 'Network Security', 'web-security' => 'Web Security', 'cybersecurity' => 'Cybersecurity',
+			'linux-administration'    => 'Linux Security',
+			'devops'                  => 'DevOps Security',
+			'artificial-intelligence' => 'AI Security',
+			'cloud-security'          => 'Cloud Security',
+			'windows-security'        => 'Windows Security',
+			'network-security'        => 'Network Security',
+			'web-security'            => 'Web Security',
+			'critical-cves'           => 'Critical CVE',
+			'cybersecurity'           => 'Cybersecurity',
 		);
 		foreach ( $labels as $slug => $label ) {
 			if ( in_array( $slug, $categories, true ) ) {
@@ -1259,13 +1263,27 @@ final class Live_Intelligence {
 			)
 		);
 
-		if ( strlen( (string) ( $secondary['description'] ?? '' ) ) > strlen( (string) ( $primary['description'] ?? '' ) ) ) {
-			$primary['description'] = $secondary['description'];
+		$left_description_quality  = self::description_quality( $left );
+		$right_description_quality = self::description_quality( $right );
+		if (
+			$right_description_quality > $left_description_quality
+			|| ( $right_description_quality === $left_description_quality && strlen( (string) ( $right['description'] ?? '' ) ) > strlen( (string) ( $left['description'] ?? '' ) ) )
+		) {
+			$primary['description'] = $right['description'] ?? '';
+		} else {
+			$primary['description'] = $left['description'] ?? '';
 		}
 		foreach ( array( 'cve', 'vendor', 'product', 'due_date', 'action' ) as $field ) {
 			if ( empty( $primary[ $field ] ) && ! empty( $secondary[ $field ] ) ) {
 				$primary[ $field ] = $secondary[ $field ];
 			}
+		}
+		if (
+			self::is_generic_source_name( (string) ( $primary['vendor'] ?? '' ) )
+			&& ! self::is_generic_source_name( (string) ( $secondary['vendor'] ?? '' ) )
+			&& '' !== trim( (string) ( $secondary['vendor'] ?? '' ) )
+		) {
+			$primary['vendor'] = $secondary['vendor'];
 		}
 		$cve = (string) ( $primary['cve'] ?? $secondary['cve'] ?? '' );
 		if (
@@ -1323,6 +1341,95 @@ final class Live_Intelligence {
 		$quality += 'vendor_advisory' === (string) ( $item['type'] ?? '' ) ? 20 : 0;
 		$quality += min( 20, (int) floor( strlen( (string) ( $item['description'] ?? '' ) ) / 80 ) );
 		return $quality;
+	}
+
+	/**
+	 * Prefer a focused record over a bundled advisory summary during a merge.
+	 *
+	 * @param array<string,mixed> $item Source item.
+	 */
+	private static function description_quality( array $item ): int {
+		$description = trim( (string) ( $item['description'] ?? '' ) );
+		if ( '' === $description ) {
+			return 0;
+		}
+
+		$quality     = min( 30, (int) floor( strlen( $description ) / 60 ) );
+		$cve_count   = preg_match_all( '/\bCVE-\d{4}-\d{4,}\b/i', $description, $cve_matches );
+		if ( false !== $cve_count && $cve_count > 1 ) {
+			$quality -= min( 60, ( $cve_count - 1 ) * 24 );
+		} else {
+			$quality += 20;
+		}
+
+		$cve = self::extract_primary_cve( $item );
+		if ( '' !== $cve && false !== stripos( (string) ( $item['title'] ?? '' ), $cve ) ) {
+			$quality += 18;
+		}
+		if ( 'cisa_kev' === (string) ( $item['source_key'] ?? '' ) ) {
+			$quality += 28;
+		}
+		if ( '' !== trim( (string) ( $item['product'] ?? '' ) ) ) {
+			$quality += 8;
+		}
+
+		return $quality;
+	}
+
+	/**
+	 * Detect feed labels that should not be presented as affected vendors.
+	 *
+	 * @param string $name Candidate vendor name.
+	 */
+	private static function is_generic_source_name( string $name ): bool {
+		return '' === trim( $name ) || 1 === preg_match( '/\b(cisa|cybersecurity advisories|nvd|national vulnerability database|github advisory database|security advisory feed)\b/i', $name );
+	}
+
+	/**
+	 * Return only fields that identify the advisory subject itself.
+	 *
+	 * @param array<string,mixed> $item Source item.
+	 */
+	private static function item_subject_text( array $item ): string {
+		return strtolower(
+			implode(
+				' ',
+				array(
+					(string) ( $item['title'] ?? '' ),
+					(string) ( $item['vendor'] ?? '' ),
+					(string) ( $item['product'] ?? '' ),
+				)
+			)
+		);
+	}
+
+	/**
+	 * Build a reader-facing affected product without leaking a feed name.
+	 *
+	 * @param array<string,mixed> $item     Source item.
+	 * @param string              $fallback Fallback subject.
+	 */
+	private static function affected_subject( array $item, string $fallback ): string {
+		$vendor  = trim( (string) ( $item['vendor'] ?? '' ) );
+		$product = trim( (string) ( $item['product'] ?? '' ) );
+		if ( '' !== $product ) {
+			if ( ! self::is_generic_source_name( $vendor ) && false === stripos( $product, $vendor ) ) {
+				return trim( $vendor . ' ' . $product );
+			}
+			return $product;
+		}
+		if ( ! self::is_generic_source_name( $vendor ) ) {
+			return $vendor;
+		}
+
+		$title = (string) preg_replace( '/^\s*CVE-\d{4}-\d{4,}\s*[:\-]?\s*/i', '', (string) ( $item['title'] ?? '' ) );
+		$title = wp_trim_words( $title, 18, '' );
+		if ( '' !== trim( $title ) ) {
+			return trim( $title );
+		}
+
+		$cve = trim( (string) ( $item['cve'] ?? '' ) );
+		return '' !== $cve ? $cve : $fallback;
 	}
 
 	/**
@@ -1384,26 +1491,15 @@ final class Live_Intelligence {
 	 * @return string[]
 	 */
 	private static function item_categories( array $item ): array {
-		$text       = strtolower(
-			implode(
-				' ',
-				array(
-					(string) ( $item['title'] ?? '' ),
-					(string) ( $item['description'] ?? '' ),
-					(string) ( $item['vendor'] ?? '' ),
-					(string) ( $item['product'] ?? '' ),
-					(string) ( $item['source'] ?? '' ),
-				)
-			)
-		);
+		$text       = self::item_subject_text( $item );
 		$categories = array( 'cybersecurity' );
 		$patterns   = array(
 			'linux-administration'   => '/\b(linux(?: kernel)?|kernel\.org|ubuntu|debian|red hat|rhel|gnu|systemd|snapd|snap-confine|sudo|openssh|telnetd)\b/i',
 			'devops'                 => '/\b(devops|github|gitlab|ci\/cd|pipeline|runner|docker|container|kubernetes|helm|jenkins|build|dependency|package|npm|pypi|maven|etcd|supply chain)\b/i',
 			'artificial-intelligence' => '/\b(ai|artificial intelligence|agent|agentic|llm|langflow|openai|hugging face|model|copilot|mcp|prompt|bedrock)\b/i',
 			'cloud-security'         => '/\b(cloud|aws|amazon web services|azure|google cloud|gcp|iam|kubernetes|container|tenant|service account)\b/i',
-			'windows-security'       => '/\b(microsoft|windows|active directory|ad fs|sharepoint|exchange|office|bitlocker|entra|vmswitch)\b/i',
-			'network-security'       => '/\b(router|firewall|vpn|sonicwall|fortinet|fortigate|dd-wrt|dns|network|switch|gateway|edge device|tcp|udp|ble|mesh)\b/i',
+			'windows-security'       => '/\b(microsoft|windows|active directory|ad fs|sharepoint|exchange|office|bitlocker|entra|vmswitch|winsock|ancillary function driver)\b/i',
+			'network-security'       => '/\b(router|firewall|secure firewall|adaptive security appliance|asa|ftd|vpn|cisco|sonicwall|fortinet|fortigate|dd-wrt|dns|network|switch|gateway|edge device|tcp|udp|ble|mesh)\b/i',
 			'web-security'           => '/\b(wordpress|web|browser|http|api|sql injection|xss|cross-site|csrf|ssrf|nginx|apache|php|codeigniter|elementor)\b/i',
 		);
 
@@ -1734,35 +1830,8 @@ final class Live_Intelligence {
 	 * @return array{why:string,verify:string}
 	 */
 	private static function item_insight( array $item, string $category_label, int $position ): array {
-		$subject = trim(
-			implode(
-				' ',
-				array_filter(
-					array(
-						(string) ( $item['vendor'] ?? '' ),
-						(string) ( $item['product'] ?? '' ),
-					)
-				)
-			)
-		);
-		if ( '' === $subject ) {
-			$subject = (string) ( $item['cve'] ?? '' );
-		}
-		if ( '' === $subject ) {
-			$subject = wp_trim_words( (string) ( $item['title'] ?? 'This update' ), 10, '' );
-		}
-
-		$text = strtolower(
-			implode(
-				' ',
-				array(
-					(string) ( $item['title'] ?? '' ),
-					(string) ( $item['description'] ?? '' ),
-					(string) ( $item['vendor'] ?? '' ),
-					(string) ( $item['product'] ?? '' ),
-				)
-			)
-		);
+		$subject = self::affected_subject( $item, 'This update' );
+		$text    = self::item_subject_text( $item );
 
 		$profiles = array(
 			array(
@@ -1771,12 +1840,12 @@ final class Live_Intelligence {
 				'verify'  => 'Record the exact WordPress core and extension versions, confirm whether the affected feature is enabled, review administrator accounts, and inspect web requests before and after the update.',
 			),
 			array(
-				'pattern' => '/\b(fortinet|fortios|fortigate|sonicwall|palo alto|firewall appliance)\b/i',
+				'pattern' => '/\b(cisco|asa|ftd|secure firewall|adaptive security appliance|fortinet|fortios|fortigate|sonicwall|palo alto|firewall appliance)\b/i',
 				'why'     => '%s commonly protects an internet edge or management boundary. Exposure there can affect remote access, traffic inspection, credentials, and the trust placed in downstream systems.',
 				'verify'  => 'Check the running firmware and model, restrict management access, compare configuration changes and new accounts, preserve independent logs, and rotate credentials if compromise cannot be excluded.',
 			),
 			array(
-				'pattern' => '/\b(sharepoint|active directory|ad fs|exchange|windows|vmswitch|microsoft 365|entra)\b/i',
+				'pattern' => '/\b(sharepoint|active directory|ad fs|exchange|windows|winsock|ancillary function driver|vmswitch|microsoft 365|entra)\b/i',
 				'why'     => '%s is likely connected to identity, collaboration, or privileged Windows workloads, where one exposed role can widen impact beyond a single endpoint.',
 				'verify'  => 'Map supported builds and server roles, prioritize public and identity systems, confirm the installed update plus restart state, and review authentication and EDR telemetry for abnormal activity.',
 			),

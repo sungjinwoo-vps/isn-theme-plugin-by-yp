@@ -169,9 +169,15 @@ test('published briefings hide internal notes and use topic-aware analysis', asy
 
   const article = page.locator('.single-entry').first();
   await expect(article).toBeVisible();
-  await expect(article).toContainText('Why it matters:');
-  await expect(article).toContainText('What to verify:');
+  await expect(article).toContainText(/Why this matters|Why it matters:/);
+  await expect(article).toContainText(/Detection and validation|What to verify:/);
   await expect(article).not.toContainText(/Live verification|Validation checklist|Accuracy and source notes|Generator note/i);
+
+  const postTitle = post.title?.rendered || '';
+  if (/Cisco|Secure Firewall|Adaptive Security Appliance|\bASA\b|\bFTD\b/i.test(postTitle)) {
+    await expect(article).toContainText(/internet edge|management boundary|traffic inspection/i);
+    await expect(article).not.toContainText(/identity, collaboration, or privileged Windows workloads/i);
+  }
 
   const featuredImage = article.locator('.single-hero__media img').first();
   await expect(featuredImage).toBeVisible();
