@@ -273,11 +273,13 @@ test('article content remains readable when JavaScript is unavailable', async ({
   await context.close();
 });
 
-test('axe smoke check has no serious violations', async ({ page }) => {
+test('axe smoke check has no serious or contrast violations', async ({ page }) => {
   await page.goto(baseURL, { waitUntil: 'networkidle' });
   const results = await new AxeBuilder({ page }).analyze();
-  const serious = results.violations.filter((violation) => ['serious', 'critical'].includes(violation.impact));
-  expect(serious).toEqual([]);
+  const actionable = results.violations.filter((violation) => (
+    ['serious', 'critical'].includes(violation.impact) || violation.id === 'color-contrast'
+  ));
+  expect(actionable).toEqual([]);
 });
 
 test('public forms use secure same-site handlers and anti-spam fields', async ({ page }) => {

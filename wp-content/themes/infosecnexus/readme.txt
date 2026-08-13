@@ -3,7 +3,7 @@ Contributors: infosecnexus
 Requires at least: 6.5
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.1.49
+Stable tag: 0.1.50
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,6 +25,9 @@ InfoSecNexus WordPress Theme, Copyright 2026 InfoSecNexus.
 InfoSecNexus is distributed under the terms of the GNU GPL.
 
 == Changelog ==
+
+= 0.1.50 =
+* Raised critical-label contrast to WCAG AA in the anime editorial palette.
 
 = 0.1.49 =
 Routes bundled-toolkit related briefings through the redesigned accessible whole-card component so article recommendations retain balanced image, title, metadata, and action proportions.
