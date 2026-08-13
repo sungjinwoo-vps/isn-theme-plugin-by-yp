@@ -276,6 +276,8 @@ function featured_video( ?int $post_id = null ): void {
 
 /**
  * Render native table of contents placeholder from post headings.
+ *
+ * @param string $content Post content.
  */
 function table_of_contents( string $content = '' ): void {
 	if ( '' === $content ) {

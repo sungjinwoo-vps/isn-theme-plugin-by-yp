@@ -126,6 +126,43 @@ test('archive cards are whole-link, responsive, and keyboard accessible', async 
   await expectNoHorizontalOverflow(page);
 });
 
+test('related briefings reuse the balanced whole-card component', async ({ page, request }, testInfo) => {
+  const response = await request.get(`${baseURL}/wp-json/wp/v2/posts?per_page=1&orderby=date&order=desc`);
+  expect(response.ok()).toBeTruthy();
+
+  const [post] = await response.json();
+  test.skip(!post, 'No public post is available for the related-briefings check.');
+  await page.goto(post.link, { waitUntil: 'networkidle' });
+
+  const cards = page.locator('.related-posts .post-card');
+  test.skip(await cards.count() === 0, 'The latest public post has no related briefings.');
+  await expect(page.locator('.related-posts .post-card__readmore')).toHaveCount(0);
+
+  for (const card of await cards.all()) {
+    const link = card.locator(':scope > a.post-card__link');
+    await expect(link).toHaveCount(1);
+    await expect(link.locator('.post-card__media img')).toBeVisible();
+    await expect(link.locator('.post-card__title')).toBeVisible();
+    await expect(link.locator('.post-card__excerpt')).toBeVisible();
+    await expect(link.locator('.post-card__cta')).toBeVisible();
+  }
+
+  if (testInfo.project.name === 'desktop') {
+    const geometry = await cards.evaluateAll((items) => items.map((item) => {
+      const cardRect = item.getBoundingClientRect();
+      const titleRect = item.querySelector('.post-card__title').getBoundingClientRect();
+      return {
+        height: Math.round(cardRect.height),
+        titleRatio: titleRect.width / cardRect.width
+      };
+    }));
+    expect(new Set(geometry.map(({ height }) => height)).size).toBe(1);
+    expect(geometry.every(({ titleRatio }) => titleRatio > 0.75)).toBeTruthy();
+  }
+
+  await expectNoHorizontalOverflow(page);
+});
+
 test('header controls are keyboard reachable', async ({ page }, testInfo) => {
   await page.goto(baseURL);
 
