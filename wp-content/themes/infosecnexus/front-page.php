@@ -9,8 +9,8 @@ declare(strict_types=1);
 
 get_header();
 
-$asset_image = static function ( string $file, array $attrs = array() ): void {
-	echo \InfoSecNexus\Theme\Template_Tags\asset_image( $file, $attrs ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+$asset_image = static function ( string $key, array $attrs = array() ): void {
+	echo \InfoSecNexus\Theme\Anime_Design\asset_image( $key, $attrs ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 };
 
 $post_url = static function ( string $slug, string $fallback ): string {
@@ -24,7 +24,7 @@ $linux_url    = \InfoSecNexus\Theme\Header_Builder\category_url( 'linux-administ
 $ai_url       = \InfoSecNexus\Theme\Header_Builder\category_url( 'artificial-intelligence' );
 $cloud_url    = \InfoSecNexus\Theme\Header_Builder\category_url( 'cloud-security' );
 
-$post_card_data = static function ( \WP_Post $post, string $severity = '', string $fallback_image = 'hero-shield.png' ): array {
+$post_card_data = static function ( \WP_Post $post, string $severity = '', string $fallback_image = 'hero' ): array {
 	$categories  = get_the_category( $post->ID );
 	$category    = ! empty( $categories ) ? $categories[0]->name : __( 'Cyber Security', 'infosecnexus' );
 	$full_title  = get_the_title( $post );
@@ -99,7 +99,7 @@ $latest_cards = array(
 		'title'    => __( 'Cybersecurity Operations and Threat Intelligence', 'infosecnexus' ),
 		'excerpt'  => __( 'Follow confirmed threats, active exploitation, defensive guidance, and response priorities.', 'infosecnexus' ),
 		'category' => __( 'Cyber Security', 'infosecnexus' ),
-		'image'    => 'hero-shield.png',
+		'image'    => 'hero',
 		'url'      => $cyber_url,
 		'date'     => __( 'Live desk', 'infosecnexus' ),
 		'read'     => __( 'Updated daily', 'infosecnexus' ),
@@ -108,7 +108,7 @@ $latest_cards = array(
 		'title'    => __( 'Cloud, Network, and Infrastructure Security', 'infosecnexus' ),
 		'excerpt'  => __( 'Review vendor advisories, exposed services, platform changes, and practical hardening steps.', 'infosecnexus' ),
 		'category' => __( 'Cloud Security', 'infosecnexus' ),
-		'image'    => 'cloud-security.png',
+		'image'    => 'cloud',
 		'url'      => $cloud_url,
 		'date'     => __( 'Live desk', 'infosecnexus' ),
 		'read'     => __( 'Updated daily', 'infosecnexus' ),
@@ -117,7 +117,7 @@ $latest_cards = array(
 		'title'    => __( 'AI, Application, and Software Supply Chain Risk', 'infosecnexus' ),
 		'excerpt'  => __( 'Track model, agent, application, dependency, and build-pipeline security developments.', 'infosecnexus' ),
 		'category' => __( 'AI Security', 'infosecnexus' ),
-		'image'    => 'data-center.png',
+		'image'    => 'ai',
 		'url'      => $ai_url,
 		'date'     => __( 'Live desk', 'infosecnexus' ),
 		'read'     => __( 'Updated daily', 'infosecnexus' ),
@@ -128,7 +128,7 @@ $side_stories = array(
 	array(
 		'title'    => __( 'CVE Triage Checklist for High-Risk Vulnerabilities', 'infosecnexus' ),
 		'excerpt'  => __( 'Rank exploited vulnerabilities by exposure, blast radius, and patch urgency.', 'infosecnexus' ),
-		'image'    => 'lock-chip.png',
+		'image'    => 'critical',
 		'url'      => $post_url( 'cve-triage-checklist-high-risk-vulnerabilities', $critical_url ),
 		'date'     => __( 'July 21, 2026', 'infosecnexus' ),
 		'severity' => 'Critical',
@@ -136,7 +136,7 @@ $side_stories = array(
 	array(
 		'title'    => __( 'Linux Kernel Patch Runbook for Production Servers', 'infosecnexus' ),
 		'excerpt'  => __( 'Plan reboot windows, module checks, validation, and visible exceptions.', 'infosecnexus' ),
-		'image'    => 'linux-circuit.png',
+		'image'    => 'linux',
 		'url'      => $post_url( 'linux-kernel-patch-runbook-production-servers', $linux_url ),
 		'date'     => __( 'July 21, 2026', 'infosecnexus' ),
 		'severity' => 'High',
@@ -144,11 +144,36 @@ $side_stories = array(
 );
 
 $cves = array(
-	array( 'id' => 'CVE Triage', 'name' => __( 'High-risk vulnerability review workflow', 'infosecnexus' ), 'severity' => 'Critical', 'score' => '9.8' ),
-	array( 'id' => 'Zero-Day', 'name' => __( 'First 24 hours response checklist', 'infosecnexus' ), 'severity' => 'High', 'score' => '8.6' ),
-	array( 'id' => 'Exploit Signals', 'name' => __( 'Early indicators before patch windows', 'infosecnexus' ), 'severity' => 'High', 'score' => '8.1' ),
-	array( 'id' => 'Patch Ops', 'name' => __( 'Owner, deadline, and verification tracking', 'infosecnexus' ), 'severity' => 'Medium', 'score' => '6.9' ),
-	array( 'id' => 'Exceptions', 'name' => __( 'Temporary mitigation review cadence', 'infosecnexus' ), 'severity' => 'Low', 'score' => '4.2' ),
+	array(
+		'id'       => 'CVE Triage',
+		'name'     => __( 'High-risk vulnerability review workflow', 'infosecnexus' ),
+		'severity' => 'Critical',
+		'score'    => '9.8',
+	),
+	array(
+		'id'       => 'Zero-Day',
+		'name'     => __( 'First 24 hours response checklist', 'infosecnexus' ),
+		'severity' => 'High',
+		'score'    => '8.6',
+	),
+	array(
+		'id'       => 'Exploit Signals',
+		'name'     => __( 'Early indicators before patch windows', 'infosecnexus' ),
+		'severity' => 'High',
+		'score'    => '8.1',
+	),
+	array(
+		'id'       => 'Patch Ops',
+		'name'     => __( 'Owner, deadline, and verification tracking', 'infosecnexus' ),
+		'severity' => 'Medium',
+		'score'    => '6.9',
+	),
+	array(
+		'id'       => 'Exceptions',
+		'name'     => __( 'Temporary mitigation review cadence', 'infosecnexus' ),
+		'severity' => 'Low',
+		'score'    => '4.2',
+	),
 );
 
 $critical_posts = get_posts(
@@ -201,7 +226,7 @@ if ( ! empty( $critical_posts ) ) {
 		$critical_title = get_the_title( $critical_post );
 		$match          = array();
 		$label          = preg_match( '/CVE-\d{4}-\d+/i', $critical_title, $match ) ? strtoupper( $match[0] ) : wp_trim_words( $critical_title, 3, '' );
-		$severity = $normalize_severity( sanitize_text_field( (string) get_post_meta( $critical_post->ID, '_infosecnexus_live_severity', true ) ) );
+		$severity       = $normalize_severity( sanitize_text_field( (string) get_post_meta( $critical_post->ID, '_infosecnexus_live_severity', true ) ) );
 		$score          = get_post_meta( $critical_post->ID, '_infosecnexus_live_score', true );
 		$cves[]         = array(
 			'id'       => $label,
@@ -213,12 +238,12 @@ if ( ! empty( $critical_posts ) ) {
 	}
 
 	$priority_severity = $normalize_severity( sanitize_text_field( (string) get_post_meta( $critical_posts[0]->ID, '_infosecnexus_live_severity', true ) ) );
-	$side_stories[0]   = $post_card_data( $critical_posts[0], $priority_severity, 'lock-chip.png' );
+	$side_stories[0]   = $post_card_data( $critical_posts[0], $priority_severity, 'critical' );
 }
 
 if ( count( $critical_posts ) > 1 ) {
 	$secondary_severity = $normalize_severity( sanitize_text_field( (string) get_post_meta( $critical_posts[1]->ID, '_infosecnexus_live_severity', true ) ) );
-	$side_stories[1]    = $post_card_data( $critical_posts[1], $secondary_severity, 'linux-circuit.png' );
+	$side_stories[1]    = $post_card_data( $critical_posts[1], $secondary_severity, 'network' );
 }
 
 $featured_post_ids = array_values(
@@ -259,35 +284,33 @@ if ( ! empty( $latest_posts ) ) {
 ?>
 <main id="primary" class="site-main">
 	<section class="home-hero layout-wide-shell" aria-label="<?php esc_attr_e( 'Featured cybersecurity briefings', 'infosecnexus' ); ?>">
-		<a class="home-hero__lead" href="<?php echo esc_url( $hero_url ); ?>">
-			<?php if ( $hero_post_id > 0 && has_post_thumbnail( $hero_post_id ) ) : ?>
-				<?php echo get_the_post_thumbnail( $hero_post_id, 'large', array( 'loading' => 'eager', 'fetchpriority' => 'high', 'decoding' => 'async', 'sizes' => '(max-width: 760px) calc(100vw - 32px), (max-width: 1180px) 64vw, 860px' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-			<?php else : ?>
-				<?php $asset_image( 'hero-shield.png', array( 'loading' => 'eager', 'fetchpriority' => 'high', 'sizes' => '(max-width: 760px) calc(100vw - 32px), (max-width: 1180px) 64vw, 860px' ) ); ?>
-			<?php endif; ?>
+		<article class="home-hero__feature">
+			<?php \InfoSecNexus\Theme\Anime_Design\hero_media( $hero_post_id ); ?>
 			<span class="home-hero__shade" aria-hidden="true"></span>
-			<span class="home-hero__content">
+			<div class="home-hero__content">
 				<span class="severity-pill severity-pill--critical"><?php echo esc_html( $hero_badge ); ?></span>
 				<h1 class="home-hero__title"><?php echo esc_html( $hero_title ); ?></h1>
-				<span class="home-hero__excerpt"><?php echo esc_html( $hero_excerpt ); ?></span>
-				<span class="button button--hero"><?php echo esc_html( $hero_button_label ); ?><?php \InfoSecNexus\Theme\Header_Builder\icon( 'arrow-right' ); ?></span>
-			</span>
-		</a>
+				<p class="home-hero__excerpt"><?php echo esc_html( $hero_excerpt ); ?></p>
+				<a class="button button--hero home-hero__lead" href="<?php echo esc_url( $hero_url ); ?>"><?php echo esc_html( $hero_button_label ); ?><?php \InfoSecNexus\Theme\Header_Builder\icon( 'arrow-right' ); ?></a>
+			</div>
+		</article>
 
 		<div class="home-hero__side">
 			<?php foreach ( $side_stories as $story ) : ?>
-				<a class="side-story" href="<?php echo esc_url( $story['url'] ); ?>">
-					<span class="side-story__copy">
-						<strong><?php echo esc_html( $story['title'] ); ?></strong>
-						<span><?php echo esc_html( $story['excerpt'] ); ?></span>
-						<span class="story-meta"><?php echo esc_html( $story['date'] ); ?> <span class="severity-tag severity-tag--<?php echo esc_attr( strtolower( $story['severity'] ) ); ?>"><?php echo esc_html( $story['severity'] ); ?></span></span>
-					</span>
-					<?php if ( ! empty( $story['post_id'] ) && has_post_thumbnail( (int) $story['post_id'] ) ) : ?>
-						<?php echo get_the_post_thumbnail( (int) $story['post_id'], 'medium_large', array( 'loading' => 'lazy', 'decoding' => 'async', 'sizes' => '(max-width: 760px) calc(100vw - 32px), (max-width: 1180px) 38vw, 320px' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+				<article class="side-story<?php echo 'Critical' === $story['severity'] ? ' side-story--critical' : ''; ?>">
+					<a class="side-story__link" href="<?php echo esc_url( $story['url'] ); ?>">
+					<div class="side-story__copy">
+						<h2><?php echo esc_html( $story['title'] ); ?></h2>
+						<p><?php echo esc_html( $story['excerpt'] ); ?></p>
+						<div class="story-meta"><?php echo esc_html( $story['date'] ); ?> <span class="severity-tag severity-tag--<?php echo esc_attr( strtolower( $story['severity'] ) ); ?>"><?php echo esc_html( $story['severity'] ); ?></span></div>
+					</div>
+					<?php if ( ! empty( $story['post_id'] ) ) : ?>
+						<?php echo \InfoSecNexus\Theme\Anime_Design\post_image( (int) $story['post_id'], array( 'sizes' => '(max-width: 760px) calc(100vw - 32px), (max-width: 1180px) 38vw, 320px' ), 'medium_large' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 					<?php else : ?>
 						<?php $asset_image( $story['image'], array( 'sizes' => '(max-width: 760px) calc(100vw - 32px), (max-width: 1180px) 38vw, 320px' ) ); ?>
 					<?php endif; ?>
-				</a>
+					</a>
+				</article>
 			<?php endforeach; ?>
 		</div>
 	</section>
@@ -300,20 +323,22 @@ if ( ! empty( $latest_posts ) ) {
 			</header>
 			<div class="latest-grid">
 				<?php foreach ( $latest_cards as $card ) : ?>
-					<a class="intel-card" href="<?php echo esc_url( $card['url'] ); ?>">
-						<?php if ( ! empty( $card['post_id'] ) && has_post_thumbnail( (int) $card['post_id'] ) ) : ?>
-							<?php echo get_the_post_thumbnail( (int) $card['post_id'], 'medium_large', array( 'loading' => 'lazy', 'decoding' => 'async', 'sizes' => '(max-width: 760px) calc(100vw - 32px), (max-width: 1180px) 29vw, 320px' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+					<article class="intel-card">
+						<a class="intel-card__link" href="<?php echo esc_url( $card['url'] ); ?>">
+						<?php if ( ! empty( $card['post_id'] ) ) : ?>
+							<?php echo \InfoSecNexus\Theme\Anime_Design\post_image( (int) $card['post_id'], array( 'sizes' => '(max-width: 760px) calc(100vw - 32px), (max-width: 1180px) 29vw, 320px' ), 'medium_large' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 						<?php else : ?>
 							<?php $asset_image( $card['image'], array( 'sizes' => '(max-width: 760px) calc(100vw - 32px), (max-width: 1180px) 29vw, 320px' ) ); ?>
 						<?php endif; ?>
-						<span class="intel-card__body">
+						<div class="intel-card__body">
 							<span class="category-chip"><?php echo esc_html( $card['category'] ); ?></span>
-							<strong><?php echo esc_html( $card['title'] ); ?></strong>
-							<span><?php echo esc_html( $card['excerpt'] ); ?></span>
-							<span class="story-meta"><?php echo esc_html( $card['date'] ); ?> <span aria-hidden="true">-</span> <?php echo esc_html( $card['read'] ); ?></span>
-							<span class="intel-card__readmore"><?php esc_html_e( 'Read More', 'infosecnexus' ); ?> <span aria-hidden="true">-></span></span>
-						</span>
-					</a>
+							<h3><?php echo esc_html( $card['title'] ); ?></h3>
+							<p><?php echo esc_html( $card['excerpt'] ); ?></p>
+							<div class="story-meta"><?php echo esc_html( $card['date'] ); ?> <span aria-hidden="true">-</span> <?php echo esc_html( $card['read'] ); ?></div>
+							<span class="intel-card__readmore"><?php esc_html_e( 'Read briefing', 'infosecnexus' ); ?> <span aria-hidden="true">&rarr;</span></span>
+						</div>
+						</a>
+					</article>
 				<?php endforeach; ?>
 			</div>
 		</div>

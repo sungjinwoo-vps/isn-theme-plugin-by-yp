@@ -178,6 +178,9 @@ function fallback_image_file( ?int $post_id = null ): string {
 			'fields' => 'slugs',
 		)
 	);
+	if ( is_wp_error( $slugs ) ) {
+		$slugs = array();
+	}
 
 	if ( in_array( 'critical-cves', $slugs, true ) ) {
 		return 'lock-chip.png';
@@ -237,29 +240,18 @@ function pagination(): void {
  * Render a post card.
  *
  * @param string $variant Card variant.
+ * @param string $heading Heading level.
  */
-function post_card( string $variant = 'grid' ): void {
-	?>
-	<article id="post-<?php the_ID(); ?>" <?php post_class( 'post-card post-card--' . sanitize_html_class( $variant ) ); ?>>
-		<a class="post-card__image" href="<?php the_permalink(); ?>" aria-label="<?php the_title_attribute(); ?>">
-			<?php if ( has_post_thumbnail() ) : ?>
-				<?php the_post_thumbnail( 'medium_large', array( 'loading' => 'lazy', 'decoding' => 'async', 'sizes' => '(max-width: 760px) calc(100vw - 32px), (max-width: 1180px) 31vw, 360px' ) ); ?>
-			<?php else : ?>
-				<?php echo fallback_image( null, array( 'sizes' => '(max-width: 760px) calc(100vw - 32px), (max-width: 1180px) 31vw, 360px' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-			<?php endif; ?>
-		</a>
-		<div class="post-card__body">
-			<?php category_badges(); ?>
-			<h2 class="post-card__title"><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h2>
-			<?php post_meta(); ?>
-			<div class="post-card__excerpt"><?php the_excerpt(); ?></div>
-			<a class="post-card__readmore" href="<?php the_permalink(); ?>" aria-label="<?php echo esc_attr( sprintf( __( 'Read more about %s', 'infosecnexus' ), get_the_title() ) ); ?>">
-				<?php esc_html_e( 'Read More', 'infosecnexus' ); ?>
-				<span aria-hidden="true">-></span>
-			</a>
-		</div>
-	</article>
-	<?php
+function post_card( string $variant = 'grid', string $heading = 'h2' ): void {
+	get_template_part(
+		'template-parts/card/post-card',
+		null,
+		array(
+			'post_id' => (int) get_the_ID(),
+			'variant' => $variant,
+			'heading' => in_array( $heading, array( 'h2', 'h3' ), true ) ? $heading : 'h2',
+		)
+	);
 }
 
 /**
@@ -285,17 +277,20 @@ function featured_video( ?int $post_id = null ): void {
 /**
  * Render native table of contents placeholder from post headings.
  */
-function table_of_contents(): void {
-	$content = get_post_field( 'post_content', get_the_ID() );
-	if ( ! preg_match_all( '/<h2[^>]*>(.*?)<\/h2>/', (string) $content, $matches, PREG_SET_ORDER ) ) {
+function table_of_contents( string $content = '' ): void {
+	if ( '' === $content ) {
+		$content = (string) get_post_field( 'post_content', get_the_ID() );
+	}
+	$content = \InfoSecNexus\Theme\Anime_Design\without_seeded_page_hero( $content );
+	$content = apply_filters( 'the_content', $content );
+	$outline = \InfoSecNexus\Theme\Anime_Design\heading_outline( $content );
+	if ( empty( $outline ) ) {
 		return;
 	}
 
 	echo '<nav class="toc" aria-label="' . esc_attr__( 'Table of contents', 'infosecnexus' ) . '"><span class="toc__eyebrow">' . esc_html__( 'Article guide', 'infosecnexus' ) . '</span><h2>' . esc_html__( 'On this page', 'infosecnexus' ) . '</h2><ol>';
-	foreach ( $matches as $index => $match ) {
-		$label = wp_strip_all_tags( $match[1] );
-		$id    = 'section-' . ( $index + 1 );
-		echo '<li><a href="#' . esc_attr( $id ) . '">' . esc_html( $label ) . '</a></li>';
+	foreach ( $outline as $heading ) {
+		echo '<li><a href="#' . esc_attr( $heading['id'] ) . '">' . esc_html( $heading['label'] ) . '</a></li>';
 	}
 	echo '</ol></nav>';
 }
@@ -310,7 +305,7 @@ function related_posts(): void {
 	}
 
 	$categories = wp_get_post_categories( get_the_ID() );
-	if ( empty( $categories ) ) {
+	if ( is_wp_error( $categories ) || empty( $categories ) ) {
 		return;
 	}
 
@@ -330,7 +325,7 @@ function related_posts(): void {
 	echo '<section class="related-posts"><h2>' . esc_html__( 'Related briefings', 'infosecnexus' ) . '</h2><div class="post-grid post-grid--3">';
 	while ( $query->have_posts() ) {
 		$query->the_post();
-		post_card( 'compact' );
+		post_card( 'compact', 'h3' );
 	}
 	wp_reset_postdata();
 	echo '</div></section>';

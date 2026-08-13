@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'INFOSECNEXUS_VERSION', '0.1.47' );
+define( 'INFOSECNEXUS_VERSION', '0.1.48' );
 define( 'INFOSECNEXUS_DIR', get_template_directory() );
 define( 'INFOSECNEXUS_URI', get_template_directory_uri() );
 
@@ -27,6 +27,7 @@ $infosecnexus_includes = array(
 	'inc/agentic.php',
 	'inc/comment-controls.php',
 	'inc/adsense.php',
+	'inc/anime-design.php',
 	'inc/assets.php',
 	'inc/header-builder.php',
 	'inc/footer-builder.php',

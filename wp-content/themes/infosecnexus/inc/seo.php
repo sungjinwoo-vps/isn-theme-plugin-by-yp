@@ -28,7 +28,8 @@ function render_metadata(): void {
 	$title       = wp_get_document_title();
 	$description = current_description( $post instanceof \WP_Post ? (int) $post->ID : 0 );
 	$url         = current_url();
-	$image       = $post instanceof \WP_Post ? image_url( (int) $post->ID ) : default_image_url();
+	$image_data  = $post instanceof \WP_Post ? image_data( (int) $post->ID ) : default_image_data();
+	$image       = $image_data['url'];
 	$type        = $post instanceof \WP_Post && 'post' === $post->post_type ? 'article' : 'website';
 
 	if ( '' === $description ) {
@@ -36,23 +37,38 @@ function render_metadata(): void {
 	}
 
 	echo '<meta name="description" content="' . esc_attr( $description ) . '">' . "\n";
+	if ( ! is_singular() && ! is_404() ) {
+		echo '<link rel="canonical" href="' . esc_url( $url ) . '">' . "\n";
+	}
 	echo '<meta property="og:type" content="' . esc_attr( $type ) . '">' . "\n";
 	echo '<meta property="og:title" content="' . esc_attr( $title ) . '">' . "\n";
 	echo '<meta property="og:description" content="' . esc_attr( $description ) . '">' . "\n";
 	echo '<meta property="og:url" content="' . esc_url( $url ) . '">' . "\n";
 	echo '<meta property="og:site_name" content="' . esc_attr( get_bloginfo( 'name' ) ) . '">' . "\n";
+	if ( $post instanceof \WP_Post && 'post' === $post->post_type ) {
+		echo '<meta property="article:published_time" content="' . esc_attr( get_post_time( 'c', true, $post ) ) . '">' . "\n";
+		echo '<meta property="article:modified_time" content="' . esc_attr( get_post_modified_time( 'c', true, $post ) ) . '">' . "\n";
+	}
 	echo '<meta name="twitter:card" content="summary_large_image">' . "\n";
 	echo '<meta name="twitter:title" content="' . esc_attr( $title ) . '">' . "\n";
 	echo '<meta name="twitter:description" content="' . esc_attr( $description ) . '">' . "\n";
 
 	if ( '' !== $image ) {
 		echo '<meta property="og:image" content="' . esc_url( $image ) . '">' . "\n";
+		echo '<meta property="og:image:width" content="' . esc_attr( (string) $image_data['width'] ) . '">' . "\n";
+		echo '<meta property="og:image:height" content="' . esc_attr( (string) $image_data['height'] ) . '">' . "\n";
+		echo '<meta property="og:image:alt" content="' . esc_attr( $image_data['alt'] ) . '">' . "\n";
 		echo '<meta name="twitter:image" content="' . esc_url( $image ) . '">' . "\n";
+		echo '<meta name="twitter:image:alt" content="' . esc_attr( $image_data['alt'] ) . '">' . "\n";
 	}
+
+	render_breadcrumb_schema();
 
 	if ( ! $post instanceof \WP_Post || 'post' !== $post->post_type ) {
 		return;
 	}
+
+	$author = get_userdata( (int) $post->post_author );
 
 	$schema = array(
 		'@context'         => 'https://schema.org',
@@ -63,9 +79,9 @@ function render_metadata(): void {
 		'dateModified'     => get_post_modified_time( 'c', true, $post ),
 		'mainEntityOfPage' => $url,
 		'author'           => array(
-			'@type' => 'Organization',
-			'name'  => get_bloginfo( 'name' ),
-			'url'   => home_url( '/' ),
+			'@type' => 'Person',
+			'name'  => $author instanceof \WP_User ? $author->display_name : get_bloginfo( 'name' ),
+			'url'   => $author instanceof \WP_User ? get_author_posts_url( (int) $author->ID ) : home_url( '/' ),
 		),
 		'publisher'        => array(
 			'@type' => 'Organization',
@@ -75,7 +91,12 @@ function render_metadata(): void {
 	);
 
 	if ( '' !== $image ) {
-		$schema['image'] = array( $image );
+		$schema['image'] = array(
+			'@type'  => 'ImageObject',
+			'url'    => $image,
+			'width'  => $image_data['width'],
+			'height' => $image_data['height'],
+		);
 	}
 
 	echo '<script type="application/ld+json">' . wp_json_encode( $schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) . '</script>' . "\n";
@@ -138,6 +159,9 @@ function current_url(): string {
 	if ( is_singular() ) {
 		return (string) get_permalink();
 	}
+	if ( is_search() ) {
+		return (string) get_search_link( get_search_query() );
+	}
 
 	$request_path = (string) wp_parse_url( (string) ( $_SERVER['REQUEST_URI'] ?? '/' ), PHP_URL_PATH );
 	return home_url( '/' . ltrim( $request_path, '/' ) );
@@ -188,25 +212,138 @@ function description( int $post_id ): string {
  * @param int $post_id Post ID.
  */
 function image_url( int $post_id ): string {
-	$image = (string) get_the_post_thumbnail_url( $post_id, 'large' );
-	if ( '' !== $image ) {
-		return $image;
+	return image_data( $post_id )['url'];
+}
+
+/**
+ * Return complete social-image data for a post.
+ *
+ * @param int $post_id Post ID.
+ * @return array{url:string,width:int,height:int,alt:string}
+ */
+function image_data( int $post_id ): array {
+	if ( function_exists( 'InfoSecNexus\\Theme\\Anime_Design\\post_image_data' ) ) {
+		$data = \InfoSecNexus\Theme\Anime_Design\post_image_data( $post_id );
+		return array(
+			'url'    => (string) $data['url'],
+			'width'  => (int) $data['width'],
+			'height' => (int) $data['height'],
+			'alt'    => (string) $data['alt'],
+		);
 	}
 
-	if ( function_exists( '\InfoSecNexus\Theme\Template_Tags\fallback_image_url' ) ) {
-		return \InfoSecNexus\Theme\Template_Tags\fallback_image_url( $post_id );
-	}
+	$attachment_id = (int) get_post_thumbnail_id( $post_id );
+	$source        = $attachment_id > 0 ? wp_get_attachment_image_src( $attachment_id, 'full' ) : false;
+	$url           = is_array( $source ) ? (string) $source[0] : '';
 
-	return '';
+	return array(
+		'url'    => $url,
+		'width'  => is_array( $source ) ? (int) $source[1] : 1280,
+		'height' => is_array( $source ) ? (int) $source[2] : 720,
+		'alt'    => '' !== $url ? (string) get_post_meta( $attachment_id, '_wp_attachment_image_alt', true ) : get_the_title( $post_id ),
+	);
 }
 
 /**
  * Return a reliable social preview for non-singular requests.
  */
 function default_image_url(): string {
-	if ( function_exists( '\InfoSecNexus\Theme\Template_Tags\asset_url' ) ) {
-		return \InfoSecNexus\Theme\Template_Tags\asset_url( 'hero-shield.png' );
+	return default_image_data()['url'];
+}
+
+/**
+ * Return the default social preview and intrinsic dimensions.
+ *
+ * @return array{url:string,width:int,height:int,alt:string}
+ */
+function default_image_data(): array {
+	if ( function_exists( 'InfoSecNexus\\Theme\\Anime_Design\\asset_url' ) ) {
+		return array(
+			'url'    => \InfoSecNexus\Theme\Anime_Design\asset_url( 'hero' ),
+			'width'  => 1280,
+			'height' => 720,
+			'alt'    => \InfoSecNexus\Theme\Anime_Design\asset_alt( 'hero' ),
+		);
 	}
 
-	return '';
+	return array(
+		'url'    => '',
+		'width'  => 1280,
+		'height' => 720,
+		'alt'    => get_bloginfo( 'name' ),
+	);
+}
+
+/**
+ * Print a BreadcrumbList matching the theme's visible breadcrumb trail.
+ */
+function render_breadcrumb_schema(): void {
+	if ( is_front_page() || is_404() ) {
+		return;
+	}
+
+	$items = array(
+		array(
+			'@type'    => 'ListItem',
+			'position' => 1,
+			'name'     => __( 'Home', 'infosecnexus' ),
+			'item'     => home_url( '/' ),
+		),
+	);
+	$position = 2;
+
+	if ( is_singular() ) {
+		$post = get_post();
+		if ( ! $post instanceof \WP_Post ) {
+			return;
+		}
+
+		if ( $post instanceof \WP_Post && 'post' === $post->post_type ) {
+			$categories = get_the_category( $post->ID );
+			if ( ! empty( $categories ) ) {
+				$category_link = get_category_link( $categories[0] );
+				if ( ! is_wp_error( $category_link ) ) {
+					$items[] = array(
+						'@type'    => 'ListItem',
+						'position' => $position++,
+						'name'     => $categories[0]->name,
+						'item'     => $category_link,
+					);
+				}
+			}
+		} elseif ( 'page' === $post->post_type ) {
+			foreach ( array_reverse( get_post_ancestors( $post ) ) as $ancestor_id ) {
+				$items[] = array(
+					'@type'    => 'ListItem',
+					'position' => $position++,
+					'name'     => get_the_title( $ancestor_id ),
+					'item'     => get_permalink( $ancestor_id ),
+				);
+			}
+		}
+		$items[] = array(
+			'@type'    => 'ListItem',
+			'position' => $position,
+			'name'     => get_the_title( $post ),
+			'item'     => get_permalink( $post ),
+		);
+	} else {
+		$label = is_search()
+			? sprintf( __( 'Search results for %s', 'infosecnexus' ), get_search_query() )
+			: \InfoSecNexus\Theme\Breadcrumbs\archive_label();
+		$items[] = array(
+			'@type'    => 'ListItem',
+			'position' => $position,
+			'name'     => $label,
+			'item'     => current_url(),
+		);
+	}
+
+	$schema = array(
+		'@context'        => 'https://schema.org',
+		'@type'           => 'BreadcrumbList',
+		'itemListElement' => $items,
+	);
+
+	echo '<script type="application/ld+json">' . wp_json_encode( $schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) . '</script>' . "\n";
 }

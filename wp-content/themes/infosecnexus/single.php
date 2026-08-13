@@ -21,16 +21,25 @@ if ( \InfoSecNexus\Theme\Elementor\render_location( 'single' ) ) {
 			<header class="single-hero">
 				<div class="single-hero__inner">
 					<?php \InfoSecNexus\Theme\Breadcrumbs\render(); ?>
+					<p class="editorial-eyebrow"><?php esc_html_e( 'InfoSecNexus briefing', 'infosecnexus' ); ?></p>
 					<?php \InfoSecNexus\Theme\Template_Tags\category_badges(); ?>
 					<h1><?php the_title(); ?></h1>
 					<?php \InfoSecNexus\Theme\Template_Tags\post_meta(); ?>
 				</div>
 				<div class="single-hero__media">
-					<?php if ( has_post_thumbnail() ) : ?>
-						<?php the_post_thumbnail( 'large', array( 'loading' => 'eager', 'fetchpriority' => 'high', 'decoding' => 'async', 'sizes' => '(max-width: 1000px) calc(100vw - 32px), 920px' ) ); ?>
-					<?php else : ?>
-						<?php echo \InfoSecNexus\Theme\Template_Tags\fallback_image( null, array( 'loading' => 'eager', 'fetchpriority' => 'high', 'sizes' => '(max-width: 1000px) calc(100vw - 32px), 920px' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-					<?php endif; ?>
+					<?php
+					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The image helper returns escaped theme-owned markup.
+					echo \InfoSecNexus\Theme\Anime_Design\post_image(
+						(int) get_the_ID(),
+						array(
+							'class'         => 'single-hero__image isn-editorial-image',
+							'loading'       => 'eager',
+							'fetchpriority' => 'high',
+							'sizes'         => '(max-width: 1000px) calc(100vw - 32px), 920px',
+						),
+						'infosecnexus-hero'
+					);
+					?>
 				</div>
 			</header>
 			<div class="layout-shell layout-shell--single">

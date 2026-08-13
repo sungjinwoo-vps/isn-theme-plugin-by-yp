@@ -1,28 +1,40 @@
 const { test, expect } = require('@playwright/test');
-const { createHash } = require('node:crypto');
 const AxeBuilder = require('@axe-core/playwright').default;
 
-const baseURL = process.env.WP_BASE_URL || 'http://127.0.0.1:8888';
+const baseURL = process.env.WP_BASE_URL || 'http://localhost:8888';
+
+async function expectNoHorizontalOverflow(page) {
+  const hasHorizontalOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1
+  );
+  expect(hasHorizontalOverflow).toBeFalsy();
+}
 
 test('home page renders header, content, and footer', async ({ page }) => {
   await page.goto(baseURL, { waitUntil: 'networkidle' });
   await expect(page.locator('body')).toHaveClass(/infosecnexus/);
   await expect(page.locator('.site-header')).toBeVisible();
+  await expect(page.locator('main')).toBeVisible();
+  await expect(page.locator('h1')).toHaveCount(1);
   await expect(page.locator('.site-footer')).toBeVisible();
 });
 
 test('homepage uses one permanent live brief without repeating it in the latest grid', async ({ page, request }) => {
+  const rollingResponse = await request.get(`${baseURL}/wp-json/wp/v2/posts?slug=live-cybersecurity-brief&per_page=1`);
+  const rollingPosts = rollingResponse.ok() ? await rollingResponse.json() : [];
+  test.skip(rollingPosts.length === 0, 'The local WordPress fixture does not contain the permanent rolling brief.');
+
   await page.goto(baseURL, { waitUntil: 'networkidle' });
 
   const heroPath = new URL(await page.locator('.home-hero__lead').getAttribute('href')).pathname;
   expect(heroPath).toBe('/live-cybersecurity-brief/');
 
-  const latestPaths = await page.locator('.latest-grid .intel-card').evaluateAll((cards) => cards.map((card) => new URL(card.href).pathname));
+  const latestPaths = await page.locator('.latest-grid .intel-card__link').evaluateAll((links) => links.map((link) => new URL(link.href).pathname));
   expect(latestPaths).not.toContain('/live-cybersecurity-brief/');
   expect(latestPaths.some((path) => /\/\d{4}-\d{2}-\d{2}-live-cybersecurity-brief\/$/.test(path))).toBeFalsy();
   expect(latestPaths.some((path) => /\/\d{4}-\d{2}-\d{2}-(?:daily-cve-watch|cyber-security-brief|linux-security-brief|devops-security-brief|ai-security-brief|tutorial-run-daily-vulnerability-standup|cloud-security-brief|windows-security-brief|network-security-brief|web-security-brief)/.test(path))).toBeFalsy();
 
-  const breakingPaths = await page.locator('.home-hero__side .side-story').evaluateAll((cards) => cards.map((card) => new URL(card.href).pathname));
+  const breakingPaths = await page.locator('.home-hero__side .side-story__link').evaluateAll((links) => links.map((link) => new URL(link.href).pathname));
   expect(breakingPaths.length).toBeGreaterThanOrEqual(2);
   expect(new Set(breakingPaths).size).toBe(breakingPaths.length);
 
@@ -36,7 +48,11 @@ test('homepage uses one permanent live brief without repeating it in the latest 
   expect(await sitemap.text()).not.toContain('/live-cybersecurity-brief/');
 });
 
-test('rolling brief uses its updated date throughout archive surfaces', async ({ page }) => {
+test('rolling brief uses its updated date throughout archive surfaces', async ({ page, request }) => {
+  const rollingResponse = await request.get(`${baseURL}/wp-json/wp/v2/posts?slug=live-cybersecurity-brief&per_page=1`);
+  const rollingPosts = rollingResponse.ok() ? await rollingResponse.json() : [];
+  test.skip(rollingPosts.length === 0, 'The local WordPress fixture does not contain the permanent rolling brief.');
+
   await page.goto(`${baseURL}/category/cybersecurity/`, { waitUntil: 'networkidle' });
 
   const rollingCard = page.locator('.post-card').filter({ has: page.locator('a[href$="/live-cybersecurity-brief/"]') }).first();
@@ -48,35 +64,66 @@ test('rolling brief uses its updated date throughout archive surfaces', async ({
   await expect(latestItem.locator('time')).toHaveAttribute('datetime', /^\d{4}-\d{2}-\d{2}T/);
 });
 
-test('different homepage posts use distinct generated artwork', async ({ page, request }) => {
+test('homepage post artwork is responsive, descriptive, and visually distinct', async ({ page }) => {
   await page.goto(baseURL, { waitUntil: 'networkidle' });
 
-  const artwork = page.locator('img[src*="/infosecnexus-artwork/"]');
+  const artwork = page.locator('.latest-grid .intel-card img');
   const count = await artwork.count();
   expect(count).toBeGreaterThanOrEqual(2);
 
   const placements = await artwork.evaluateAll((images) => images.map((image) => ({
-    article: image.closest('a')?.href || image.alt,
-    source: image.currentSrc || image.src
+    alt: image.alt.trim(),
+    height: Number(image.getAttribute('height')),
+    source: image.currentSrc || image.src,
+    srcset: image.srcset,
+    width: Number(image.getAttribute('width'))
   })));
-  const sourcesByArticle = new Map();
-  placements.forEach(({ article, source }) => {
-    if (!sourcesByArticle.has(article)) {
-      sourcesByArticle.set(article, source);
-    }
+  placements.forEach((image) => {
+    expect(image.alt).not.toBe('');
+    expect(image.width).toBeGreaterThan(0);
+    expect(image.height).toBeGreaterThan(0);
+    expect(image.srcset).not.toBe('');
   });
-  const sources = [...sourcesByArticle.values()];
-  expect(sources.length).toBeGreaterThanOrEqual(2);
-  expect(new Set(sources).size).toBe(sources.length);
+  expect(new Set(placements.map((image) => image.source)).size).toBeGreaterThanOrEqual(2);
+});
 
-  const pixelHashes = await Promise.all(
-    sources.map(async (source) => {
-      const response = await request.get(source);
-      expect(response.ok()).toBeTruthy();
-      return createHash('sha256').update(await response.body()).digest('hex');
-    })
-  );
-  expect(new Set(pixelHashes).size).toBe(sources.length);
+test('archive cards are whole-link, responsive, and keyboard accessible', async ({ page }, testInfo) => {
+  await page.goto(`${baseURL}/category/cybersecurity/`, { waitUntil: 'networkidle' });
+
+  const cards = page.locator('.post-grid .post-card');
+  expect(await cards.count()).toBeGreaterThan(0);
+
+  const firstCard = cards.first();
+  const firstLink = firstCard.locator(':scope > a.post-card__link');
+  await expect(firstLink).toHaveCount(1);
+  await expect(firstLink.locator('h2, h3')).toHaveCount(1);
+
+  const image = firstLink.locator('img').first();
+  await expect(image).toHaveAttribute('alt', /\S+/);
+  await expect(image).toHaveAttribute('width', /^\d+$/);
+  await expect(image).toHaveAttribute('height', /^\d+$/);
+  await expect(image).toHaveAttribute('srcset', /\S+/);
+
+  await firstLink.focus();
+  const focusStyle = await firstLink.evaluate((link) => {
+    const style = getComputedStyle(link);
+    return { color: style.outlineColor, style: style.outlineStyle, width: style.outlineWidth };
+  });
+  expect(focusStyle.style).not.toBe('none');
+  expect(focusStyle.width).not.toBe('0px');
+
+  if (testInfo.project.name === 'desktop') {
+    const before = await firstCard.evaluate((card) => getComputedStyle(card).transform);
+    await firstCard.hover();
+    await page.waitForTimeout(280);
+    const after = await firstCard.evaluate((card) => getComputedStyle(card).transform);
+    expect(after).not.toBe(before);
+
+    const firstRowHeights = await cards.evaluateAll((items) => items.slice(0, 3).map((item) => Math.round(item.getBoundingClientRect().height)));
+    expect(new Set(firstRowHeights).size).toBe(1);
+  }
+
+  await expectNoHorizontalOverflow(page);
 });
 
 test('header controls are keyboard reachable', async ({ page }, testInfo) => {
@@ -88,6 +135,10 @@ test('header controls are keyboard reachable', async ({ page }, testInfo) => {
     await toggle.focus();
     await page.keyboard.press('Enter');
     await expect(page.locator('[data-mobile-panel]')).toBeVisible();
+    await expect(page.locator('body')).toHaveClass(/has-modal-open/);
+    await page.keyboard.press('Escape');
+    await expect(page.locator('[data-mobile-panel]')).toBeHidden();
+    await expect(toggle).toBeFocused();
     return;
   }
 
@@ -96,6 +147,93 @@ test('header controls are keyboard reachable', async ({ page }, testInfo) => {
   await toggle.focus();
   await page.keyboard.press('Enter');
   await expect(page.locator('[data-search-modal]')).toBeVisible();
+  await expect(page.locator('[data-search-modal] input[type="search"]')).toBeFocused();
+  await expect(page.locator('body')).toHaveClass(/has-modal-open/);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('[data-search-modal]')).toBeHidden();
+  await expect(toggle).toBeFocused();
+});
+
+test('color mode choice persists across navigation and reload', async ({ page }, testInfo) => {
+  await page.goto(baseURL, { waitUntil: 'domcontentloaded' });
+
+  const initialMode = await page.locator('html').getAttribute('data-color-mode');
+  if (testInfo.project.name === 'mobile') {
+    await page.locator('[data-mobile-menu-toggle]').click();
+    await expect(page.locator('[data-mobile-panel]')).toBeVisible();
+  }
+  const toggle = page.locator('[data-color-mode-toggle]:visible').first();
+  await expect(toggle).toBeVisible();
+  await toggle.click();
+
+  const expectedMode = initialMode === 'dark' ? 'light' : 'dark';
+  await expect(page.locator('html')).toHaveAttribute('data-color-mode', expectedMode);
+  expect(await page.evaluate(() => localStorage.getItem('infosecnexus-color-mode'))).toBe(expectedMode);
+
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await expect(page.locator('html')).toHaveAttribute('data-color-mode', expectedMode);
+});
+
+test('special pages and the cyber 404 retain one H1 without overflow', async ({ page }) => {
+  const paths = ['/about/', '/contact/', '/privacy-policy/', '/terms-and-conditions/', '/disclaimer/'];
+
+  for (const path of paths) {
+    const response = await page.goto(`${baseURL}${path}`, { waitUntil: 'domcontentloaded' });
+    expect(response && response.ok()).toBeTruthy();
+    await expect(page.locator('main')).toBeVisible();
+    await expect(page.locator('h1')).toHaveCount(1);
+    await expectNoHorizontalOverflow(page);
+  }
+
+  const missing = await page.goto(`${baseURL}/missing-anime-cyber-signal/`, { waitUntil: 'domcontentloaded' });
+  expect(missing && missing.status()).toBe(404);
+  await expect(page.locator('.not-found--cyber')).toBeVisible();
+  await expect(page.locator('h1')).toHaveCount(1);
+  await expectNoHorizontalOverflow(page);
+});
+
+test('reduced motion keeps the static hero and disables decorative movement', async ({ browser }) => {
+  const context = await browser.newContext({ reducedMotion: 'reduce', viewport: { width: 1366, height: 900 } });
+  const page = await context.newPage();
+  await page.goto(baseURL, { waitUntil: 'networkidle' });
+
+  const hero = page.locator('[data-animated-hero]').first();
+  await expect(hero.locator('img')).toBeVisible();
+  await expect(hero.locator('video')).not.toHaveAttribute('src', /\S+/);
+  await expect(hero.locator('.anime-hero-media__toggle')).toBeHidden();
+
+  const card = page.locator('.intel-card').first();
+  const transitionDuration = await card.evaluate((item) => getComputedStyle(item).transitionDuration);
+  const durations = transitionDuration.split(',').map((value) => {
+    const duration = value.trim();
+    return duration.endsWith('ms') ? Number.parseFloat(duration) : Number.parseFloat(duration) * 1000;
+  });
+  expect(durations.every((duration) => duration <= 0.011)).toBeTruthy();
+  await context.close();
+});
+
+test('article content remains readable when JavaScript is unavailable', async ({ browser, request }) => {
+  const response = await request.get(`${baseURL}/wp-json/wp/v2/posts?per_page=20&orderby=date&order=desc`);
+  expect(response.ok()).toBeTruthy();
+
+  const posts = await response.json();
+  const longPost = posts.find((post) => {
+    const text = String(post.content?.rendered || '').replace(/<[^>]+>/g, ' ');
+    return text.trim().split(/\s+/).length >= 320;
+  });
+  test.skip(!longPost, 'No long public post is available for the no-JS gate check.');
+
+  const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 1366, height: 900 } });
+  const page = await context.newPage();
+  await page.goto(longPost.link, { waitUntil: 'domcontentloaded' });
+
+  const gatedRest = page.locator('.post-gate__rest');
+  if (await gatedRest.count()) {
+    await expect(gatedRest).toBeVisible();
+    await expect(page.locator('.post-gate__unlock')).toBeHidden();
+  }
+  await expect(page.locator('.single-entry')).toBeVisible();
+  await context.close();
 });
 
 test('axe smoke check has no serious violations', async ({ page }) => {
@@ -112,7 +250,7 @@ test('public forms use secure same-site handlers and anti-spam fields', async ({
   await expect(contact).toBeVisible();
   await expect(contact).toHaveAttribute('method', 'post');
   const contactAction = new URL(await contact.getAttribute('action'));
-  expect(contactAction.origin).toBe(new URL(baseURL).origin);
+  expect(contactAction.origin).toBe(new URL(page.url()).origin);
   expect(contactAction.pathname).toMatch(/\/wp-admin\/admin-post\.php$/);
   await expect(contact.locator('input[name="isnx_token"]')).toHaveAttribute('value', /^[a-f0-9]{64}$/);
   await expect(contact).toHaveAttribute('data-isnx-contact-guard-url', /\/wp-json\/infosecnexus\/v1\/contact-challenge$/);
@@ -141,7 +279,7 @@ test('public forms use secure same-site handlers and anti-spam fields', async ({
   await expect(newsletter).toBeVisible();
   await expect(newsletter).toHaveAttribute('method', 'post');
   const newsletterAction = new URL(await newsletter.getAttribute('action'));
-  expect(newsletterAction.origin).toBe(new URL(baseURL).origin);
+  expect(newsletterAction.origin).toBe(new URL(page.url()).origin);
   expect(newsletterAction.pathname).toMatch(/\/wp-admin\/admin-post\.php$/);
   await expect(newsletter.locator('input[name="isnx_token"]')).toHaveAttribute('value', /^[a-f0-9]{64}$/);
   await expect(newsletter.locator('input[name="email"]')).toHaveAttribute('autocomplete', 'email');
@@ -151,6 +289,11 @@ test('SEO, agent discovery, and deferred ads are present', async ({ page, reques
   await page.goto(baseURL, { waitUntil: 'networkidle' });
 
   await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', /cybersecurity/i);
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', /^https?:\/\//);
+  await expect(page.locator('meta[property="og:title"]')).toHaveAttribute('content', /\S+/);
+  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /^https?:\/\//);
+  await expect(page.locator('meta[property="og:image:width"]')).toHaveAttribute('content', /^\d+$/);
+  await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute('content', 'summary_large_image');
   await expect(page.locator('#infosecnexus-adsense-config')).toHaveCount(1);
   await expect(page.locator('script[data-infosecnexus-adsense]')).toHaveCount(0);
 
@@ -169,6 +312,7 @@ test('published briefings hide internal notes and use topic-aware analysis', asy
 
   const article = page.locator('.single-entry').first();
   await expect(article).toBeVisible();
+  await expect(page.locator('h1')).toHaveCount(1);
   await expect(article).toContainText(/Why this matters|Why it matters:/);
   await expect(article).toContainText(/Detection and validation|What to verify:/);
   await expect(article).not.toContainText(/Live verification|Validation checklist|Accuracy and source notes|Generator note/i);
@@ -188,8 +332,17 @@ test('published briefings hide internal notes and use topic-aware analysis', asy
   expect(renderedImage.width).toBeGreaterThanOrEqual(300);
   expect(renderedImage.height).toBeGreaterThanOrEqual(160);
 
-  const hasHorizontalOverflow = await page.evaluate(
-    () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1
-  );
-  expect(hasHorizontalOverflow).toBeFalsy();
+  const schema = await page.locator('script[type="application/ld+json"]').evaluateAll((scripts) => scripts
+    .map((script) => {
+      try {
+        return JSON.parse(script.textContent || '{}');
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean));
+  expect(schema.some((item) => ['Article', 'BlogPosting', 'NewsArticle'].includes(item['@type']))).toBeTruthy();
+  expect(schema.some((item) => item['@type'] === 'BreadcrumbList')).toBeTruthy();
+
+  await expectNoHorizontalOverflow(page);
 });

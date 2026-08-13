@@ -7,6 +7,7 @@
   const colorModeStorageKey = 'infosecnexus-color-mode';
   const defaultColorMode = root.dataset.defaultColorMode || 'light';
   const colorSchemeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+  const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
   const adsenseConfig = window.infosecnexusAdSense || null;
   let adsensePromise = null;
 
@@ -111,6 +112,8 @@
   function applyColorMode(mode) {
     const resolvedMode = resolveColorMode(mode);
     root.setAttribute('data-color-mode', resolvedMode);
+    root.setAttribute('data-theme', resolvedMode);
+    root.style.colorScheme = resolvedMode;
     root.dataset.colorModePreference = mode;
     updateColorModeToggles(resolvedMode);
   }
@@ -140,17 +143,59 @@
 
   const panel = document.querySelector('[data-mobile-panel]');
   const menuToggle = document.querySelector('[data-mobile-menu-toggle]');
-  let previousFocus = null;
+  const searchToggle = document.querySelector('[data-search-toggle]');
+  const searchPanel = document.querySelector('[data-search-modal]');
+  let menuPreviousFocus = null;
+  let searchPreviousFocus = null;
+
+  function focusableElements(container) {
+    if (!container) {
+      return [];
+    }
+
+    return Array.from(container.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'))
+      .filter((element) => !element.hidden && element.getAttribute('aria-hidden') !== 'true');
+  }
+
+  function trapFocus(event, container) {
+    if (event.key !== 'Tab' || !container || container.hidden) {
+      return;
+    }
+
+    const focusable = focusableElements(container);
+    if (!focusable.length) {
+      event.preventDefault();
+      return;
+    }
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  function updateBodyModalState() {
+    const menuOpen = panel && !panel.hidden;
+    const searchOpen = searchPanel && !searchPanel.hidden;
+    document.body.classList.toggle('has-modal-open', Boolean(menuOpen || searchOpen));
+  }
 
   function openPanel() {
     if (!panel || !menuToggle) {
       return;
     }
 
-    previousFocus = document.activeElement;
+    closeSearch(false);
+    menuPreviousFocus = document.activeElement;
     panel.hidden = false;
     menuToggle.setAttribute('aria-expanded', 'true');
     document.body.classList.add('mobile-panel-open');
+    updateBodyModalState();
 
     const focusable = panel.querySelector('button, a, input, select, textarea, [tabindex]:not([tabindex="-1"])');
     if (focusable) {
@@ -158,8 +203,8 @@
     }
   }
 
-  function closePanel() {
-    if (!panel || !menuToggle) {
+  function closePanel(restoreFocus = true) {
+    if (!panel || !menuToggle || panel.hidden) {
       return;
     }
 
@@ -167,9 +212,13 @@
     menuToggle.setAttribute('aria-expanded', 'false');
     document.body.classList.remove('mobile-panel-open');
 
-    if (previousFocus) {
-      previousFocus.focus();
+    updateBodyModalState();
+
+    if (restoreFocus && menuPreviousFocus) {
+      menuPreviousFocus.focus();
     }
+
+    menuPreviousFocus = null;
   }
 
   document.addEventListener('click', (event) => {
@@ -182,25 +231,35 @@
     }
   });
 
-  const searchToggle = document.querySelector('[data-search-toggle]');
-  const searchPanel = document.querySelector('[data-search-modal]');
-
-  function closeSearch() {
-    if (!searchToggle || !searchPanel) {
+  function closeSearch(restoreFocus = true) {
+    if (!searchToggle || !searchPanel || searchPanel.hidden) {
       return;
     }
 
     searchPanel.hidden = true;
     searchToggle.setAttribute('aria-expanded', 'false');
     document.body.classList.remove('search-modal-open');
+    updateBodyModalState();
+
+    if (restoreFocus && searchPreviousFocus) {
+      searchPreviousFocus.focus();
+    }
+
+    searchPreviousFocus = null;
   }
 
   if (searchToggle && searchPanel) {
-    searchToggle.addEventListener('click', () => {
+    searchToggle.addEventListener('click', (event) => {
+      event.preventDefault();
       const nextOpen = searchPanel.hidden;
+      if (nextOpen) {
+        searchPreviousFocus = document.activeElement;
+        closePanel(false);
+      }
       searchPanel.hidden = !nextOpen;
       searchToggle.setAttribute('aria-expanded', nextOpen ? 'true' : 'false');
       document.body.classList.toggle('search-modal-open', nextOpen);
+      updateBodyModalState();
 
       if (nextOpen) {
         const input = searchPanel.querySelector('input[type="search"]');
@@ -219,10 +278,66 @@
 
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
-      closePanel();
-      closeSearch();
+      if (panel && !panel.hidden) {
+        closePanel();
+      } else if (searchPanel && !searchPanel.hidden) {
+        closeSearch();
+      }
+      return;
+    }
+
+    if (panel && !panel.hidden) {
+      trapFocus(event, panel.querySelector('[role="dialog"]'));
+    } else if (searchPanel && !searchPanel.hidden) {
+      trapFocus(event, searchPanel.querySelector('[role="dialog"]'));
     }
   });
+
+  const recentSearches = document.querySelector('[data-recent-searches]');
+  const searchForms = document.querySelectorAll('.search-modal form[role="search"], .search-modal .search-form');
+  const searchStorageKey = 'infosecnexus-recent-searches';
+
+  function readRecentSearches() {
+    try {
+      const value = JSON.parse(window.localStorage.getItem(searchStorageKey) || '[]');
+      return Array.isArray(value) ? value.filter((item) => typeof item === 'string').slice(0, 4) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function renderRecentSearches() {
+    if (!recentSearches) {
+      return;
+    }
+
+    const searches = readRecentSearches();
+    recentSearches.replaceChildren();
+    searches.forEach((term) => {
+      const link = document.createElement('a');
+      link.href = `${window.infosecnexusTheme?.homeUrl || '/'}?s=${encodeURIComponent(term)}`;
+      link.textContent = term;
+      recentSearches.appendChild(link);
+    });
+    recentSearches.hidden = searches.length === 0;
+  }
+
+  searchForms.forEach((form) => {
+    form.addEventListener('submit', () => {
+      const input = form.querySelector('input[type="search"]');
+      const value = input ? input.value.trim() : '';
+      if (!value) {
+        return;
+      }
+      try {
+        const searches = [value, ...readRecentSearches().filter((item) => item.toLowerCase() !== value.toLowerCase())].slice(0, 4);
+        window.localStorage.setItem(searchStorageKey, JSON.stringify(searches));
+      } catch {
+        root.dataset.searchStorage = 'unavailable';
+      }
+    });
+  });
+  renderRecentSearches();
 
   document.addEventListener('click', (event) => {
     const link = event.target.closest('a[href*="#"]');
@@ -253,7 +368,7 @@
 
     const headerOffset = (siteHeader ? siteHeader.getBoundingClientRect().height : 0) + 18;
     const targetTop = target.getBoundingClientRect().top + window.scrollY - headerOffset;
-    window.scrollTo({ top: Math.max(targetTop, 0), behavior: 'smooth' });
+    window.scrollTo({ top: Math.max(targetTop, 0), behavior: reducedMotionQuery.matches ? 'auto' : 'smooth' });
 
     if (window.history.pushState) {
       window.history.pushState(null, '', url.hash);
@@ -328,21 +443,16 @@
       const ad = loadGateAd();
       content.hidden = false;
       gate.classList.add('is-unlocked');
-      content.querySelectorAll('h2').forEach((heading, index) => {
-        if (!heading.id) {
-          heading.id = `section-unlocked-${index + 1}`;
-        }
-      });
       const scrollTarget = ad || content.querySelector('h2, h3, p');
       if (scrollTarget) {
-        scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        scrollTarget.scrollIntoView({ behavior: reducedMotionQuery.matches ? 'auto' : 'smooth', block: 'start' });
       }
     });
   });
 
   const scrollTop = document.querySelector('[data-scroll-top]');
   if (scrollTop) {
-    scrollTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+    scrollTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: reducedMotionQuery.matches ? 'auto' : 'smooth' }));
 
     const update = () => {
       const threshold = Math.max(900, window.innerHeight * 1.25);
@@ -358,4 +468,70 @@
       siteHeader.classList.toggle('is-compact', window.scrollY > 80);
     }, { passive: true });
   }
+
+  document.querySelectorAll('[data-animated-hero]').forEach((hero) => {
+    const video = hero.querySelector('video[data-src]');
+    const toggle = hero.querySelector('.anime-hero-media__toggle');
+    if (!video || !toggle || reducedMotionQuery.matches) {
+      if (toggle) {
+        toggle.hidden = true;
+      }
+      return;
+    }
+
+    let sourceReady = false;
+    const prepareVideo = () => {
+      if (sourceReady || !video.dataset.src) {
+        return;
+      }
+      sourceReady = true;
+      video.src = video.dataset.src;
+      video.load();
+    };
+    const setPlaying = (playing) => {
+      hero.classList.toggle('is-playing', playing);
+      toggle.setAttribute('aria-pressed', playing ? 'true' : 'false');
+      toggle.setAttribute('aria-label', playing ? 'Pause hero animation' : 'Play hero animation');
+    };
+    const playVideo = () => {
+      prepareVideo();
+      video.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+    };
+
+    const initializeVideo = () => {
+      const observer = 'IntersectionObserver' in window
+        ? new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              playVideo();
+            } else {
+              video.pause();
+              setPlaying(false);
+            }
+          });
+        }, { rootMargin: '160px 0px', threshold: 0.2 })
+        : null;
+
+      if (observer) {
+        observer.observe(hero);
+      } else {
+        playVideo();
+      }
+    };
+
+    if (document.readyState === 'complete') {
+      initializeVideo();
+    } else {
+      window.addEventListener('load', initializeVideo, { once: true });
+    }
+
+    toggle.addEventListener('click', () => {
+      if (video.paused) {
+        playVideo();
+      } else {
+        video.pause();
+        setPlaying(false);
+      }
+    });
+  });
 }());

@@ -28,6 +28,7 @@ function bootstrap(): void {
 function enqueue(): void {
 	wp_enqueue_style( 'infosecnexus-style', get_template_directory_uri() . '/assets/css/theme.css', array(), INFOSECNEXUS_VERSION );
 	wp_add_inline_style( 'infosecnexus-style', custom_properties() );
+	wp_enqueue_style( 'infosecnexus-anime-editorial', get_template_directory_uri() . '/assets/css/anime-editorial.css', array( 'infosecnexus-style' ), INFOSECNEXUS_VERSION );
 
 	wp_enqueue_script( 'infosecnexus-theme', get_template_directory_uri() . '/assets/js/theme.js', array(), INFOSECNEXUS_VERSION, array( 'in_footer' => true, 'strategy' => 'defer' ) );
 	if ( is_singular() && comments_open() && get_option( 'thread_comments' ) ) {
@@ -71,23 +72,22 @@ function preload_critical_image(): void {
 	$sizes  = '';
 
 	if ( is_front_page() ) {
-		$href   = \InfoSecNexus\Theme\Template_Tags\asset_url( 'hero-shield.png' );
-		$srcset = \InfoSecNexus\Theme\Template_Tags\asset_srcset( 'hero-shield.png' );
+		$rolling = get_page_by_path( 'live-cybersecurity-brief', OBJECT, 'post' );
+		$data    = $rolling instanceof \WP_Post && \InfoSecNexus\Theme\Anime_Design\manual_featured_image_id( (int) $rolling->ID ) > 0
+			? \InfoSecNexus\Theme\Anime_Design\post_image_data( (int) $rolling->ID )
+			: array(
+				'url'    => \InfoSecNexus\Theme\Anime_Design\asset_url( 'hero' ),
+				'srcset' => \InfoSecNexus\Theme\Anime_Design\asset_url( 'hero', 640 ) . ' 640w, ' . \InfoSecNexus\Theme\Anime_Design\asset_url( 'hero' ) . ' 1280w',
+			);
+		$href   = (string) $data['url'];
+		$srcset = (string) $data['srcset'];
 		$sizes  = '(max-width: 760px) calc(100vw - 32px), (max-width: 1180px) 64vw, 860px';
 	} elseif ( is_singular( 'post' ) ) {
-		$post_id      = get_queried_object_id();
-		$thumbnail_id = $post_id ? get_post_thumbnail_id( $post_id ) : 0;
-
-		if ( $thumbnail_id ) {
-			$href   = (string) wp_get_attachment_image_url( $thumbnail_id, 'large' );
-			$srcset = (string) wp_get_attachment_image_srcset( $thumbnail_id, 'large' );
-			$sizes  = '(max-width: 1000px) calc(100vw - 32px), 920px';
-		} else {
-			$file   = \InfoSecNexus\Theme\Template_Tags\fallback_image_file( $post_id );
-			$href   = \InfoSecNexus\Theme\Template_Tags\asset_url( $file );
-			$srcset = \InfoSecNexus\Theme\Template_Tags\asset_srcset( $file );
-			$sizes  = '(max-width: 1000px) calc(100vw - 32px), 920px';
-		}
+		$post_id = get_queried_object_id();
+		$data    = \InfoSecNexus\Theme\Anime_Design\post_image_data( $post_id );
+		$href    = (string) $data['url'];
+		$srcset  = (string) $data['srcset'];
+		$sizes   = '(max-width: 1000px) calc(100vw - 32px), 920px';
 	}
 
 	if ( '' === $href ) {

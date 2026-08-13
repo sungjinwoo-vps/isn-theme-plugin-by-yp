@@ -46,6 +46,8 @@ function setup_theme(): void {
 	add_theme_support( 'automatic-feed-links' );
 	add_theme_support( 'title-tag' );
 	add_theme_support( 'post-thumbnails' );
+	add_image_size( 'infosecnexus-card', 640, 360, true );
+	add_image_size( 'infosecnexus-hero', 1280, 720, true );
 	add_theme_support( 'responsive-embeds' );
 	add_theme_support( 'wp-block-styles' );
 	add_theme_support( 'align-wide' );

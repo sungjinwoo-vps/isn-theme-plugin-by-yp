@@ -118,17 +118,31 @@ function render_gated_post_content(): void {
 		the_content();
 		return;
 	}
-
-	$parts = split_post_content( (string) $post->post_content );
-	if ( '' === $parts['rest'] ) {
-		echo '<div class="entry-content" data-enhance-headings>';
+	if ( post_password_required( $post ) ) {
+		echo '<div class="entry-content">';
 		the_content();
 		echo '</div>';
 		return;
 	}
 
+	$parts = split_post_content( (string) $post->post_content );
+	if ( '' === $parts['rest'] ) {
+		echo '<div class="entry-content" data-enhance-headings>';
+		echo \InfoSecNexus\Theme\Anime_Design\add_heading_ids( apply_filters( 'the_content', (string) $post->post_content ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo '</div>';
+		return;
+	}
+
+	$separator = '<!--infosecnexus-post-gate-separator-->';
+	$processed = \InfoSecNexus\Theme\Anime_Design\add_heading_ids(
+		apply_filters( 'the_content', $parts['teaser'] ) . $separator . apply_filters( 'the_content', $parts['rest'] )
+	);
+	$rendered  = explode( $separator, $processed, 2 );
+	$teaser    = (string) ( $rendered[0] ?? '' );
+	$rest      = (string) ( $rendered[1] ?? '' );
+
 	echo '<div class="entry-content entry-content--gated" data-enhance-headings data-post-unlock>';
-	echo '<div class="post-gate__teaser">' . apply_filters( 'the_content', $parts['teaser'] ) . '</div>';
+	echo '<div class="post-gate__teaser">' . $teaser . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 
 	$slot       = slot_id( 'adsense_inarticle_slot' );
 	$has_ad_gap = enabled() && '' !== $slot && (bool) option( 'adsense_post_gate', true );
@@ -145,7 +159,7 @@ function render_gated_post_content(): void {
 	echo '<p>' . esc_html( $has_ad_gap ? __( 'Continue reading the full briefing after this sponsor space.', 'infosecnexus' ) : __( 'Continue reading the full briefing.', 'infosecnexus' ) ) . '</p>';
 	echo '<button class="button post-gate__button" type="button" data-post-unlock-button>' . esc_html__( 'Read More', 'infosecnexus' ) . ' <span aria-hidden="true">-></span></button>';
 	echo '</div>';
-	echo '<div class="post-gate__rest" data-post-unlock-content hidden>' . apply_filters( 'the_content', $parts['rest'] ) . '</div>';
+	echo '<div class="post-gate__rest" data-post-unlock-content hidden>' . $rest . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 	echo '</div>';
 }
 

@@ -37,9 +37,9 @@ function render(): void {
 						<span class="color-mode-toggle__icon color-mode-toggle__icon--moon"><?php icon( 'moon' ); ?></span>
 						<span class="color-mode-toggle__icon color-mode-toggle__icon--sun"><?php icon( 'sun' ); ?></span>
 					</button>
-					<button class="icon-button header-search-toggle" type="button" data-search-toggle aria-controls="infosecnexus-search-modal" aria-expanded="false" aria-label="<?php esc_attr_e( 'Open search', 'infosecnexus' ); ?>">
+					<a class="icon-button header-search-toggle" href="<?php echo esc_url( add_query_arg( 's', '', home_url( '/' ) ) ); ?>" data-search-toggle aria-controls="infosecnexus-search-modal" aria-expanded="false" aria-label="<?php esc_attr_e( 'Open search', 'infosecnexus' ); ?>">
 						<?php icon( 'search' ); ?>
-					</button>
+					</a>
 					<button class="icon-button mobile-menu-toggle" type="button" data-mobile-menu-toggle aria-controls="infosecnexus-mobile-panel" aria-expanded="false" aria-label="<?php esc_attr_e( 'Open menu', 'infosecnexus' ); ?>">
 						<?php icon( 'menu' ); ?>
 					</button>
@@ -56,9 +56,16 @@ function render(): void {
  * Render logo/identity.
  */
 function render_logo(): void {
+	$custom_logo_id = (int) get_theme_mod( 'custom_logo' );
 	?>
 	<a class="site-brand" href="<?php echo esc_url( home_url( '/' ) ); ?>" rel="home" aria-label="<?php echo esc_attr( get_bloginfo( 'name' ) ); ?>">
-		<span class="site-brand__mark" aria-hidden="true"><?php icon( 'shield' ); ?></span>
+		<span class="site-brand__mark" aria-hidden="true">
+			<?php if ( $custom_logo_id > 0 ) : ?>
+				<?php echo wp_get_attachment_image( $custom_logo_id, 'full', false, array( 'class' => 'site-brand__custom-logo', 'loading' => 'eager', 'decoding' => 'async' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+			<?php else : ?>
+				<?php icon( 'shield' ); ?>
+			<?php endif; ?>
+		</span>
 		<span class="site-brand__text">
 			<span class="site-title"><?php bloginfo( 'name' ); ?></span>
 			<span class="site-description"><?php bloginfo( 'description' ); ?></span>
@@ -241,14 +248,27 @@ function render_search_modal(): void {
 			<button class="icon-button search-modal__close" type="button" data-search-close aria-label="<?php esc_attr_e( 'Close search', 'infosecnexus' ); ?>">
 				<?php icon( 'close' ); ?>
 			</button>
-			<p class="search-modal__eyebrow"><?php esc_html_e( 'Search InfoSecNexus', 'infosecnexus' ); ?></p>
-			<h2 id="infosecnexus-search-title"><?php esc_html_e( 'Search blog posts, CVE notes, guides, and briefings', 'infosecnexus' ); ?></h2>
-			<?php get_search_form(); ?>
-			<div class="search-modal__quick">
-				<span><?php esc_html_e( 'Popular:', 'infosecnexus' ); ?></span>
-				<?php foreach ( $quick_links as $label => $url ) : ?>
-					<a href="<?php echo esc_url( $url ); ?>"><?php echo esc_html( $label ); ?></a>
-				<?php endforeach; ?>
+			<div class="search-modal__layout">
+				<div class="search-modal__copy">
+					<p class="search-modal__eyebrow"><?php esc_html_e( 'Search InfoSecNexus', 'infosecnexus' ); ?></p>
+					<h2 id="infosecnexus-search-title"><?php esc_html_e( 'Find actionable security intelligence', 'infosecnexus' ); ?></h2>
+					<p><?php esc_html_e( 'Search published blog posts, CVE notes, guides, and live briefings.', 'infosecnexus' ); ?></p>
+					<?php get_search_form(); ?>
+					<div class="search-modal__quick">
+						<span><?php esc_html_e( 'Explore:', 'infosecnexus' ); ?></span>
+						<?php foreach ( $quick_links as $label => $url ) : ?>
+							<a href="<?php echo esc_url( $url ); ?>"><?php echo esc_html( $label ); ?></a>
+						<?php endforeach; ?>
+					</div>
+					<div class="search-modal__recent">
+						<strong><?php esc_html_e( 'Recent searches', 'infosecnexus' ); ?></strong>
+						<div data-recent-searches hidden></div>
+					</div>
+				</div>
+				<div class="search-modal__visual" aria-hidden="true">
+					<?php echo \InfoSecNexus\Theme\Anime_Design\asset_image( 'ai', array( 'alt' => '', 'sizes' => '(max-width: 760px) 0px, 380px' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+					<span><?php esc_html_e( 'Threat research desk', 'infosecnexus' ); ?></span>
+				</div>
 			</div>
 		</div>
 	</div>

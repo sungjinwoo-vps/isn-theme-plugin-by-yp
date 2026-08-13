@@ -11,10 +11,11 @@ $infosecnexus_default_color_mode = (string) \InfoSecNexus\Theme\Customizer\get_v
 $infosecnexus_initial_color_mode = 'dark' === $infosecnexus_default_color_mode ? 'dark' : 'light';
 
 ?><!doctype html>
-<html <?php language_attributes(); ?> data-color-mode="<?php echo esc_attr( $infosecnexus_initial_color_mode ); ?>" data-default-color-mode="<?php echo esc_attr( $infosecnexus_default_color_mode ); ?>">
+<html <?php language_attributes(); ?> class="no-js" data-color-mode="<?php echo esc_attr( $infosecnexus_initial_color_mode ); ?>" data-theme="<?php echo esc_attr( $infosecnexus_initial_color_mode ); ?>" data-default-color-mode="<?php echo esc_attr( $infosecnexus_default_color_mode ); ?>">
 <head>
 	<meta charset="<?php bloginfo( 'charset' ); ?>">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<script>(function(d){var r=d.documentElement,m=r.dataset.defaultColorMode||'system',s='';r.classList.remove('no-js');r.classList.add('js');try{s=localStorage.getItem('infosecnexus-color-mode')||'';}catch(e){}m=s||m;if(m==='system'){m=window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';}m=m==='light'?'light':'dark';r.dataset.colorMode=m;r.dataset.theme=m;r.style.colorScheme=m;})(document);</script>
 	<?php wp_head(); ?>
 </head>
 <body <?php body_class(); ?>>
