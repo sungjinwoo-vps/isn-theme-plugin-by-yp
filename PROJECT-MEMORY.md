@@ -896,6 +896,81 @@ and all 18 Playwright tests. The release theme ZIP SHA-256 is
 The public site returned `200`, served assets versioned `0.1.47`, and retained
 its security headers after cache purge.
 
+### Anime Cyber Editorial Redesign (2026-08-13)
+
+Release `0.1.48` implemented the supplied anime cyber editorial design across
+the existing WordPress theme without replacing its content model. The shared
+header/footer, front page, archives/categories/search, single posts, About,
+Contact, legal pages, search modal, 404 page, and post cards now use the same
+responsive visual system. The implementation lives primarily in
+`assets/css/anime-editorial.css`, `inc/anime-design.php`,
+`template-parts/card/post-card.php`, and the existing WordPress templates. It
+preserves manual featured images and attachment metadata as authoritative,
+with category-aware artwork used only as a fallback.
+
+Production artwork is bundled under `assets/anime/webp-1280/` and
+`assets/anime/webp-640/`. The hero maps to `hero-cyber-sentinel.webp`; topic
+fallbacks map to the matching `featured-ai-security`,
+`featured-cloud-security`, `featured-critical-cve`,
+`featured-linux-devops`, `featured-network-security`, and
+`featured-windows-security` pairs; About and Contact use
+`about-contact-team.webp`. The optional animation is
+`assets/anime/animation/hero-cyber-sentinel-loop.mp4`, loaded only after the
+static poster and never used as the LCP resource.
+
+The redesign includes a pre-paint dark/light preference, system-color fallback,
+reduced-motion handling, responsive images with intrinsic dimensions, an
+accessible focus-trapped search modal, whole-card links with visible focus,
+single-H1 page structure, canonical and social metadata, Article/BlogPosting
+and BreadcrumbList JSON-LD, and no-JavaScript article readability. Release
+`0.1.48` was source commit `d123079`; GitHub Actions run `31729418531` produced
+release `auto-v0.1.48`. Its release ZIP SHA-256 is
+`659bacd8f23859362f8b9f8bcdfabc51a209aae963bb8e6c8f71337295953c2c`.
+The pre-release production backup is
+`/home/infosecnexus/backups/anime-redesign-20260813T181928Z`; its database
+SHA-256 is `cc717bb952e159c9ab6790d83ab00baca690cd14ec0bb070ba8c0d48a5973dc8`
+and theme archive SHA-256 is
+`28dc613ddc235beed9eae740ea314fcf22f54ec4bf1901dc41c8847e900faf61`.
+
+Release `0.1.49` made single-post related briefings reuse the same compact,
+equal-height, whole-link post-card partial instead of maintaining a second card
+implementation. It was source commit `8322835`; GitHub Actions run
+`31735564319` produced `auto-v0.1.49`. The release ZIP SHA-256 is
+`531c44520a74dbafbf6a93c6b1f4bcece182d71eff6f29872311a2215dc50a66`.
+The pre-release backup is
+`/home/infosecnexus/backups/anime-related-20260813T192631Z`; its database
+SHA-256 is `aa4d41aede4b660308989ae80cb46f7b23a4fbbcebf4e983d453b7614e27cb02`
+and theme archive SHA-256 is
+`82842d3b540d230a8c5fbd141f42004b6c78f34e91fde8d308544f1b75d2ea6a`.
+
+Release `0.1.50` changed the dark critical-state token to `#d90d2e`, giving
+white label text a WCAG contrast ratio above 5:1, and made `color-contrast` an
+explicit Axe regression failure. It was source commit `9cb67b9`; GitHub Actions
+run `31738158030` produced `auto-v0.1.50`. The exact release ZIP SHA-256 is
+`1ce01394c9d44304a4b76f84ffa09325e3de40c1d7e3c816f4d3bd98a39745a5`.
+Before production installation, a verified database/theme backup was created at
+`/home/infosecnexus/backups/anime-contrast-20260813T201813Z`; its database
+SHA-256 is `7db6d2bc6fd3d887adaa9c7ce1a13bc4be1b9a33956617dad9c455911fbc9401`
+and theme archive SHA-256 is
+`aec1e68597e129e0bfda64399756f3ef37edcb30cf82d958130ea1bdfd741cb5`.
+
+Final anonymous production verification on `0.1.50` found all 75 theme PHP
+files syntax-clean and all 30 desktop/mobile Playwright checks passing. Mobile
+Lighthouse scored 100 Performance, 100 Accessibility, 100 Best Practices, and
+100 SEO with LCP 1.5 seconds, TBT 0 ms, and CLS 0. The clean desktop rerun also
+scored four 100s with LCP 0.48 seconds, TBT 0 ms, and CLS 0. Public responses
+served assets versioned `0.1.50` and retained CSP, HSTS, nosniff, DENY framing,
+and strict-origin referrer headers. Lighthouse completed valid reports, though
+the Windows Chrome launcher printed an `EPERM` warning while deleting its
+temporary profile after each run.
+
+The GitHub `releases/latest/download/infosecnexus-releases.json` edge response
+briefly remained cached at `0.1.49` after `0.1.50` was published, while the same
+URL with a cache-busting query returned `0.1.50`. For that release only, the
+exact checksum-verified ZIP was installed through WordPress CLI. This was an
+upstream edge-cache delay, not disabled theme updates; the updater option stayed
+enabled and no content or theme settings were reset.
+
 ## 19. Definition Of Done
 
 A task is not complete merely because code was edited. For this project, done
