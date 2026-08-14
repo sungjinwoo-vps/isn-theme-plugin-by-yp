@@ -971,6 +971,36 @@ exact checksum-verified ZIP was installed through WordPress CLI. This was an
 upstream edge-cache delay, not disabled theme updates; the updater option stayed
 enabled and no content or theme settings were reset.
 
+Release `0.1.51` introduced the circular back-to-top reading-progress control,
+dynamic footer clearance, and a readable light-mode contact-form warning. It
+was source commit `6346f01`; its release ZIP SHA-256 is
+`4f60129eb4dbe2c38ece5af0ccd1d5efd30062a3e133cb8f9f5802453d2876e8`.
+Release `0.1.52` then corrected a dark-mode cascade conflict so critical cards
+retain their red edge and hover glow in both color modes. It was source commit
+`d3543ff`; its release ZIP SHA-256 is
+`ad4fe3f4f6b88f5fdba78890cd58f5d2754355c4f7ea77b2d1eb5c1b0149a7ea`.
+
+The verified pre-`0.1.52` production backup is
+`/home/infosecnexus/backups/ui-progress-20260814T073753Z`; its database SHA-256
+is `4736e26ba00b7c0d7725c307c5e1adab9ae9e49d93b0501e3cd83606410ff289`
+and its `0.1.51` theme archive SHA-256 is
+`b7de094b100f11a68768ff64d14312202aaf3701c4bf4d7216966c20557654ce`.
+The exact `0.1.52` ZIP was checksum-verified before installation, all 75 live
+theme PHP files passed syntax checks, caches were flushed, and anonymous pages
+served CSS and JavaScript versioned `0.1.52` with the existing security headers.
+
+Final production verification passed all 34 desktop/mobile Playwright checks,
+including keyboard behavior, reduced motion, no-JavaScript content, Axe,
+forms, SEO/agent discovery, and the new UI regressions. JavaScript and CSS
+linting passed, `npm audit --omit=optional --audit-level=high` found zero
+vulnerabilities, the light contact warning passed Axe color contrast, and
+critical cards retained their intended state in both themes. At the bottom of
+the mobile live brief, the circular control measured 46 by 46 pixels, reported
+100 percent reading progress, and remained about 15 pixels above the footer.
+A fresh Lighthouse CLI attempt timed out without producing a report, so the
+verified `0.1.50` four-100 Lighthouse run remains the latest valid performance
+record rather than an unverified score being reported for `0.1.52`.
+
 ## 19. Definition Of Done
 
 A task is not complete merely because code was edited. For this project, done
