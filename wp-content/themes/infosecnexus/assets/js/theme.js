@@ -454,13 +454,40 @@
   if (scrollTop) {
     scrollTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: reducedMotionQuery.matches ? 'auto' : 'smooth' }));
 
+    const siteFooter = document.querySelector('.site-footer');
+    let updateQueued = false;
+
     const update = () => {
+      updateQueued = false;
+      const total = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+      const ratio = total > 0 ? Math.min(Math.max(window.scrollY / total, 0), 1) : 0;
       const threshold = Math.max(900, window.innerHeight * 1.25);
-      scrollTop.hidden = window.scrollY < threshold;
+      let footerOffset = 0;
+
+      if (siteFooter) {
+        const footerOverlap = Math.max(0, window.innerHeight - siteFooter.getBoundingClientRect().top);
+        const maximumOffset = Math.max(0, window.innerHeight - scrollTop.offsetHeight - 24);
+        footerOffset = Math.min(footerOverlap, maximumOffset);
+      }
+
+      scrollTop.style.setProperty('--isn-scroll-progress', `${Math.round(ratio * 1000) / 10}%`);
+      scrollTop.style.setProperty('--isn-scroll-footer-offset', `${Math.ceil(footerOffset)}px`);
+      scrollTop.hidden = total <= 0 || window.scrollY < threshold;
+    };
+
+    const requestUpdate = () => {
+      if (updateQueued) {
+        return;
+      }
+
+      updateQueued = true;
+      window.requestAnimationFrame(update);
     };
 
     update();
-    window.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('scroll', requestUpdate, { passive: true });
+    window.addEventListener('resize', requestUpdate);
+    window.addEventListener('load', requestUpdate, { once: true });
   }
 
   if (siteHeader) {

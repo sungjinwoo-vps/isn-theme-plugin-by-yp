@@ -211,6 +211,53 @@ test('color mode choice persists across navigation and reload', async ({ page },
   await expect(page.locator('html')).toHaveAttribute('data-color-mode', expectedMode);
 });
 
+test('back-to-top reports reading progress and clears footer navigation', async ({ page }) => {
+  await page.goto(baseURL, { waitUntil: 'networkidle' });
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+
+  const control = page.locator('[data-scroll-top]');
+  await expect(control).toBeVisible();
+  await expect.poll(() => control.evaluate((button) => Number.parseFloat(
+    getComputedStyle(button).getPropertyValue('--isn-scroll-progress')
+  ))).toBeGreaterThan(99);
+
+  await expect.poll(() => control.evaluate((button) => {
+    const buttonRect = button.getBoundingClientRect();
+    const footerRect = document.querySelector('.site-footer')?.getBoundingClientRect();
+    return buttonRect.bottom < (footerRect?.top ?? window.innerHeight);
+  })).toBeTruthy();
+
+  const geometry = await control.evaluate((button) => {
+    const buttonRect = button.getBoundingClientRect();
+    const footerRect = document.querySelector('.site-footer')?.getBoundingClientRect();
+    return {
+      borderRadius: Number.parseFloat(getComputedStyle(button).borderTopLeftRadius),
+      footerTop: footerRect?.top ?? window.innerHeight,
+      height: buttonRect.height,
+      bottom: buttonRect.bottom,
+      width: buttonRect.width
+    };
+  });
+
+  expect(Math.abs(geometry.width - geometry.height)).toBeLessThanOrEqual(1);
+  expect(geometry.borderRadius).toBeGreaterThanOrEqual((geometry.width / 2) - 1);
+  expect(geometry.bottom).toBeLessThan(geometry.footerTop);
+
+  await control.click();
+  await expect.poll(() => page.evaluate(() => window.scrollY), { timeout: 3000 }).toBeLessThan(5);
+});
+
+test('contact warning remains readable in light mode', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('infosecnexus-color-mode', 'light'));
+  await page.goto(`${baseURL}/contact/`, { waitUntil: 'networkidle' });
+  await expect(page.locator('html')).toHaveAttribute('data-color-mode', 'light');
+  await expect(page.locator('.isnx-alert-note')).toBeVisible();
+
+  const results = await new AxeBuilder({ page }).include('.isnx-contact-panel').analyze();
+  const contrastViolations = results.violations.filter((violation) => violation.id === 'color-contrast');
+  expect(contrastViolations).toEqual([]);
+});
+
 test('special pages and the cyber 404 retain one H1 without overflow', async ({ page }) => {
   const paths = ['/about/', '/contact/', '/privacy-policy/', '/terms-and-conditions/', '/disclaimer/'];
 
