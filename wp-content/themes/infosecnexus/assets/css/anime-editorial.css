@@ -615,7 +615,8 @@ textarea::placeholder,
   transition: border-color 240ms var(--isn-ease), box-shadow 240ms var(--isn-ease), transform 240ms var(--isn-ease);
 }
 
-.side-story--critical {
+.side-story--critical,
+:root[data-color-mode="dark"] .side-story--critical {
   border-color: color-mix(in srgb, var(--isn-critical) 48%, var(--isn-border));
   box-shadow: inset 3px 0 0 color-mix(in srgb, var(--isn-critical) 72%, transparent), var(--isn-shadow-soft);
 }
@@ -944,7 +945,8 @@ textarea::placeholder,
   background: var(--isn-critical);
 }
 
-.post-card--critical {
+.post-card--critical,
+:root[data-color-mode="dark"] .post-card--critical {
   border-color: color-mix(in srgb, var(--isn-critical) 48%, var(--isn-border));
   box-shadow: inset 3px 0 0 color-mix(in srgb, var(--isn-critical) 72%, transparent), 0 10px 30px rgb(0 0 0 / 16%);
 }
@@ -1030,7 +1032,9 @@ textarea::placeholder,
   }
 
   .side-story--critical:hover,
-  .post-card--critical:hover {
+  .post-card--critical:hover,
+  :root[data-color-mode="dark"] .side-story--critical:hover,
+  :root[data-color-mode="dark"] .post-card--critical:hover {
     border-color: color-mix(in srgb, var(--isn-critical) 82%, white 18%);
     box-shadow: inset 3px 0 0 var(--isn-critical), 0 18px 48px rgb(217 13 46 / 22%);
   }
