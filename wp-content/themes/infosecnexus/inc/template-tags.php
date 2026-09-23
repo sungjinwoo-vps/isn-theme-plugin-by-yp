@@ -54,6 +54,28 @@ function post_date_data( ?int $post_id = null ): array {
 }
 
 /**
+ * Return the permanent rolling cybersecurity brief when it is public.
+ *
+ * The rolling brief keeps one canonical URL while its content and modified
+ * date are refreshed. Centralizing this lookup keeps archive and sidebar
+ * presentation consistent without changing the original publication date.
+ *
+ * @return \WP_Post|null
+ */
+function rolling_brief_post(): ?\WP_Post {
+	$post = get_page_by_path( 'live-cybersecurity-brief', OBJECT, 'post' );
+	if ( ! $post instanceof \WP_Post || 'publish' !== get_post_status( $post ) ) {
+		return null;
+	}
+
+	if ( 'rolling' !== (string) get_post_meta( $post->ID, '_infosecnexus_newsroom_kind', true ) ) {
+		return null;
+	}
+
+	return $post;
+}
+
+/**
  * Render post meta.
  */
 function post_meta(): void {
@@ -239,15 +261,20 @@ function pagination(): void {
 /**
  * Render a post card.
  *
- * @param string $variant Card variant.
- * @param string $heading Heading level.
+ * @param string   $variant Card variant.
+ * @param string   $heading Heading level.
+ * @param int|null $post_id Post ID. Defaults to the current loop post.
  */
-function post_card( string $variant = 'grid', string $heading = 'h2' ): void {
+function post_card( string $variant = 'grid', string $heading = 'h2', ?int $post_id = null ): void {
+	if ( ! $post_id ) {
+		$post_id = (int) get_the_ID();
+	}
+
 	get_template_part(
 		'template-parts/card/post-card',
 		null,
 		array(
-			'post_id' => (int) get_the_ID(),
+			'post_id' => $post_id,
 			'variant' => $variant,
 			'heading' => in_array( $heading, array( 'h2', 'h3' ), true ) ? $heading : 'h2',
 		)

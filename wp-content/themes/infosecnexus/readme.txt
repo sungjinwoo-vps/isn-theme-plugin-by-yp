@@ -3,7 +3,7 @@ Contributors: infosecnexus
 Requires at least: 6.5
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.1.52
+Stable tag: 0.1.53
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,6 +25,9 @@ InfoSecNexus WordPress Theme, Copyright 2026 InfoSecNexus.
 InfoSecNexus is distributed under the terms of the GNU GPL.
 
 == Changelog ==
+
+= 0.1.53 =
+* Pins the permanent rolling cybersecurity brief to the first category page and curated sidebar while preventing duplicate appearances in date-based pagination.
 
 = 0.1.52 =
 * Preserve the critical severity border and glow in dark mode as well as light mode.

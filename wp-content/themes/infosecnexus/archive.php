@@ -17,6 +17,11 @@ if ( \InfoSecNexus\Theme\Elementor\render_location( 'archive' ) ) {
 $queried     = get_queried_object();
 $archive_key = $queried instanceof WP_Term ? \InfoSecNexus\Theme\Anime_Design\term_asset_key( $queried->slug ) : 'hero';
 $description = get_the_archive_description();
+$rolling     = \InfoSecNexus\Theme\Template_Tags\rolling_brief_post();
+$pin_rolling = is_category()
+	&& $rolling instanceof WP_Post
+	&& 1 === max( 1, (int) get_query_var( 'paged' ) )
+	&& has_category( (int) get_queried_object_id(), $rolling->ID );
 ?>
 <main id="primary" class="site-main">
 	<header class="archive-masthead layout-wide-shell">
@@ -47,10 +52,14 @@ $description = get_the_archive_description();
 	</header>
 	<div class="layout-shell">
 		<section class="content-area">
-			<?php if ( have_posts() ) : ?>
+			<?php if ( have_posts() || $pin_rolling ) : ?>
 				<header class="listing-header"><h2><?php esc_html_e( 'Latest briefings', 'infosecnexus' ); ?></h2></header>
 				<div class="post-grid post-grid--archive">
 					<?php
+					if ( $pin_rolling ) {
+						\InfoSecNexus\Theme\Template_Tags\post_card( 'grid', 'h2', $rolling->ID );
+					}
+
 					while ( have_posts() ) :
 						the_post();
 						\InfoSecNexus\Theme\Template_Tags\post_card();

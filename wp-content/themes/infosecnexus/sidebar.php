@@ -17,28 +17,33 @@ if ( is_home() || is_archive() || is_search() ) {
 		<section class="widget widget--latest">
 			<h2 class="widget-title"><?php esc_html_e( 'Latest Briefings', 'infosecnexus' ); ?></h2>
 			<?php
+			$infosecnexus_rolling = \InfoSecNexus\Theme\Template_Tags\rolling_brief_post();
 			$infosecnexus_latest = new WP_Query(
 				array(
-					'posts_per_page'      => 4,
+					'posts_per_page'      => $infosecnexus_rolling ? 3 : 4,
+					'post__not_in'        => $infosecnexus_rolling ? array( $infosecnexus_rolling->ID ) : array(),
 					'ignore_sticky_posts' => true,
 				)
 			);
-			if ( $infosecnexus_latest->have_posts() ) :
+			$infosecnexus_items = $infosecnexus_rolling ? array( $infosecnexus_rolling ) : array();
+			if ( ! empty( $infosecnexus_latest->posts ) ) {
+				$infosecnexus_items = array_merge( $infosecnexus_items, $infosecnexus_latest->posts );
+			}
+			if ( $infosecnexus_items ) :
 				?>
 				<ul class="sidebar-post-list">
-					<?php
-					while ( $infosecnexus_latest->have_posts() ) :
-						$infosecnexus_latest->the_post();
-						$infosecnexus_date = \InfoSecNexus\Theme\Template_Tags\post_date_data( (int) get_the_ID() );
+					<?php foreach ( $infosecnexus_items as $infosecnexus_item ) : ?>
+						<?php
+						$infosecnexus_post_id = (int) $infosecnexus_item->ID;
+						$infosecnexus_date    = \InfoSecNexus\Theme\Template_Tags\post_date_data( $infosecnexus_post_id );
 						?>
 						<li>
-							<a href="<?php the_permalink(); ?>"><?php the_title(); ?></a>
+							<a href="<?php echo esc_url( get_permalink( $infosecnexus_post_id ) ); ?>"><?php echo esc_html( get_the_title( $infosecnexus_post_id ) ); ?></a>
 							<span><time datetime="<?php echo esc_attr( $infosecnexus_date['datetime'] ); ?>"><?php echo esc_html( $infosecnexus_date['label'] ); ?></time></span>
 						</li>
-					<?php endwhile; ?>
+					<?php endforeach; ?>
 				</ul>
 				<?php
-				wp_reset_postdata();
 			endif;
 			?>
 		</section>
