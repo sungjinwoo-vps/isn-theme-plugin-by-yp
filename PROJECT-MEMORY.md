@@ -1001,6 +1001,40 @@ A fresh Lighthouse CLI attempt timed out without producing a report, so the
 verified `0.1.50` four-100 Lighthouse run remains the latest valid performance
 record rather than an unverified score being reported for `0.1.52`.
 
+Release `0.1.53` keeps the permanent `/live-cybersecurity-brief/` article
+visible as the first card on page one of each category it belongs to even as
+its original publication date ages. The ordinary category query excludes that
+post, so pagination cannot repeat it, while the latest-briefings sidebar pins
+the same canonical article and labels it with its updated date. Page two was
+verified to contain zero rolling-brief grid duplicates while retaining one
+sidebar reference on both desktop and mobile. The source commit was `1d53863`;
+GitHub Actions run `35853725897` produced release `auto-v0.1.53`. The release
+ZIP SHA-256 is
+`cf60aa397e81b43066733eb4cf9e7949ce01f34130183556edd529c993d4f3b3`.
+
+Production now resolves to the migrated AWS host `13.234.204.79`. The site
+remains at `/home/infosecnexus/htdocs/infosecnexus.com`, owned by the
+`infosecnexus` system user; WP-CLI on this host is `/usr/bin/wp`. Never record
+the SSH private key or credentials in this file. Before installing `0.1.53`, a
+verified database/theme backup was created at
+`/home/infosecnexus/backups/rolling-archive-20260923T113658Z`; its database
+SHA-256 is
+`3c1db8db0c94cf7619838d8ac1bb377fa3016fc7ad3db7603d11f1d781a45e6c`
+and its `0.1.52` theme archive SHA-256 is
+`89ebd6cb09452965f11ee998dfcb7d0c63410620a12e09357cbe385becbf0e25`.
+
+The deployment checksum matched the signed release list, all 75 packaged PHP
+files passed the production PHP 8.4 syntax check, and WordPress caches and
+transients were cleared. Anonymous production served assets versioned
+`0.1.53`. All 34 desktop/mobile Playwright checks passed, including the rolling
+brief archive regression, unique responsive artwork, whole-card keyboard
+behavior, persistent color mode, circular progress/back-to-top clearance,
+light contact-warning contrast, no-JavaScript readability, Axe, secure forms,
+SEO/agent discovery, and hidden internal notes. JavaScript and CSS linting and
+`git diff --check` also passed. `npm audit --omit=optional` reported three
+development-only advisories in `colord`, `fast-uri`, and `js-yaml`; no runtime
+package was changed as part of this focused release.
+
 ## 19. Definition Of Done
 
 A task is not complete merely because code was edited. For this project, done
