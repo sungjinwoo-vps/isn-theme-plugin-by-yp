@@ -14,6 +14,35 @@ namespace InfoSecNexus\Theme\SEO;
  */
 function bootstrap(): void {
 	add_action( 'wp_head', __NAMESPACE__ . '\\render_metadata', 4 );
+	add_filter( 'wp_robots', __NAMESPACE__ . '\\noindex_tag_archives' );
+	add_filter( 'wp_sitemaps_taxonomies', __NAMESPACE__ . '\\exclude_post_tags_from_sitemaps' );
+}
+
+/**
+ * Keep keyword tag archives from creating low-value indexable pages.
+ *
+ * @param array<string,mixed> $robots Existing robots directives.
+ * @return array<string,mixed>
+ */
+function noindex_tag_archives( array $robots ): array {
+	if ( is_tag() ) {
+		$robots['noindex'] = true;
+		$robots['follow']  = true;
+		unset( $robots['index'], $robots['nofollow'] );
+	}
+
+	return $robots;
+}
+
+/**
+ * Exclude post tags from core XML sitemaps while keeping category links crawlable.
+ *
+ * @param array<string,\WP_Taxonomy> $taxonomies Public sitemap taxonomies.
+ * @return array<string,\WP_Taxonomy>
+ */
+function exclude_post_tags_from_sitemaps( array $taxonomies ): array {
+	unset( $taxonomies['post_tag'] );
+	return $taxonomies;
 }
 
 /**

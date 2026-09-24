@@ -64,6 +64,19 @@ test('rolling brief uses its updated date throughout archive surfaces', async ({
   await expect(latestItem.locator('time')).toHaveAttribute('datetime', /^\d{4}-\d{2}-\d{2}T/);
 });
 
+test('newsroom posts expose an editorial author and focused tags without a tag sitemap', async ({ request }) => {
+  const rollingResponse = await request.get(`${baseURL}/wp-json/wp/v2/posts?slug=live-cybersecurity-brief&per_page=1`);
+  const rollingPosts = rollingResponse.ok() ? await rollingResponse.json() : [];
+  test.skip(rollingPosts.length === 0, 'The WordPress fixture does not contain the permanent rolling brief.');
+
+  expect(rollingPosts[0].author).toBeGreaterThan(0);
+  expect(rollingPosts[0].tags.length).toBeGreaterThan(0);
+
+  const sitemapResponse = await request.get(`${baseURL}/wp-sitemap.xml`);
+  expect(sitemapResponse.ok()).toBeTruthy();
+  expect(await sitemapResponse.text()).not.toContain('wp-sitemap-taxonomies-post_tag');
+});
+
 test('homepage post artwork is responsive, descriptive, and visually distinct', async ({ page }) => {
   await page.goto(baseURL, { waitUntil: 'networkidle' });
 

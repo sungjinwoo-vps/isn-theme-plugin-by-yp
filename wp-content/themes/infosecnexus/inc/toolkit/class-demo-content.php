@@ -21,6 +21,8 @@ final class Demo_Content {
 	private const DAILY_SCHEMA_OPTION = 'infosecnexus_daily_content_schema';
 	private const DAILY_SCHEMA_HOOK = 'infosecnexus_upgrade_daily_content_schema';
 	private const NEWSROOM_INTERVAL = 'infosecnexus_fifteen_minutes';
+	private const NEWSROOM_METADATA_OPTION = 'infosecnexus_newsroom_metadata_schema';
+	private const NEWSROOM_METADATA_VERSION = '1';
 
 	/**
 	 * Register hooks.
@@ -30,16 +32,19 @@ final class Demo_Content {
 		add_action( 'admin_init', array( __CLASS__, 'handle_import' ) );
 		add_action( 'admin_init', array( __CLASS__, 'maybe_auto_seed' ) );
 		add_action( 'admin_init', array( __CLASS__, 'maybe_upgrade_daily_content' ), 30 );
+		add_action( 'admin_init', array( __CLASS__, 'maybe_repair_newsroom_metadata' ), 35 );
 		add_filter( 'cron_schedules', array( __CLASS__, 'cron_schedules' ) );
 		add_action( 'init', array( __CLASS__, 'schedule_daily_content' ) );
 		add_action( 'init', array( __CLASS__, 'schedule_daily_content_upgrade' ), 40 );
 		add_action( 'init', array( __CLASS__, 'maybe_purge_release_cache' ), 99 );
 		add_action( self::DAILY_CRON_HOOK, array( __CLASS__, 'publish_daily_content' ) );
+		add_action( self::DAILY_CRON_HOOK, array( __CLASS__, 'maybe_repair_newsroom_metadata' ), 20 );
 		add_action( self::DAILY_SCHEMA_HOOK, array( __CLASS__, 'maybe_upgrade_daily_content' ) );
 		add_action( 'infosecnexus_post_artwork_changed', array( __CLASS__, 'purge_artwork_cache' ) );
 
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
 			\WP_CLI::add_command( 'infosecnexus newsroom refresh', array( __CLASS__, 'cli_refresh_newsroom' ) );
+			\WP_CLI::add_command( 'infosecnexus newsroom repair-metadata', array( __CLASS__, 'cli_repair_newsroom_metadata' ) );
 		}
 	}
 
@@ -279,6 +284,48 @@ final class Demo_Content {
 				(string) ( $status['checked_at'] ?? gmdate( 'Y-m-d H:i:s' ) )
 			)
 		);
+	}
+
+	/**
+	 * Repair author and keyword metadata for existing active newsroom posts.
+	 *
+	 * @param string[]            $args Positional arguments.
+	 * @param array<string,mixed> $assoc_args Named arguments.
+	 */
+	public static function cli_repair_newsroom_metadata( array $args, array $assoc_args ): void {
+		unset( $args, $assoc_args );
+		$result = self::repair_newsroom_metadata();
+		if ( 0 === $result['failed'] ) {
+			update_option( self::NEWSROOM_METADATA_OPTION, self::NEWSROOM_METADATA_VERSION, false );
+		}
+
+		\WP_CLI::success(
+			sprintf(
+				'Repaired %1$d newsroom posts; author updated on %2$d, keywords updated on %3$d, failures: %4$d.',
+				$result['checked'],
+				$result['authors'],
+				$result['keywords'],
+				$result['failed']
+			)
+		);
+	}
+
+	/**
+	 * Run the newsroom metadata migration once per schema version.
+	 */
+	public static function maybe_repair_newsroom_metadata(): void {
+		if ( self::NEWSROOM_METADATA_VERSION === (string) get_option( self::NEWSROOM_METADATA_OPTION, '' ) ) {
+			return;
+		}
+
+		if ( ! wp_doing_cron() && ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		$result = self::repair_newsroom_metadata();
+		if ( 0 === $result['failed'] ) {
+			update_option( self::NEWSROOM_METADATA_OPTION, self::NEWSROOM_METADATA_VERSION, false );
+		}
 	}
 
 	/**
@@ -931,6 +978,7 @@ final class Demo_Content {
 		$date_slug  = sanitize_title( $date );
 		$changed     = 0;
 		$changed_ids = array();
+		$author_id   = self::editorial_author_id();
 
 		foreach ( Live_Intelligence::daily_posts( $human_date, $live_data ) as $post ) {
 			$term_ids = array();
@@ -943,6 +991,14 @@ final class Demo_Content {
 			$post_slug  = ! empty( $post['dated_slug'] ) ? $date_slug . '-' . $post['slug'] : (string) $post['slug'];
 			$existing   = get_page_by_path( $post_slug, OBJECT, 'post' );
 			$is_rolling = 'rolling' === sanitize_key( (string) ( $post['kind'] ?? '' ) );
+			$keywords   = self::newsroom_keywords(
+				(string) ( $post['title'] ?? '' ),
+				(string) ( $post['excerpt'] ?? '' ),
+				(array) ( $post['categories'] ?? array() ),
+				(array) ( $post['source_ids'] ?? array() ),
+				(string) ( $post['kind'] ?? '' )
+			);
+			$keyword_meta = self::newsroom_keyword_meta( $keywords );
 			if (
 				$existing
 				&& hash_equals(
@@ -950,6 +1006,7 @@ final class Demo_Content {
 					(string) $post['fingerprint']
 				)
 			) {
+				self::sync_newsroom_post_metadata( (int) $existing->ID, $author_id, $keywords, $keyword_meta );
 				if ( $is_rolling ) {
 					$superseded = Content_Retirement::consolidate_rolling_posts( (int) $existing->ID );
 					if ( ! empty( $superseded ) ) {
@@ -962,20 +1019,18 @@ final class Demo_Content {
 
 			$published_date     = $existing ? (string) $existing->post_date : $post_date;
 			$published_date_gmt = $existing ? (string) $existing->post_date_gmt : get_gmt_from_date( $post_date );
-			$post_id = self::upsert_post(
-				'post',
-				$post_slug,
-				array(
-					'post_title'    => $post['title'],
-					'post_excerpt'  => $post['excerpt'],
-					'post_content'  => $post['content'],
-					'post_status'   => 'publish',
-					'post_date'     => $published_date,
-					'post_date_gmt' => $published_date_gmt,
-					'comment_status' => 'closed',
-					'ping_status'   => 'closed',
-					'post_category' => $term_ids,
-					'meta_input'    => array(
+			$post_data = array(
+				'post_title'    => $post['title'],
+				'post_excerpt'  => $post['excerpt'],
+				'post_content'  => $post['content'],
+				'post_status'   => 'publish',
+				'post_date'     => $published_date,
+				'post_date_gmt' => $published_date_gmt,
+				'comment_status' => 'closed',
+				'ping_status'   => 'closed',
+				'post_category' => $term_ids,
+				'meta_input'    => array_merge(
+					array(
 						'_infosecnexus_daily_content'     => $date,
 						'_infosecnexus_newsroom_post'     => '1',
 						'_infosecnexus_newsroom_kind'     => sanitize_key( (string) ( $post['kind'] ?? 'rolling' ) ),
@@ -991,9 +1046,20 @@ final class Demo_Content {
 						'rank_math_description'           => $post['excerpt'],
 						'_seopress_titles_desc'           => $post['excerpt'],
 					),
-				)
+					$keyword_meta
+				),
+			);
+			if ( $author_id > 0 ) {
+				$post_data['post_author'] = $author_id;
+			}
+
+			$post_id = self::upsert_post(
+				'post',
+				$post_slug,
+				$post_data
 			);
 			if ( $post_id > 0 ) {
+				self::sync_newsroom_post_metadata( $post_id, $author_id, $keywords, $keyword_meta );
 				Post_Artwork::ensure( $post_id );
 				++$changed;
 				$changed_ids[] = $post_id;
@@ -1012,6 +1078,308 @@ final class Demo_Content {
 		if ( $changed > 0 || $force ) {
 			self::purge_public_cache( $changed_ids );
 		}
+	}
+
+	/**
+	 * Resolve the site editor used by unattended cron publication.
+	 */
+	private static function editorial_author_id(): int {
+		$author_id = absint( get_option( 'infosecnexus_editorial_author_id', 0 ) );
+		$author    = $author_id > 0 ? get_userdata( $author_id ) : false;
+
+		if ( ! $author instanceof \WP_User || ! user_can( $author, 'publish_posts' ) ) {
+			$author = get_user_by( 'email', sanitize_email( (string) get_option( 'admin_email', '' ) ) );
+		}
+
+		if ( ! $author instanceof \WP_User || ! user_can( $author, 'publish_posts' ) ) {
+			$users  = get_users(
+				array(
+					'role__in' => array( 'administrator', 'editor', 'author' ),
+					'orderby'  => 'ID',
+					'order'    => 'ASC',
+					'number'   => 1,
+				)
+			);
+			$author = $users[0] ?? false;
+		}
+
+		$author_id = $author instanceof \WP_User ? (int) $author->ID : 0;
+		$author_id = (int) apply_filters( 'infosecnexus_editorial_author_id', $author_id );
+		$author    = $author_id > 0 ? get_userdata( $author_id ) : false;
+
+		if ( ! $author instanceof \WP_User || ! user_can( $author, 'publish_posts' ) ) {
+			return 0;
+		}
+
+		if ( $author_id !== (int) get_option( 'infosecnexus_editorial_author_id', 0 ) ) {
+			update_option( 'infosecnexus_editorial_author_id', $author_id, false );
+		}
+
+		return $author_id;
+	}
+
+	/**
+	 * Build concise, topic-specific keywords without stuffing post titles.
+	 *
+	 * @param string   $title          Post title.
+	 * @param string   $excerpt        Post excerpt.
+	 * @param string[] $category_slugs Category slugs.
+	 * @param string[] $source_ids     Source identifiers.
+	 * @param string   $kind           Newsroom post kind.
+	 * @return string[]
+	 */
+	private static function newsroom_keywords( string $title, string $excerpt, array $category_slugs, array $source_ids, string $kind ): array {
+		$keywords = array();
+		$seen     = array();
+		$append   = static function ( string $keyword ) use ( &$keywords, &$seen ): void {
+			$keyword = sanitize_text_field( wp_html_excerpt( trim( $keyword ), 80, '' ) );
+			$key     = strtolower( $keyword );
+			if ( '' === $keyword || isset( $seen[ $key ] ) || count( $keywords ) >= 10 ) {
+				return;
+			}
+			$seen[ $key ] = true;
+			$keywords[]   = $keyword;
+		};
+
+		$kind = sanitize_key( $kind );
+		if ( 'rolling' === $kind ) {
+			$append( 'Live cybersecurity brief' );
+			$append( 'Cybersecurity news' );
+			$append( 'Threat intelligence' );
+			$append( 'Vendor security advisories' );
+		}
+
+		$text = implode( ' ', array_merge( array( $title, $excerpt ), array_map( 'strval', $source_ids ) ) );
+		if ( preg_match_all( '/\bCVE-\d{4}-\d{4,}\b/i', $text, $matches ) ) {
+			$limit = 'rolling' === $kind ? 3 : 2;
+			foreach ( array_slice( array_values( array_unique( array_map( 'strtoupper', $matches[0] ) ) ), 0, $limit ) as $cve ) {
+				$append( $cve );
+			}
+		}
+
+		if ( 'rolling' !== $kind ) {
+			$subject = (string) preg_replace( '/^\s*CVE-\d{4}-\d{4,}\s*[:\-]?\s*/i', '', $title );
+			$subject = (string) preg_replace( '/\s+Vulnerability\s*$/i', '', $subject );
+			$subject = trim( wp_trim_words( $subject, 10, '' ) );
+			if ( str_word_count( $subject ) >= 2 ) {
+				$append( $subject );
+			}
+		}
+
+		$patterns = array(
+			'/\b(microsoft|windows|winsock|entra|sharepoint|exchange|vmswitch)\b/i' => 'Microsoft Windows security',
+			'/\b(cisco|secure firewall|adaptive security appliance|asa|ftd)\b/i' => 'Cisco security advisory',
+			'/\b(linux kernel|ubuntu|debian|red hat|rhel)\b/i' => 'Linux security',
+			'/\b(sonicwall|fortinet|fortigate|palo alto|check point|mikrotik|router|firewall|vpn)\b/i' => 'Network security',
+			'/\b(github|gitlab|jenkins|docker|kubernetes|pipeline|supply chain)\b/i' => 'DevSecOps',
+			'/\b(openai|artificial intelligence|ai agent|agentic|llm|prompt injection|model)\b/i' => 'AI security',
+			'/\b(wordpress|woocommerce|elementor|browser|web application|api)\b/i' => 'Web security',
+			'/\b(command injection|code injection|remote code execution|rce)\b/i' => 'Remote code execution',
+			'/\b(sql injection|sqli)\b/i' => 'SQL injection',
+			'/\b(authentication bypass|improper authentication|missing authentication)\b/i' => 'Authentication vulnerability',
+			'/\b(improper authorization|access control|privilege escalation|privilege management)\b/i' => 'Authorization vulnerability',
+			'/\b(use-after-free|buffer overflow|out-of-bounds|double free|type confusion|race condition)\b/i' => 'Memory safety vulnerability',
+			'/\b(path traversal|directory traversal|arbitrary file|file inclusion)\b/i' => 'File access vulnerability',
+			'/\b(server-side request forgery|ssrf)\b/i' => 'Server-side request forgery',
+			'/\b(deserialization of untrusted data|insecure deserialization)\b/i' => 'Insecure deserialization',
+			'/\b(certificate validation|cryptographic validation)\b/i' => 'Certificate validation',
+		);
+		foreach ( $patterns as $pattern => $keyword ) {
+			if ( preg_match( $pattern, $text ) ) {
+				$append( $keyword );
+			}
+		}
+
+		$category_keywords = array(
+			'cybersecurity'           => 'Cybersecurity',
+			'critical-cves'           => 'Critical CVEs',
+			'linux-administration'    => 'Linux security',
+			'devops'                  => 'DevSecOps',
+			'artificial-intelligence' => 'AI security',
+			'cloud-security'          => 'Cloud security',
+			'web-security'            => 'Web security',
+			'windows-security'        => 'Windows security',
+			'network-security'        => 'Network security',
+		);
+		foreach ( $category_slugs as $category_slug ) {
+			$category_slug = sanitize_key( (string) $category_slug );
+			if ( isset( $category_keywords[ $category_slug ] ) ) {
+				$append( $category_keywords[ $category_slug ] );
+			}
+		}
+
+		$keywords = (array) apply_filters(
+				'infosecnexus_newsroom_keywords',
+				$keywords,
+				array(
+					'title'      => $title,
+					'excerpt'    => $excerpt,
+					'categories' => $category_slugs,
+					'source_ids' => $source_ids,
+					'kind'       => $kind,
+				)
+			);
+
+		return array_values(
+			array_filter(
+				array_map(
+					static function ( $keyword ): string {
+						return is_scalar( $keyword ) ? sanitize_text_field( (string) $keyword ) : '';
+					},
+					array_slice( $keywords, 0, 10 )
+				)
+			)
+		);
+	}
+
+	/**
+	 * Build native and common SEO-plugin focus keyword metadata.
+	 *
+	 * @param string[] $keywords Ordered newsroom keywords.
+	 * @return array<string,string>
+	 */
+	private static function newsroom_keyword_meta( array $keywords ): array {
+		$keywords = array_values( array_filter( array_map( 'sanitize_text_field', $keywords ) ) );
+		$primary  = (string) ( $keywords[0] ?? '' );
+		$joined   = implode( ', ', $keywords );
+
+		return array(
+			'_infosecnexus_seo_primary_keyword' => $primary,
+			'_infosecnexus_seo_keywords'        => $joined,
+			'_yoast_wpseo_focuskw'              => $primary,
+			'rank_math_focus_keyword'           => $joined,
+			'_seopress_analysis_target_kw'      => $primary,
+		);
+	}
+
+	/**
+	 * Keep the post author, native tags, and focus-keyword metadata in sync.
+	 *
+	 * @param int                  $post_id      Post ID.
+	 * @param int                  $author_id    Editorial author ID.
+	 * @param string[]             $keywords     Ordered keywords.
+	 * @param array<string,string> $keyword_meta Focus-keyword metadata.
+	 */
+	private static function sync_newsroom_post_metadata( int $post_id, int $author_id, array $keywords, array $keyword_meta ): bool {
+		$success = true;
+		$post    = get_post( $post_id );
+		if ( $post instanceof \WP_Post && $author_id > 0 && (int) $post->post_author !== $author_id ) {
+			$updated = wp_update_post(
+				array(
+					'ID'          => $post_id,
+					'post_author' => $author_id,
+				),
+				true
+			);
+			$success = ! is_wp_error( $updated );
+		}
+
+		if ( ! empty( $keywords ) ) {
+			$terms   = wp_set_post_terms( $post_id, $keywords, 'post_tag', false );
+			$success = $success && ! is_wp_error( $terms );
+		}
+
+		foreach ( $keyword_meta as $meta_key => $meta_value ) {
+			update_post_meta( $post_id, $meta_key, $meta_value );
+		}
+
+		return $success;
+	}
+
+	/**
+	 * Backfill metadata for published newsroom posts without touching retired URLs.
+	 *
+	 * @return array{checked:int,authors:int,keywords:int,failed:int}
+	 */
+	private static function repair_newsroom_metadata(): array {
+		$author_id = self::editorial_author_id();
+		if ( $author_id <= 0 ) {
+			return array(
+				'checked'  => 0,
+				'authors'  => 0,
+				'keywords' => 0,
+				'failed'   => 1,
+			);
+		}
+
+		$query     = new \WP_Query(
+			array(
+				'post_type'      => 'post',
+				'post_status'    => array( 'publish', 'future', 'draft', 'pending', 'private' ),
+				'posts_per_page' => -1,
+				'fields'         => 'ids',
+				'no_found_rows'  => true,
+				'orderby'        => 'ID',
+				'order'          => 'ASC',
+				'meta_query'     => array(
+					'relation' => 'AND',
+					array(
+						'key'   => '_infosecnexus_newsroom_post',
+						'value' => '1',
+					),
+					array(
+						'relation' => 'OR',
+						array(
+							'key'     => '_infosecnexus_retirement_state',
+							'compare' => 'NOT EXISTS',
+						),
+						array(
+							'key'     => '_infosecnexus_retirement_state',
+							'value'   => 'staged',
+							'compare' => '!=',
+						),
+					),
+				),
+			)
+		);
+
+		$result = array(
+			'checked'  => 0,
+			'authors'  => 0,
+			'keywords' => 0,
+			'failed'   => 0,
+		);
+		foreach ( $query->posts as $post_id ) {
+			$post = get_post( (int) $post_id );
+			if ( ! $post instanceof \WP_Post ) {
+				++$result['failed'];
+				continue;
+			}
+
+			++$result['checked'];
+			$category_terms = wp_get_post_terms( $post->ID, 'category', array( 'fields' => 'slugs' ) );
+			$category_slugs = is_wp_error( $category_terms ) ? array() : array_map( 'strval', $category_terms );
+			$source_ids     = json_decode( (string) get_post_meta( $post->ID, '_infosecnexus_live_source_ids', true ), true );
+			$source_ids     = is_array( $source_ids ) ? array_map( 'strval', $source_ids ) : array();
+			$keywords       = self::newsroom_keywords(
+				(string) $post->post_title,
+				(string) $post->post_excerpt,
+				$category_slugs,
+				$source_ids,
+				(string) get_post_meta( $post->ID, '_infosecnexus_newsroom_kind', true )
+			);
+			$author_changed = $author_id > 0 && (int) $post->post_author !== $author_id;
+			$tag_names       = wp_get_post_terms( $post->ID, 'post_tag', array( 'fields' => 'names' ) );
+			$tag_names       = is_wp_error( $tag_names ) ? array() : array_map( 'strval', $tag_names );
+			$normalized_tags = array_map( 'strtolower', $tag_names );
+			$normalized_keywords = array_map( 'strtolower', $keywords );
+			sort( $normalized_tags );
+			sort( $normalized_keywords );
+			$keyword_changed = $normalized_tags !== $normalized_keywords;
+
+			if ( self::sync_newsroom_post_metadata( $post->ID, $author_id, $keywords, self::newsroom_keyword_meta( $keywords ) ) ) {
+				$result['authors']  += $author_changed ? 1 : 0;
+				$result['keywords'] += $keyword_changed ? 1 : 0;
+			} else {
+				++$result['failed'];
+			}
+		}
+
+		if ( $result['authors'] > 0 || $result['keywords'] > 0 ) {
+			self::purge_public_cache( array_map( 'intval', $query->posts ) );
+		}
+
+		return $result;
 	}
 
 	/**
