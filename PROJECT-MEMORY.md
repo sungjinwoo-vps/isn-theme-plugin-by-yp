@@ -4,7 +4,7 @@
 > project. Then run the startup checklist in the next section. This is the
 > authoritative continuity handoff for the current project state.
 
-Last updated: 2026-08-12 (Asia/Kolkata)
+Last updated: 2026-09-24 (Asia/Kolkata)
 
 ## 1. Current Snapshot
 
@@ -14,10 +14,10 @@ Last updated: 2026-08-12 (Asia/Kolkata)
 - Main release branch: `stable`
 - Repository visibility: public, which permits unauthenticated WordPress update
   downloads. Moving it to private requires an authenticated update service.
-- Current theme version: `0.1.47`
-- Current known release: `auto-v0.1.47`
-- Current known code commit: `004b24c` (`Fix bundled advisory product classification`)
-- WordPress was running version 7.0.3 at this checkpoint.
+- Current theme version: `0.1.54`
+- Current known release: `auto-v0.1.54`
+- Current known code commit: `a6b79d2` (`Fix newsroom author and keyword metadata`)
+- WordPress was running version 7.1.2 at this checkpoint.
 - The live site is theme-first. The InfoSecNexus Toolkit features are bundled
   into the theme and the separate toolkit plugin is not required on this site.
 - Latest known verification: the complete desktop/mobile Playwright suite
@@ -1034,6 +1034,36 @@ SEO/agent discovery, and hidden internal notes. JavaScript and CSS linting and
 `git diff --check` also passed. `npm audit --omit=optional` reported three
 development-only advisories in `colord`, `fast-uri`, and `js-yaml`; no runtime
 package was changed as part of this focused release.
+
+Release `0.1.54` makes unattended newsroom attribution and keywords
+deterministic. Cron publication now resolves a configured editorial user, with
+the site administrator/editor/author as a guarded fallback, and writes that
+user as `post_author`. It also assigns concise topic-aware native post tags and
+the corresponding built-in, Yoast, Rank Math, and SEOPress focus-keyword
+metadata. Tag archives remain usable for navigation but are `noindex, follow`
+and excluded from the core XML sitemap so the keywords do not create thin
+indexable archives.
+
+The source commit is `a6b79d2`; GitHub Actions run `35967841127` produced
+release `auto-v0.1.54`. The checksum-verified theme ZIP SHA-256 is
+`95fd23f1cacb85e98b208aa8a015774e4f2c50e2e7aedc89dc4b607099359f3d`.
+The pre-deployment database and `0.1.53` theme backup is
+`/home/infosecnexus/backups/newsroom-metadata-20260924-124330`.
+
+The production metadata migration checked all 54 active newsroom posts,
+assigned 43 previously missing authors to WordPress user ID 1 (`Yash Patel`),
+and refreshed focused keywords on all 54 without failures. Verification found
+54 active newsroom posts, zero blank authors, exactly one permanent
+`/live-cybersecurity-brief/`, and all 159 legacy retirement URLs still staged.
+The staged URLs must not be permanently deleted until a fresh Search Console
+indexed-URL export reconciles to zero retirement-inventory overlaps; after
+that, use the existing guarded retirement finalization so their paths become
+410 responses.
+
+All 75 packaged PHP files passed production syntax checks. JavaScript and CSS
+linting passed, caches were flushed, the tag archive returned a noindex
+directive, and all 36 anonymous desktop/mobile Playwright checks passed,
+including the new editorial-author, post-tag, and tag-sitemap regression.
 
 ## 19. Definition Of Done
 
