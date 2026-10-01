@@ -4,7 +4,7 @@
 > project. Then run the startup checklist in the next section. This is the
 > authoritative continuity handoff for the current project state.
 
-Last updated: 2026-09-24 (Asia/Kolkata)
+Last updated: 2026-10-01 (Asia/Kolkata)
 
 ## 1. Current Snapshot
 
@@ -1064,6 +1064,24 @@ All 75 packaged PHP files passed production syntax checks. JavaScript and CSS
 linting passed, caches were flushed, the tag archive returned a noindex
 directive, and all 36 anonymous desktop/mobile Playwright checks passed,
 including the new editorial-author, post-tag, and tag-sitemap regression.
+
+The fresh Google Search Console `Indexed pages` export received on 2026-10-01
+contained 40 indexed URLs. Exact normalized reconciliation against
+`docs/retirement-inventory-2026-08-06.csv` found 16 retirement URLs still in
+Google's indexed set, down from 141 in the 2026-08-11 export. Live header checks
+confirmed that all 16 still return `200` with
+`X-Robots-Tag: noindex, follow, noarchive`; their Search Console `Last crawled`
+dates range from 2026-07-28 through 2026-08-06, so Google has not yet recorded a
+post-staging recrawl for them. The other indexed rows comprise 23 current
+indexable `200` URLs and one intentional `301` consolidation redirect, with no
+live-state anomalies.
+
+The durable audit is
+`docs/search-console-indexed-reconciliation-2026-10-01.csv`; its SHA-256 is
+`EC87891A589B0A0C3F3CA1656FABAE19A778F43ACC9431CFC098CA965B467951`.
+No deletion, finalization, or `410` conversion was run at this checkpoint. Wait
+for a later fresh `Indexed pages` URL export to show zero overlap with the
+159-entry retirement inventory before running the guarded finalizer.
 
 ## 19. Definition Of Done
 
