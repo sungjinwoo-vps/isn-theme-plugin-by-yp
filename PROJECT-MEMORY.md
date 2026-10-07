@@ -1083,6 +1083,75 @@ No deletion, finalization, or `410` conversion was run at this checkpoint. Wait
 for a later fresh `Indexed pages` URL export to show zero overlap with the
 159-entry retirement inventory before running the guarded finalizer.
 
+### SEO Targeting And Blog Hub (2026-10-07)
+
+Release `0.1.55` added the first-party SEO targeting layer and crawlable Blog
+hub. It introduced deterministic primary/supporting keyword metadata, native
+post tags, an SEO editor panel and Posts-list keyword column, homepage and
+article metadata/schema improvements, paginated canonical support, tag and
+empty-search `noindex` rules, a static `/blog/` page template, Blog menu
+navigation, and a `security.txt` endpoint. The source commit is `9a2957a`;
+GitHub Actions run `37594665388` published `auto-v0.1.55`.
+
+Release `0.1.56` fixed the static Blog page's page-number detection and
+canonical URL so `/blog/page/2/` serves a distinct result set and canonicals to
+itself. The source commit is `d70bb97`; GitHub Actions run `37634715154`
+published `auto-v0.1.56`. The checksum-verified signed release ZIP SHA-256 is
+`953ac2e1a1760302a4ec5977a5cb14cac7d459900d19704cd427dd57c22b195f`.
+
+The pre-`0.1.55` production backup is
+`/home/infosecnexus/backups/seo-targeting-20261007-141810`; its database
+SHA-256 is
+`c3ed4c6a365a392c4399d8b7314f8491f958e4e82f1f7c63f00f55e386b68491`
+and theme archive SHA-256 is
+`dcd99a4eb99ac1c14edab128bbd50ae783586bbbf31fce53f9807d0b2f667ff0`.
+The pre-`0.1.56` backup is
+`/home/infosecnexus/backups/blog-pagination-20261007-142619`; its database
+SHA-256 is
+`3732df4ef85a3b282b52774a33ffa02d127747d9859ab7f10d64c1602e9e9cb9`
+and theme archive SHA-256 is
+`9e4c33ffe9d7493788602f053288d1c40971f6fd3cd7e667b3a6d101581a732a`.
+
+Production is running `0.1.56`. The Blog page is WordPress page ID `2658`.
+Anonymous verification found `/blog/` and `/blog/page/2/` returning `200` with
+self-referencing canonicals, 13 and 12 cards respectively, and zero post-card
+overlap. The homepage title is `Cybersecurity News, Critical CVEs & Threat
+Intelligence | InfoSecNexus`; Organization, WebSite/SearchAction, NewsArticle,
+author, publisher, keyword, article-section, published-date, and modified-date
+data are present. The page sitemap contains `/blog/`.
+
+The metadata repair processed 69 published newsroom posts. After excluding the
+159 staged retirement posts and five dated rolling briefs superseded by post
+ID `1169`, the live SEO inventory contains 64 active newsroom posts with zero
+missing authors, zero missing primary keywords, and zero duplicate primary
+keyword phrases. Superseded post IDs `1089`, `1094`, `1124`, `1154`, and
+`1165` return `301` to `/live-cybersecurity-brief/`; they must not be counted as
+independent keyword targets. The 159 staged retirement URLs remain untouched
+and must still reach zero overlap in a fresh Search Console indexed-URL export
+before guarded deletion and `410` finalization.
+
+CloudPanel's static `/.well-known/` location bypasses WordPress, so production
+uses a real `/.well-known/security.txt` file in the document root. It declares
+the editorial security contact, canonical URL, English preference, and a
+2027-10-07 expiry. Recreate that static file after any server migration if the
+document root itself is rebuilt.
+
+Verification for `0.1.56` included JavaScript and CSS linting, `git diff
+--check`, syntax checks for all 76 packaged PHP files on production PHP, exact
+release-checksum verification, anonymous metadata/header checks, and all 38
+desktop/mobile Playwright tests. Runtime npm dependencies report zero known
+vulnerabilities. The development-only lint/test dependency tree currently has
+13 audit findings (11 high and 2 moderate); resolving all of them may require a
+breaking Stylelint toolchain update and was intentionally kept out of this SEO
+release.
+
+Technical keyword mapping and indexability are now in place, but they cannot
+guarantee human search traffic. The next evidence needed for query-to-page
+optimization is Google Search Console **Performance > Search results** data,
+exported separately as Queries and Pages for both the latest 28 days and 90
+days. Coverage/Indexed-pages exports remain useful for the retirement audit but
+do not show which search queries earn impressions or clicks.
+
 ## 19. Definition Of Done
 
 A task is not complete merely because code was edited. For this project, done
