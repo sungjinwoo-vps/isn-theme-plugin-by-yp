@@ -15,6 +15,33 @@ namespace InfoSecNexus\Theme\Security_Headers;
 function bootstrap(): void {
 	add_filter( 'wp_headers', __NAMESPACE__ . '\\headers' );
 	add_action( 'send_headers', __NAMESPACE__ . '\\send_security_headers', 9 );
+	add_action( 'template_redirect', __NAMESPACE__ . '\\render_security_txt', 0 );
+}
+
+/**
+ * Serve the standard security contact document through WordPress.
+ */
+function render_security_txt(): void {
+	$request_path = (string) wp_parse_url( (string) ( $_SERVER['REQUEST_URI'] ?? '' ), PHP_URL_PATH );
+	if ( '/.well-known/security.txt' !== untrailingslashit( $request_path ) ) {
+		return;
+	}
+
+	status_header( 200 );
+	header( 'Content-Type: text/plain; charset=utf-8', true );
+	header( 'Cache-Control: public, max-age=86400', true );
+	header( 'X-Robots-Tag: noindex, nofollow', true );
+
+	$contact_url = home_url( '/contact/' );
+	$canonical   = home_url( '/.well-known/security.txt' );
+	$expires     = gmdate( 'Y-m-d\TH:i:s\Z', time() + YEAR_IN_SECONDS );
+
+	echo 'Contact: mailto:yashpatel@infosecnexus.com' . "\n";
+	echo 'Contact: ' . esc_url_raw( $contact_url ) . "\n";
+	echo 'Expires: ' . esc_html( $expires ) . "\n";
+	echo 'Canonical: ' . esc_url_raw( $canonical ) . "\n";
+	echo 'Preferred-Languages: en' . "\n";
+	exit;
 }
 
 /**

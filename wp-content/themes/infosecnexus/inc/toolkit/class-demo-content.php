@@ -22,7 +22,7 @@ final class Demo_Content {
 	private const DAILY_SCHEMA_HOOK = 'infosecnexus_upgrade_daily_content_schema';
 	private const NEWSROOM_INTERVAL = 'infosecnexus_fifteen_minutes';
 	private const NEWSROOM_METADATA_OPTION = 'infosecnexus_newsroom_metadata_schema';
-	private const NEWSROOM_METADATA_VERSION = '1';
+	private const NEWSROOM_METADATA_VERSION = '2';
 
 	/**
 	 * Register hooks.
@@ -294,6 +294,7 @@ final class Demo_Content {
 	 */
 	public static function cli_repair_newsroom_metadata( array $args, array $assoc_args ): void {
 		unset( $args, $assoc_args );
+		self::ensure_blog_page();
 		$result = self::repair_newsroom_metadata();
 		if ( 0 === $result['failed'] ) {
 			update_option( self::NEWSROOM_METADATA_OPTION, self::NEWSROOM_METADATA_VERSION, false );
@@ -314,11 +315,13 @@ final class Demo_Content {
 	 * Run the newsroom metadata migration once per schema version.
 	 */
 	public static function maybe_repair_newsroom_metadata(): void {
-		if ( self::NEWSROOM_METADATA_VERSION === (string) get_option( self::NEWSROOM_METADATA_OPTION, '' ) ) {
+		if ( ! wp_doing_cron() && ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
 
-		if ( ! wp_doing_cron() && ! current_user_can( 'manage_options' ) ) {
+		self::ensure_blog_page();
+
+		if ( self::NEWSROOM_METADATA_VERSION === (string) get_option( self::NEWSROOM_METADATA_OPTION, '' ) ) {
 			return;
 		}
 
@@ -1132,7 +1135,7 @@ final class Demo_Content {
 		$keywords = array();
 		$seen     = array();
 		$append   = static function ( string $keyword ) use ( &$keywords, &$seen ): void {
-			$keyword = sanitize_text_field( wp_html_excerpt( trim( $keyword ), 80, '' ) );
+			$keyword = sanitize_text_field( wp_html_excerpt( trim( $keyword ), 120, '' ) );
 			$key     = strtolower( $keyword );
 			if ( '' === $keyword || isset( $seen[ $key ] ) || count( $keywords ) >= 10 ) {
 				return;
@@ -1143,6 +1146,7 @@ final class Demo_Content {
 
 		$kind = sanitize_key( $kind );
 		if ( 'rolling' === $kind ) {
+			$append( 'Latest cybersecurity news and critical CVEs' );
 			$append( 'Live cybersecurity brief' );
 			$append( 'Cybersecurity news' );
 			$append( 'Threat intelligence' );
@@ -1150,20 +1154,27 @@ final class Demo_Content {
 		}
 
 		$text = implode( ' ', array_merge( array( $title, $excerpt ), array_map( 'strval', $source_ids ) ) );
+		$cves = array();
 		if ( preg_match_all( '/\bCVE-\d{4}-\d{4,}\b/i', $text, $matches ) ) {
-			$limit = 'rolling' === $kind ? 3 : 2;
-			foreach ( array_slice( array_values( array_unique( array_map( 'strtoupper', $matches[0] ) ) ), 0, $limit ) as $cve ) {
-				$append( $cve );
-			}
+			$cves = array_slice(
+				array_values( array_unique( array_map( 'strtoupper', $matches[0] ) ) ),
+				0,
+				'rolling' === $kind ? 3 : 2
+			);
 		}
 
 		if ( 'rolling' !== $kind ) {
 			$subject = (string) preg_replace( '/^\s*CVE-\d{4}-\d{4,}\s*[:\-]?\s*/i', '', $title );
 			$subject = (string) preg_replace( '/\s+Vulnerability\s*$/i', '', $subject );
-			$subject = trim( wp_trim_words( $subject, 10, '' ) );
+			$subject = trim( wp_trim_words( $subject, 14, '' ) );
 			if ( str_word_count( $subject ) >= 2 ) {
+				$append( trim( (string) ( $cves[0] ?? '' ) . ' ' . $subject . ' vulnerability' ) );
 				$append( $subject );
 			}
+		}
+
+		foreach ( $cves as $cve ) {
+			$append( $cve );
 		}
 
 		$patterns = array(
@@ -1173,6 +1184,9 @@ final class Demo_Content {
 			'/\b(sonicwall|fortinet|fortigate|palo alto|check point|mikrotik|router|firewall|vpn)\b/i' => 'Network security',
 			'/\b(github|gitlab|jenkins|docker|kubernetes|pipeline|supply chain)\b/i' => 'DevSecOps',
 			'/\b(openai|artificial intelligence|ai agent|agentic|llm|prompt injection|model)\b/i' => 'AI security',
+			'/\b(nvidia|geforce|cuda|nvswitch|dgx)\b/i' => 'NVIDIA security advisory',
+			'/\b(amd|ryzen|epyc|radeon|instinct)\b/i' => 'AMD security bulletin',
+			'/\b(intel|xeon|arc graphics|oneapi)\b/i' => 'Intel security advisory',
 			'/\b(wordpress|woocommerce|elementor|browser|web application|api)\b/i' => 'Web security',
 			'/\b(command injection|code injection|remote code execution|rce)\b/i' => 'Remote code execution',
 			'/\b(sql injection|sqli)\b/i' => 'SQL injection',
@@ -1274,6 +1288,10 @@ final class Demo_Content {
 			$success = ! is_wp_error( $updated );
 		}
 
+		if ( '1' === (string) get_post_meta( $post_id, '_infosecnexus_seo_keywords_manual', true ) ) {
+			return $success;
+		}
+
 		if ( ! empty( $keywords ) ) {
 			$terms   = wp_set_post_terms( $post_id, $keywords, 'post_tag', false );
 			$success = $success && ! is_wp_error( $terms );
@@ -1365,7 +1383,8 @@ final class Demo_Content {
 			$normalized_keywords = array_map( 'strtolower', $keywords );
 			sort( $normalized_tags );
 			sort( $normalized_keywords );
-			$keyword_changed = $normalized_tags !== $normalized_keywords;
+			$manual_lock     = '1' === (string) get_post_meta( $post->ID, '_infosecnexus_seo_keywords_manual', true );
+			$keyword_changed = ! $manual_lock && $normalized_tags !== $normalized_keywords;
 
 			if ( self::sync_newsroom_post_metadata( $post->ID, $author_id, $keywords, self::newsroom_keyword_meta( $keywords ) ) ) {
 				$result['authors']  += $author_changed ? 1 : 0;
@@ -2273,6 +2292,10 @@ final class Demo_Content {
 		$image_file = file_exists( get_stylesheet_directory() . '/assets/images/hero-shield.webp' ) ? 'hero-shield.webp' : 'hero-shield.png';
 		$image      = esc_url( get_stylesheet_directory_uri() . '/assets/images/' . $image_file );
 		$pages = array(
+			'blog'                 => array(
+				'title'   => 'Cybersecurity Blog',
+				'content' => '',
+			),
 			'about'                => array(
 				'title'   => 'About InfoSecNexus',
 				'content' => self::page_content( 'about', $image ),
@@ -2309,6 +2332,29 @@ final class Demo_Content {
 				)
 			);
 		}
+	}
+
+	/**
+	 * Create the crawlable blog hub used by the header and internal links.
+	 */
+	private static function ensure_blog_page(): int {
+		$existing = get_page_by_path( 'blog', OBJECT, 'page' );
+		if ( $existing instanceof \WP_Post ) {
+			return (int) $existing->ID;
+		}
+
+		return self::upsert_post(
+			'page',
+			'blog',
+			array(
+				'post_title'   => 'Cybersecurity Blog',
+				'post_content' => '',
+				'post_status'  => 'publish',
+				'meta_input'   => array(
+					'_infosecnexus_hide_title' => '1',
+				),
+			)
+		);
 	}
 
 	/**
@@ -2397,6 +2443,7 @@ final class Demo_Content {
 	private static function can_overwrite_slug( string $type, string $slug ): bool {
 		$slugs = array(
 			'page' => array(
+				'blog',
 				'about',
 				'about-infosecnexus',
 				'contact',
@@ -2432,12 +2479,13 @@ final class Demo_Content {
 		self::assign_location( $primary, 'primary' );
 		self::assign_location( $footer, 'footer' );
 		self::assign_location( $legal, 'legal' );
-		self::remove_menu_items_by_title( $primary, array( 'Home', 'Topics', 'Blogs', 'Cybersecurity', 'Cyber Security', 'Critical CVEs', 'Linux Admin', 'Linux & Kernel', 'Linux & DevOps', 'DevOps', 'AI News', 'AI Security', 'Tutorials', 'Cloud Security', 'Web Security', 'Windows Security', 'Network Security', 'Major Releases', 'Sample Page', 'RSS', 'About', 'About InfoSecNexus', 'Contact', 'Contact InfoSecNexus' ) );
+		self::remove_menu_items_by_title( $primary, array( 'Home', 'Topics', 'Blogs', 'All Briefings', 'Cybersecurity', 'Cyber Security', 'Critical CVEs', 'Linux Admin', 'Linux & Kernel', 'Linux & DevOps', 'DevOps', 'AI News', 'AI Security', 'Tutorials', 'Cloud Security', 'Web Security', 'Windows Security', 'Network Security', 'Major Releases', 'Sample Page', 'RSS', 'About', 'About InfoSecNexus', 'Contact', 'Contact InfoSecNexus' ) );
 		self::remove_menu_items_by_title( $footer, array( 'Home', 'About', 'About InfoSecNexus', 'Contact', 'Contact InfoSecNexus', 'Privacy Policy', 'Terms and Conditions', 'Disclaimer', 'Back to top', 'RSS' ) );
 		self::remove_menu_items_by_title( $legal, array( 'Privacy Policy', 'Terms and Conditions', 'Disclaimer', 'Back to top', 'RSS' ) );
 
 		self::add_custom_menu_item_once( $primary, 'Home', home_url( '/' ) );
-		$topics_parent = self::add_custom_menu_item_once( $primary, 'Blogs', \InfoSecNexus\Theme\Header_Builder\category_url( 'cybersecurity' ) );
+		$topics_parent = self::add_custom_menu_item_once( $primary, 'Blogs', \InfoSecNexus\Theme\Header_Builder\page_url( 'blog' ) );
+		self::add_custom_menu_item_once( $primary, 'All Briefings', \InfoSecNexus\Theme\Header_Builder\page_url( 'blog' ), $topics_parent );
 		foreach ( array( 'cybersecurity', 'critical-cves', 'linux-administration', 'devops', 'artificial-intelligence', 'tutorials', 'cloud-security', 'web-security', 'windows-security', 'network-security' ) as $slug ) {
 			if ( isset( $categories[ $slug ] ) ) {
 				self::add_term_menu_item_once( $primary, $categories[ $slug ], $topics_parent );

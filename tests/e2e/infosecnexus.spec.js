@@ -388,6 +388,7 @@ test('public forms use secure same-site handlers and anti-spam fields', async ({
 test('SEO, agent discovery, and deferred ads are present', async ({ page, request }) => {
   await page.goto(baseURL, { waitUntil: 'networkidle' });
 
+  await expect(page).toHaveTitle(/Cybersecurity News, Critical CVEs & Threat Intelligence/i);
   await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', /cybersecurity/i);
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', /^https?:\/\//);
   await expect(page.locator('meta[property="og:title"]')).toHaveAttribute('content', /\S+/);
@@ -401,6 +402,51 @@ test('SEO, agent discovery, and deferred ads are present', async ({ page, reques
   expect(llms.ok()).toBeTruthy();
   expect(llms.headers()['content-type']).toContain('text/plain');
   expect(await llms.text()).toMatch(/^# InfoSecNexus/m);
+
+  const security = await request.get(`${baseURL}/.well-known/security.txt`);
+  expect(security.ok()).toBeTruthy();
+  expect(security.headers()['content-type']).toContain('text/plain');
+  expect(await security.text()).toMatch(/Contact: mailto:yashpatel@infosecnexus\.com/);
+
+  const schema = await page.locator('script[type="application/ld+json"]').evaluateAll((scripts) => scripts
+    .map((script) => {
+      try {
+        return JSON.parse(script.textContent || '{}');
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean));
+  expect(schema.some((item) => item['@graph']?.some((entity) => entity['@type'] === 'Organization'))).toBeTruthy();
+  expect(schema.some((item) => item['@graph']?.some((entity) => entity['@type'] === 'WebSite'))).toBeTruthy();
+});
+
+test('blog hub is crawlable, paginated, and keeps the rolling brief unique', async ({ page, request }) => {
+  const response = await page.goto(`${baseURL}/blog/`, { waitUntil: 'networkidle' });
+  expect(response && response.ok()).toBeTruthy();
+
+  await expect(page.locator('main.blog-hub')).toBeVisible();
+  await expect(page.locator('h1')).toHaveCount(1);
+  await expect(page.locator('.blog-topic-nav a').first()).toHaveAttribute('href', /\/category\//);
+  await expect(page.locator('.blog-hub__featured a[href$="/live-cybersecurity-brief/"]')).toHaveCount(1);
+  await expect(page.locator('.blog-hub__latest a[href$="/live-cybersecurity-brief/"]')).toHaveCount(0);
+  expect(await page.locator('.blog-hub__latest .post-card').count()).toBeGreaterThan(0);
+  await expectNoHorizontalOverflow(page);
+
+  const next = page.locator('.blog-hub__latest .pagination a.next').first();
+  if (await next.count()) {
+    const nextUrl = await next.getAttribute('href');
+    const nextResponse = await page.goto(nextUrl, { waitUntil: 'networkidle' });
+    expect(nextResponse && nextResponse.ok()).toBeTruthy();
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', /\/blog\/page\/2\/?$/);
+    await expect(page.locator('.blog-hub__featured')).toHaveCount(0);
+    await expect(page.locator('.blog-hub__latest a[href$="/live-cybersecurity-brief/"]')).toHaveCount(0);
+    await expectNoHorizontalOverflow(page);
+  }
+
+  const sitemap = await request.get(`${baseURL}/wp-sitemap-posts-page-1.xml`);
+  expect(sitemap.ok()).toBeTruthy();
+  expect(await sitemap.text()).toContain('/blog/');
 });
 
 test('published briefings hide internal notes and use topic-aware analysis', async ({ page, request }) => {
@@ -443,6 +489,9 @@ test('published briefings hide internal notes and use topic-aware analysis', asy
     .filter(Boolean));
   expect(schema.some((item) => ['Article', 'BlogPosting', 'NewsArticle'].includes(item['@type']))).toBeTruthy();
   expect(schema.some((item) => item['@type'] === 'BreadcrumbList')).toBeTruthy();
+  const articleSchema = schema.find((item) => ['Article', 'BlogPosting', 'NewsArticle'].includes(item['@type']));
+  expect(articleSchema.keywords?.length).toBeGreaterThan(0);
+  expect(articleSchema.articleSection?.length).toBeGreaterThan(0);
 
   await expectNoHorizontalOverflow(page);
 });

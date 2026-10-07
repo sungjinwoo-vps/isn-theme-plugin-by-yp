@@ -106,6 +106,7 @@ function render_primary_nav( string $variant = 'desktop' ): void {
 		'network-security',
 	);
 	$topics     = array(
+		array( 'label' => __( 'All Briefings', 'infosecnexus' ), 'url' => page_url( 'blog' ), 'active' => is_page( 'blog' ) ),
 		array( 'label' => __( 'Cyber Security', 'infosecnexus' ), 'url' => category_url( 'cybersecurity' ), 'active' => is_category( 'cybersecurity' ) ),
 		array( 'label' => __( 'Critical CVEs', 'infosecnexus' ), 'url' => category_url( 'critical-cves' ), 'active' => is_category( 'critical-cves' ) ),
 		array( 'label' => __( 'Linux & DevOps', 'infosecnexus' ), 'url' => category_url( 'linux-administration' ), 'active' => is_category( array( 'linux-administration', 'devops' ) ) ),
@@ -118,7 +119,7 @@ function render_primary_nav( string $variant = 'desktop' ): void {
 	);
 	$items = array(
 		array( 'label' => __( 'Home', 'infosecnexus' ), 'url' => home_url( '/' ), 'active' => is_front_page() ),
-		array( 'label' => __( 'Blogs', 'infosecnexus' ), 'url' => category_url( 'cybersecurity' ), 'active' => is_category( $topic_slugs ), 'children' => $topics ),
+		array( 'label' => __( 'Blogs', 'infosecnexus' ), 'url' => page_url( 'blog' ), 'active' => is_page( 'blog' ) || is_category( $topic_slugs ), 'children' => $topics ),
 		array( 'label' => __( 'About', 'infosecnexus' ), 'url' => page_url( 'about' ), 'active' => is_page( 'about' ) ),
 		array( 'label' => __( 'Contact', 'infosecnexus' ), 'url' => page_url( 'contact' ), 'active' => is_page( 'contact' ) ),
 	);

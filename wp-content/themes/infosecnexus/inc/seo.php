@@ -16,6 +16,9 @@ function bootstrap(): void {
 	add_action( 'wp_head', __NAMESPACE__ . '\\render_metadata', 4 );
 	add_filter( 'wp_robots', __NAMESPACE__ . '\\noindex_tag_archives' );
 	add_filter( 'wp_sitemaps_taxonomies', __NAMESPACE__ . '\\exclude_post_tags_from_sitemaps' );
+	add_filter( 'pre_get_document_title', __NAMESPACE__ . '\\document_title' );
+	add_filter( 'the_generator', '__return_empty_string' );
+	remove_action( 'wp_head', 'wp_generator' );
 }
 
 /**
@@ -25,13 +28,26 @@ function bootstrap(): void {
  * @return array<string,mixed>
  */
 function noindex_tag_archives( array $robots ): array {
-	if ( is_tag() ) {
+	if ( is_tag() || ( is_search() && '' === trim( get_search_query() ) ) ) {
 		$robots['noindex'] = true;
 		$robots['follow']  = true;
 		unset( $robots['index'], $robots['nofollow'] );
 	}
 
 	return $robots;
+}
+
+/**
+ * Give the homepage a descriptive search title without changing the visible brand.
+ *
+ * @param string $title Existing document title.
+ */
+function document_title( string $title ): string {
+	if ( ! is_front_page() || seo_plugin_active() ) {
+		return $title;
+	}
+
+	return __( 'Cybersecurity News, Critical CVEs & Threat Intelligence | InfoSecNexus', 'infosecnexus' );
 }
 
 /**
@@ -91,13 +107,16 @@ function render_metadata(): void {
 		echo '<meta name="twitter:image:alt" content="' . esc_attr( $image_data['alt'] ) . '">' . "\n";
 	}
 
+	render_site_schema();
 	render_breadcrumb_schema();
 
 	if ( ! $post instanceof \WP_Post || 'post' !== $post->post_type ) {
 		return;
 	}
 
-	$author = get_userdata( (int) $post->post_author );
+	$author     = get_userdata( (int) $post->post_author );
+	$keywords   = post_keywords( (int) $post->ID );
+	$categories = wp_get_post_terms( (int) $post->ID, 'category', array( 'fields' => 'names' ) );
 
 	$schema = array(
 		'@context'         => 'https://schema.org',
@@ -106,18 +125,26 @@ function render_metadata(): void {
 		'description'      => $description,
 		'datePublished'    => get_post_time( 'c', true, $post ),
 		'dateModified'     => get_post_modified_time( 'c', true, $post ),
-		'mainEntityOfPage' => $url,
+		'mainEntityOfPage' => array(
+			'@type' => 'WebPage',
+			'@id'   => $url,
+		),
 		'author'           => array(
 			'@type' => 'Person',
 			'name'  => $author instanceof \WP_User ? $author->display_name : get_bloginfo( 'name' ),
 			'url'   => $author instanceof \WP_User ? get_author_posts_url( (int) $author->ID ) : home_url( '/' ),
 		),
 		'publisher'        => array(
-			'@type' => 'Organization',
-			'name'  => get_bloginfo( 'name' ),
-			'url'   => home_url( '/' ),
+			'@id' => home_url( '/#organization' ),
 		),
 	);
+
+	if ( ! empty( $keywords ) ) {
+		$schema['keywords'] = $keywords;
+	}
+	if ( ! is_wp_error( $categories ) && ! empty( $categories ) ) {
+		$schema['articleSection'] = array_values( $categories );
+	}
 
 	if ( '' !== $image ) {
 		$schema['image'] = array(
@@ -185,15 +212,88 @@ function current_description( int $post_id = 0 ): string {
  * Return the canonical public URL for the current request.
  */
 function current_url(): string {
+	$paged = max( 1, (int) get_query_var( 'paged' ), (int) get_query_var( 'page' ) );
+	if ( $paged > 1 && ( is_archive() || is_home() || is_search() || is_page_template( 'page-blog.php' ) ) ) {
+		return (string) get_pagenum_link( $paged );
+	}
+
 	if ( is_singular() ) {
 		return (string) get_permalink();
 	}
 	if ( is_search() ) {
+		if ( '' === trim( get_search_query() ) ) {
+			return home_url( '/' );
+		}
 		return (string) get_search_link( get_search_query() );
 	}
 
 	$request_path = (string) wp_parse_url( (string) ( $_SERVER['REQUEST_URI'] ?? '/' ), PHP_URL_PATH );
 	return home_url( '/' . ltrim( $request_path, '/' ) );
+}
+
+/**
+ * Return the focused keyword list stored for an article.
+ *
+ * @param int $post_id Post ID.
+ * @return array<int,string>
+ */
+function post_keywords( int $post_id ): array {
+	$raw      = (string) get_post_meta( $post_id, '_infosecnexus_seo_keywords', true );
+	$keywords = preg_split( '/\s*,\s*/u', $raw, -1, PREG_SPLIT_NO_EMPTY );
+	$keywords = is_array( $keywords ) ? array_map( 'sanitize_text_field', $keywords ) : array();
+
+	if ( empty( $keywords ) ) {
+		$keywords = wp_get_post_tags( $post_id, array( 'fields' => 'names' ) );
+	}
+
+	return is_array( $keywords ) ? array_values( array_unique( array_filter( $keywords ) ) ) : array();
+}
+
+/**
+ * Print the site and publisher entities used by homepage and article schema.
+ */
+function render_site_schema(): void {
+	$organization = array(
+		'@type' => 'Organization',
+		'@id'   => home_url( '/#organization' ),
+		'name'  => get_bloginfo( 'name' ),
+		'url'   => home_url( '/' ),
+	);
+	$logo_id      = (int) get_theme_mod( 'custom_logo' );
+	$logo         = $logo_id > 0 ? wp_get_attachment_image_src( $logo_id, 'full' ) : false;
+
+	if ( is_array( $logo ) ) {
+		$organization['logo'] = array(
+			'@type'  => 'ImageObject',
+			'url'    => (string) $logo[0],
+			'width'  => (int) $logo[1],
+			'height' => (int) $logo[2],
+		);
+	}
+
+	$website = array(
+		'@type'       => 'WebSite',
+		'@id'         => home_url( '/#website' ),
+		'url'         => home_url( '/' ),
+		'name'        => get_bloginfo( 'name' ),
+		'description' => current_description(),
+		'publisher'   => array( '@id' => home_url( '/#organization' ) ),
+		'potentialAction' => array(
+			'@type'       => 'SearchAction',
+			'target'      => array(
+				'@type'       => 'EntryPoint',
+				'urlTemplate' => home_url( '/?s={search_term_string}' ),
+			),
+			'query-input' => 'required name=search_term_string',
+		),
+	);
+
+	$schema = array(
+		'@context' => 'https://schema.org',
+		'@graph'   => array( $organization, $website ),
+	);
+
+	echo '<script type="application/ld+json">' . wp_json_encode( $schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) . '</script>' . "\n";
 }
 
 /**
