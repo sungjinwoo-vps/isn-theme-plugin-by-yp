@@ -3,7 +3,7 @@ Contributors: infosecnexus
 Requires at least: 6.5
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.1.55
+Stable tag: 0.1.56
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,6 +25,9 @@ InfoSecNexus WordPress Theme, Copyright 2026 InfoSecNexus.
 InfoSecNexus is distributed under the terms of the GNU GPL.
 
 == Changelog ==
+
+= 0.1.56 =
+* Keeps static blog pagination, database queries, and canonical URLs aligned on pretty page-number routes.
 
 = 0.1.55 =
 * Adds a crawlable cybersecurity blog hub, deterministic primary search-phrase ownership, richer publisher/article schema, descriptive homepage metadata, paginated canonicals, and a standard security contact endpoint.

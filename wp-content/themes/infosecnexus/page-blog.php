@@ -9,7 +9,7 @@ declare(strict_types=1);
 
 get_header();
 
-$paged   = max( 1, (int) get_query_var( 'paged' ), (int) get_query_var( 'page' ) );
+$paged   = \InfoSecNexus\Theme\SEO\current_page_number();
 $rolling = \InfoSecNexus\Theme\Template_Tags\rolling_brief_post();
 $topics  = array(
 	'cybersecurity'           => __( 'Cyber Security', 'infosecnexus' ),

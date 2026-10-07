@@ -14,18 +14,18 @@
                                 },
                    "requires":  "6.5"
                },
-    "generatedAt":  "2026-10-07T07:56:10Z",
+    "generatedAt":  "2026-10-07T14:04:32Z",
     "manifestVersion":  1,
     "theme":  {
                   "slug":  "infosecnexus",
-                  "version":  "0.1.55",
+                  "version":  "0.1.56",
                   "requires_php":  "8.1",
                   "package":  "https://raw.githubusercontent.com/sungjinwoo-vps/isn-theme-plugin-by-yp/stable/dist/infosecnexus-theme.zip",
                   "tested":  "7.0",
                   "homepage":  "https://infosecnexus.com/",
                   "last_updated":  "2026-10-07",
                   "sections":  {
-                                   "changelog":  "* Adds a crawlable cybersecurity blog hub, deterministic primary search-phrase ownership, richer publisher/article schema, descriptive homepage metadata, paginated canonicals, and a standard security contact endpoint.",
+                                   "changelog":  "* Keeps static blog pagination, database queries, and canonical URLs aligned on pretty page-number routes.",
                                    "description":  "Cybersecurity newsroom theme for InfoSecNexus."
                                },
                   "requires":  "6.5"

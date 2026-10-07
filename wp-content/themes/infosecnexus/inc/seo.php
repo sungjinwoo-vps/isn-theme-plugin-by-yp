@@ -17,6 +17,7 @@ function bootstrap(): void {
 	add_filter( 'wp_robots', __NAMESPACE__ . '\\noindex_tag_archives' );
 	add_filter( 'wp_sitemaps_taxonomies', __NAMESPACE__ . '\\exclude_post_tags_from_sitemaps' );
 	add_filter( 'pre_get_document_title', __NAMESPACE__ . '\\document_title' );
+	add_filter( 'get_canonical_url', __NAMESPACE__ . '\\singular_canonical_url', 10, 2 );
 	add_filter( 'the_generator', '__return_empty_string' );
 	remove_action( 'wp_head', 'wp_generator' );
 }
@@ -48,6 +49,41 @@ function document_title( string $title ): string {
 	}
 
 	return __( 'Cybersecurity News, Critical CVEs & Threat Intelligence | InfoSecNexus', 'infosecnexus' );
+}
+
+/**
+ * Return the requested pagination number, including static page templates.
+ *
+ * WordPress does not consistently populate the paged query variable for
+ * pretty URLs below a static page, such as /blog/page/2/.
+ */
+function current_page_number(): int {
+	$page = max( 1, (int) get_query_var( 'paged' ), (int) get_query_var( 'page' ) );
+	if ( $page > 1 ) {
+		return $page;
+	}
+
+	$request_path = (string) wp_parse_url( (string) ( $_SERVER['REQUEST_URI'] ?? '' ), PHP_URL_PATH );
+	if ( preg_match( '~/page/([1-9][0-9]*)/?$~', $request_path, $matches ) ) {
+		return max( 1, (int) $matches[1] );
+	}
+
+	return 1;
+}
+
+/**
+ * Keep the core canonical URL aligned with paginated static templates.
+ *
+ * @param string|null $canonical_url Existing canonical URL.
+ * @param \WP_Post     $post          Current singular post.
+ */
+function singular_canonical_url( ?string $canonical_url, \WP_Post $post ): string {
+	$page = current_page_number();
+	if ( $page > 1 && 'page' === $post->post_type && 'blog' === $post->post_name ) {
+		return (string) get_pagenum_link( $page );
+	}
+
+	return (string) $canonical_url;
 }
 
 /**
@@ -212,7 +248,7 @@ function current_description( int $post_id = 0 ): string {
  * Return the canonical public URL for the current request.
  */
 function current_url(): string {
-	$paged = max( 1, (int) get_query_var( 'paged' ), (int) get_query_var( 'page' ) );
+	$paged = current_page_number();
 	if ( $paged > 1 && ( is_archive() || is_home() || is_search() || is_page_template( 'page-blog.php' ) ) ) {
 		return (string) get_pagenum_link( $paged );
 	}
