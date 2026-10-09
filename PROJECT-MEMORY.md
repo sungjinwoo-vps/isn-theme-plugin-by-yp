@@ -1145,6 +1145,15 @@ vulnerabilities. The development-only lint/test dependency tree currently has
 breaking Stylelint toolchain update and was intentionally kept out of this SEO
 release.
 
+On 2026-10-09, Search Console temporarily showed `Couldn't fetch` for
+`/wp-sitemap-posts-post-1.xml`. Direct anonymous and Googlebot-user-agent
+checks returned `200 OK` with an `application/xml` content type, valid XML,
+about 0.28-second TTFB, and 66 post URLs. Production access logs also recorded
+a real Googlebot fetch of the parent sitemap at 14:21 IST and the post sitemap
+at 14:23 IST, both with status `200`; there were no matching Nginx or PHP
+errors. Treat the Search Console row as delayed/stale processing unless a
+future live request or server log shows a non-200 response.
+
 Technical keyword mapping and indexability are now in place, but they cannot
 guarantee human search traffic. The next evidence needed for query-to-page
 optimization is Google Search Console **Performance > Search results** data,
