@@ -1154,6 +1154,11 @@ at 14:23 IST, both with status `200`; there were no matching Nginx or PHP
 errors. Treat the Search Console row as delayed/stale processing unless a
 future live request or server log shows a non-200 response.
 
+On 2026-10-10, Search Console confirmed that the delayed result had cleared.
+The `/wp-sitemap.xml` index and all four child sitemaps show `Success`, with 84
+discovered URLs: 66 posts, 7 pages, 10 categories, and 1 author URL. No sitemap
+resubmission or code/configuration change is required for this incident.
+
 Technical keyword mapping and indexability are now in place, but they cannot
 guarantee human search traffic. The next evidence needed for query-to-page
 optimization is Google Search Console **Performance > Search results** data,
