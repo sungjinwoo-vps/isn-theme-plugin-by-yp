@@ -18,8 +18,23 @@ function bootstrap(): void {
 	add_filter( 'wp_sitemaps_taxonomies', __NAMESPACE__ . '\\exclude_post_tags_from_sitemaps' );
 	add_filter( 'pre_get_document_title', __NAMESPACE__ . '\\document_title' );
 	add_filter( 'get_canonical_url', __NAMESPACE__ . '\\singular_canonical_url', 10, 2 );
+	add_filter( 'pre_option_elementor_meta_generator_tag', __NAMESPACE__ . '\\disable_elementor_generator_tag' );
 	add_filter( 'the_generator', '__return_empty_string' );
 	remove_action( 'wp_head', 'wp_generator' );
+}
+
+/**
+ * Disable Elementor's public generator tag without changing its admin setting.
+ *
+ * @param mixed $pre_option Existing short-circuit value.
+ * @return mixed
+ */
+function disable_elementor_generator_tag( $pre_option ) {
+	if ( ! is_admin() ) {
+		return '1';
+	}
+
+	return $pre_option;
 }
 
 /**
@@ -48,7 +63,7 @@ function document_title( string $title ): string {
 		return $title;
 	}
 
-	return __( 'Cybersecurity News, Critical CVEs & Threat Intelligence | InfoSecNexus', 'infosecnexus' );
+	return __( 'Cybersecurity News & Critical CVE Analysis | InfoSecNexus', 'infosecnexus' );
 }
 
 /**
@@ -201,7 +216,14 @@ function render_metadata(): void {
  */
 function current_description( int $post_id = 0 ): string {
 	if ( $post_id > 0 ) {
-		return description( $post_id );
+		$value = description( $post_id );
+		if ( '' !== $value ) {
+			return $value;
+		}
+
+		if ( is_page_template( 'page-blog.php' ) ) {
+			return __( 'Browse current cybersecurity news, critical CVE analysis, vendor advisories, threat intelligence, and practical defensive guidance from InfoSecNexus.', 'infosecnexus' );
+		}
 	}
 
 	if ( is_category() || is_tag() || is_tax() ) {

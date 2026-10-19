@@ -388,8 +388,9 @@ test('public forms use secure same-site handlers and anti-spam fields', async ({
 test('SEO, agent discovery, and deferred ads are present', async ({ page, request }) => {
   await page.goto(baseURL, { waitUntil: 'networkidle' });
 
-  await expect(page).toHaveTitle(/Cybersecurity News, Critical CVEs & Threat Intelligence/i);
+  await expect(page).toHaveTitle(/Cybersecurity News & Critical CVE Analysis/i);
   await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', /cybersecurity/i);
+  await expect(page.locator('meta[name="generator"]')).toHaveCount(0);
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', /^https?:\/\//);
   await expect(page.locator('meta[property="og:title"]')).toHaveAttribute('content', /\S+/);
   await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /^https?:\/\//);
@@ -427,6 +428,7 @@ test('blog hub is crawlable, paginated, and keeps the rolling brief unique', asy
 
   await expect(page.locator('main.blog-hub')).toBeVisible();
   await expect(page.locator('h1')).toHaveCount(1);
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', /critical CVE analysis/i);
   await expect(page.locator('.blog-topic-nav a').first()).toHaveAttribute('href', /\/category\//);
   await expect(page.locator('.blog-hub__featured a[href$="/live-cybersecurity-brief/"]')).toHaveCount(1);
   await expect(page.locator('.blog-hub__latest a[href$="/live-cybersecurity-brief/"]')).toHaveCount(0);
