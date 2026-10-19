@@ -1166,6 +1166,55 @@ exported separately as Queries and Pages for both the latest 28 days and 90
 days. Coverage/Indexed-pages exports remain useful for the retirement audit but
 do not show which search queries earn impressions or clicks.
 
+### SEO Checker Reconciliation (2026-10-19)
+
+The external PowerHost SEO Checker snapshot scored the site 95/100, with 85
+passes, 10 warnings, and one failed check. Live verification separated the
+actionable findings from checker limitations. Releases `0.1.57` and `0.1.58`
+shortened the homepage search title to `Cybersecurity News & Critical CVE
+Analysis | InfoSecNexus`, added a unique 149-character Blog-hub description,
+kept paginated Blog canonicals self-referencing, and suppressed Elementor's
+public generator/version meta tag without changing its admin setting. The
+source commits are `f393aa0` and `042c36c`; GitHub Actions run `39223889997`
+published `auto-v0.1.58`. Its theme ZIP SHA-256 is
+`543dca988048ab3f204dacf5d6de2a598baff70686bb17d9b2d378b9343a1c23`.
+
+Production is running `0.1.58`. Anonymous requests confirm the compact title,
+the Blog-specific description, zero generator meta tags, the exact
+`/blog/page/2/` canonical, and the existing CSP, HSTS, clickjacking,
+content-sniffing, referrer, and permissions headers. A fresh first-party crawl
+visited 300 HTML URLs without errors and reconciled all 73 post-sitemap URLs:
+73 have real internal inlinks and zero are orphaned. The checker's 36 possible
+orphans are therefore a false positive caused by its 20-page crawl limit; do
+not add an all-post link dump merely to satisfy that warning.
+
+The pre-deployment rollback set is
+`/home/infosecnexus/backups/seo-audit-20261019T081207Z`. Its database SHA-256 is
+`83e4fc21c233dbe64703ffefa4d5a828db70514eda6515989324891254f05011`,
+the `0.1.56` theme archive SHA-256 is
+`b020bd445d355ceb85953bc2318a30bcf1f53da821e0a4538551407d31e1aa48`,
+and the `0.1.57` theme archive SHA-256 is
+`32f7d52a80adf5e6174c1fc340905e3fe3198322fa09bbeb00a1bed7f2311f9a`.
+All three verified successfully.
+
+Verification passed JavaScript and CSS linting, release packaging, production
+PHP 8.4 syntax checks for the changed PHP, `git diff --check`, and all 38 live
+desktop/mobile Playwright tests. The shipped/runtime npm dependency set has
+zero known vulnerabilities. Development-only lint/test dependencies still
+report 13 advisories and require a separate toolchain-upgrade task; they are not
+served by WordPress.
+
+The remaining checker warnings are not theme defects. Authoritative DNS is
+managed at Spaceship, and `_dmarc.infosecnexus.com` currently has no DMARC TXT
+record; add a monitoring policy in DNS before later enforcement. No CAA record
+exists; adding a Let's Encrypt CAA restriction is optional, not a vulnerability
+fix. A phone number, street address, or social-profile links must not be
+invented solely for a score and should be added only when genuine public
+business details are supplied. Human organic traffic still depends on search
+demand, content quality, authority, and query-to-page matching; the next
+required evidence remains the Search Console Queries and Pages exports for the
+latest 28 and 90 days.
+
 ## 19. Definition Of Done
 
 A task is not complete merely because code was edited. For this project, done
