@@ -428,7 +428,7 @@ test('blog hub is crawlable, paginated, and keeps the rolling brief unique', asy
 
   await expect(page.locator('main.blog-hub')).toBeVisible();
   await expect(page.locator('h1')).toHaveCount(1);
-  await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', /critical CVE analysis/i);
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', /^Browse current cybersecurity news, critical CVE analysis/i);
   await expect(page.locator('.blog-topic-nav a').first()).toHaveAttribute('href', /\/category\//);
   await expect(page.locator('.blog-hub__featured a[href$="/live-cybersecurity-brief/"]')).toHaveCount(1);
   await expect(page.locator('.blog-hub__latest a[href$="/live-cybersecurity-brief/"]')).toHaveCount(0);

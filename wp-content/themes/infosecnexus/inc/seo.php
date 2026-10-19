@@ -67,6 +67,13 @@ function document_title( string $title ): string {
 }
 
 /**
+ * Whether the current request uses the public Blog hub.
+ */
+function is_blog_page(): bool {
+	return is_page( 'blog' ) || is_page_template( 'page-blog.php' );
+}
+
+/**
  * Return the requested pagination number, including static page templates.
  *
  * WordPress does not consistently populate the paged query variable for
@@ -221,7 +228,7 @@ function current_description( int $post_id = 0 ): string {
 			return $value;
 		}
 
-		if ( is_page_template( 'page-blog.php' ) ) {
+		if ( is_blog_page() ) {
 			return __( 'Browse current cybersecurity news, critical CVE analysis, vendor advisories, threat intelligence, and practical defensive guidance from InfoSecNexus.', 'infosecnexus' );
 		}
 	}
@@ -271,7 +278,7 @@ function current_description( int $post_id = 0 ): string {
  */
 function current_url(): string {
 	$paged = current_page_number();
-	if ( $paged > 1 && ( is_archive() || is_home() || is_search() || is_page_template( 'page-blog.php' ) ) ) {
+	if ( $paged > 1 && ( is_archive() || is_home() || is_search() || is_blog_page() ) ) {
 		return (string) get_pagenum_link( $paged );
 	}
 
