@@ -3,7 +3,7 @@ Contributors: infosecnexus
 Requires at least: 6.5
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.1.59
+Stable tag: 0.1.60
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,6 +25,10 @@ InfoSecNexus WordPress Theme, Copyright 2026 InfoSecNexus.
 InfoSecNexus is distributed under the terms of the GNU GPL.
 
 == Changelog ==
+
+= 0.1.60 =
+* Adds the reversible Neumorphic Editorial presentation layer across newsroom, archive, article, search, special, legal, and error views while preserving existing WordPress content and behavior.
+* Keeps light and dark modes visually coherent with responsive raised and inset surfaces, accessible interaction states, reduced-motion support, and a circular reading-progress control.
 
 = 0.1.59 =
 * Exposes the rolling brief's real modification date on the homepage and connects configured social profiles to publisher schema.

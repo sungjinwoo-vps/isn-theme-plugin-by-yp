@@ -29,6 +29,7 @@ function enqueue(): void {
 	wp_enqueue_style( 'infosecnexus-style', get_template_directory_uri() . '/assets/css/theme.css', array(), INFOSECNEXUS_VERSION );
 	wp_add_inline_style( 'infosecnexus-style', custom_properties() );
 	wp_enqueue_style( 'infosecnexus-anime-editorial', get_template_directory_uri() . '/assets/css/anime-editorial.css', array( 'infosecnexus-style' ), INFOSECNEXUS_VERSION );
+	wp_enqueue_style( 'infosecnexus-neumorphic-editorial', get_template_directory_uri() . '/assets/css/neumorphic-editorial.css', array( 'infosecnexus-anime-editorial' ), INFOSECNEXUS_VERSION );
 
 	wp_enqueue_script( 'infosecnexus-theme', get_template_directory_uri() . '/assets/js/theme.js', array(), INFOSECNEXUS_VERSION, array( 'in_footer' => true, 'strategy' => 'defer' ) );
 	if ( is_singular() && comments_open() && get_option( 'thread_comments' ) ) {
