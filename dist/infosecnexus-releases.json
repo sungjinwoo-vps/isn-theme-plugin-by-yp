@@ -1,33 +1,33 @@
 {
-    "plugin":  {
-                   "slug":  "infosecnexus-toolkit",
-                   "version":  "0.1.45",
-                   "plugin":  "infosecnexus-toolkit/infosecnexus-toolkit.php",
-                   "requires_php":  "8.1",
-                   "package":  "https://raw.githubusercontent.com/sungjinwoo-vps/isn-theme-plugin-by-yp/stable/dist/infosecnexus-toolkit.zip",
-                   "tested":  "7.0",
-                   "homepage":  "https://infosecnexus.com/",
-                   "last_updated":  "2026-10-21",
-                   "sections":  {
-                                    "changelog":  "Keeps the optional legacy bridge aligned with the theme\u0027s rolling-date consistency release.",
-                                    "description":  "Legacy bridge for older InfoSecNexus installs. Current toolkit features are bundled into the InfoSecNexus theme."
-                                },
-                   "requires":  "6.5"
-               },
-    "generatedAt":  "2026-10-21T07:38:13Z",
-    "manifestVersion":  1,
-    "theme":  {
-                  "slug":  "infosecnexus",
-                  "version":  "0.1.59",
-                  "requires_php":  "8.1",
-                  "package":  "https://raw.githubusercontent.com/sungjinwoo-vps/isn-theme-plugin-by-yp/stable/dist/infosecnexus-theme.zip",
-                  "tested":  "7.0",
-                  "homepage":  "https://infosecnexus.com/",
-                  "last_updated":  "2026-10-21",
-                  "sections":  {
-                                   "changelog":  "* Exposes the rolling brief\u0027s real modification date on the homepage and connects configured social profiles to publisher schema.",
-                                   "description":  "Cybersecurity newsroom theme for InfoSecNexus."
-                               },
-                  "requires":  "6.5"
-              }
+  "plugin": {
+    "tested": "7.0",
+    "slug": "infosecnexus-toolkit",
+    "sections": {
+      "changelog": "Keeps the optional legacy bridge aligned with the theme's rolling-date consistency release.",
+      "description": "Legacy bridge for older InfoSecNexus installs. Current toolkit features are bundled into the InfoSecNexus theme."
+    },
+    "version": "0.1.45",
+    "homepage": "https://infosecnexus.com/",
+    "plugin": "infosecnexus-toolkit/infosecnexus-toolkit.php",
+    "last_updated": "2026-10-21",
+    "package": "https://github.com/sungjinwoo-vps/isn-theme-plugin-by-yp/releases/download/auto-v0.1.60/infosecnexus-toolkit.zip",
+    "requires_php": "8.1",
+    "requires": "6.5"
+  },
+  "generatedAt": "2026-10-21T14:10:26Z",
+  "manifestVersion": 1,
+  "theme": {
+    "tested": "7.0",
+    "slug": "infosecnexus",
+    "sections": {
+      "changelog": "* Adds the reversible Neumorphic Editorial presentation layer across newsroom, archive, article, search, special, legal, and error views while preserving existing WordPress content and behavior. * Keeps light and dark modes visually coherent with responsive raised and inset surfaces, accessible interaction states, reduced-motion support, and a circular reading-progress control.",
+      "description": "Cybersecurity newsroom theme for InfoSecNexus."
+    },
+    "version": "0.1.60",
+    "homepage": "https://infosecnexus.com/",
+    "requires": "6.5",
+    "last_updated": "2026-10-21",
+    "package": "https://github.com/sungjinwoo-vps/isn-theme-plugin-by-yp/releases/download/auto-v0.1.60/infosecnexus-theme.zip",
+    "requires_php": "8.1"
+  }
 }
