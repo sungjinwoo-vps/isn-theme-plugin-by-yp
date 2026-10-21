@@ -199,7 +199,7 @@ function render_social_links(): void {
 	?>
 	<nav class="social-links" aria-label="<?php esc_attr_e( 'Social profiles', 'infosecnexus' ); ?>">
 		<?php foreach ( $links as $label => $url ) : ?>
-			<a href="<?php echo esc_url( $url ); ?>"><?php echo esc_html( $label ); ?></a>
+			<a href="<?php echo esc_url( $url ); ?>" rel="me noopener noreferrer"><?php echo esc_html( $label ); ?></a>
 		<?php endforeach; ?>
 	</nav>
 	<?php

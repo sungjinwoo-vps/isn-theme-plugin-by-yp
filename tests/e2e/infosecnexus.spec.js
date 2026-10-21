@@ -28,6 +28,8 @@ test('homepage uses one permanent live brief without repeating it in the latest 
 
   const heroPath = new URL(await page.locator('.home-hero__lead').getAttribute('href')).pathname;
   expect(heroPath).toBe('/live-cybersecurity-brief/');
+  await expect(page.locator('.home-hero__updated time')).toContainText('Updated');
+  await expect(page.locator('.home-hero__updated time')).toHaveAttribute('datetime', /^\d{4}-\d{2}-\d{2}T/);
 
   const latestPaths = await page.locator('.latest-grid .intel-card__link').evaluateAll((links) => links.map((link) => new URL(link.href).pathname));
   expect(latestPaths).not.toContain('/live-cybersecurity-brief/');
@@ -418,8 +420,16 @@ test('SEO, agent discovery, and deferred ads are present', async ({ page, reques
       }
     })
     .filter(Boolean));
-  expect(schema.some((item) => item['@graph']?.some((entity) => entity['@type'] === 'Organization'))).toBeTruthy();
+  const organization = schema
+    .flatMap((item) => item['@graph'] || [])
+    .find((entity) => entity['@type'] === 'Organization');
+  expect(organization).toBeTruthy();
   expect(schema.some((item) => item['@graph']?.some((entity) => entity['@type'] === 'WebSite'))).toBeTruthy();
+
+  const socialProfiles = await page.locator('.social-links a[rel~="me"]').evaluateAll((links) => links.map((link) => link.href));
+  if (socialProfiles.length > 0) {
+    expect(organization.sameAs).toEqual(expect.arrayContaining(socialProfiles));
+  }
 });
 
 test('blog hub is crawlable, paginated, and keeps the rolling brief unique', async ({ page, request }) => {

@@ -68,6 +68,8 @@ $hero_title        = (string) \InfoSecNexus\Theme\Customizer\get_value( 'home_he
 $hero_excerpt      = (string) \InfoSecNexus\Theme\Customizer\get_value( 'home_hero_excerpt' );
 $hero_button_label = (string) \InfoSecNexus\Theme\Customizer\get_value( 'home_hero_button_label' );
 $hero_post_id      = 0;
+$hero_updated_iso  = '';
+$hero_updated_text = '';
 
 $rolling_posts = get_posts(
 	array(
@@ -92,6 +94,12 @@ if ( ! empty( $rolling_posts ) && $rolling_posts[0] instanceof \WP_Post ) {
 	$hero_title        = get_the_title( $hero_post );
 	$hero_excerpt      = wp_trim_words( has_excerpt( $hero_post_id ) ? get_the_excerpt( $hero_post ) : wp_strip_all_tags( (string) $hero_post->post_content ), 28, '...' );
 	$hero_button_label = __( 'Read Live Brief', 'infosecnexus' );
+	$hero_updated_iso  = get_the_modified_date( DATE_W3C, $hero_post );
+	$hero_updated_text = sprintf(
+		/* translators: %s: post modification date. */
+		__( 'Updated %s', 'infosecnexus' ),
+		get_the_modified_date( get_option( 'date_format' ), $hero_post )
+	);
 }
 
 $latest_cards = array(
@@ -291,6 +299,9 @@ if ( ! empty( $latest_posts ) ) {
 				<span class="severity-pill severity-pill--critical"><?php echo esc_html( $hero_badge ); ?></span>
 				<h1 class="home-hero__title"><?php echo esc_html( $hero_title ); ?></h1>
 				<p class="home-hero__excerpt"><?php echo esc_html( $hero_excerpt ); ?></p>
+				<?php if ( '' !== $hero_updated_iso && '' !== $hero_updated_text ) : ?>
+					<p class="home-hero__updated"><time datetime="<?php echo esc_attr( $hero_updated_iso ); ?>"><?php echo esc_html( $hero_updated_text ); ?></time></p>
+				<?php endif; ?>
 				<a class="button button--hero home-hero__lead" href="<?php echo esc_url( $hero_url ); ?>"><?php echo esc_html( $hero_button_label ); ?><?php \InfoSecNexus\Theme\Header_Builder\icon( 'arrow-right' ); ?></a>
 			</div>
 		</article>

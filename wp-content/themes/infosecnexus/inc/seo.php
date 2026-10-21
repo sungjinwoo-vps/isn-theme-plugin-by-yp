@@ -324,6 +324,17 @@ function render_site_schema(): void {
 		'name'  => get_bloginfo( 'name' ),
 		'url'   => home_url( '/' ),
 	);
+	$social_urls = array();
+	foreach ( array( 'social_x', 'social_github', 'social_linkedin', 'social_youtube' ) as $setting_key ) {
+		$social_url = esc_url_raw( (string) \InfoSecNexus\Theme\Customizer\get_value( $setting_key ), array( 'http', 'https' ) );
+		if ( '' !== $social_url ) {
+			$social_urls[] = $social_url;
+		}
+	}
+	$social_urls = array_values( array_unique( $social_urls ) );
+	if ( ! empty( $social_urls ) ) {
+		$organization['sameAs'] = $social_urls;
+	}
 	$logo_id      = (int) get_theme_mod( 'custom_logo' );
 	$logo         = $logo_id > 0 ? wp_get_attachment_image_src( $logo_id, 'full' ) : false;
 
