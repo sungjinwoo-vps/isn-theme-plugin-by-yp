@@ -4,7 +4,7 @@
 > project. Then run the startup checklist in the next section. This is the
 > authoritative continuity handoff for the current project state.
 
-Last updated: 2026-10-01 (Asia/Kolkata)
+Last updated: 2026-10-21 (Asia/Kolkata)
 
 ## 1. Current Snapshot
 
@@ -14,9 +14,9 @@ Last updated: 2026-10-01 (Asia/Kolkata)
 - Main release branch: `stable`
 - Repository visibility: public, which permits unauthenticated WordPress update
   downloads. Moving it to private requires an authenticated update service.
-- Current theme version: `0.1.54`
-- Current known release: `auto-v0.1.54`
-- Current known code commit: `a6b79d2` (`Fix newsroom author and keyword metadata`)
+- Current theme version: `0.1.59`
+- Current known release: `auto-v0.1.59`
+- Current known code commit: `c418382` (`Improve freshness and publisher SEO signals`)
 - WordPress was running version 7.1.2 at this checkpoint.
 - The live site is theme-first. The InfoSecNexus Toolkit features are bundled
   into the theme and the separate toolkit plugin is not required on this site.
@@ -1205,15 +1205,60 @@ report 13 advisories and require a separate toolchain-upgrade task; they are not
 served by WordPress.
 
 The remaining checker warnings are not theme defects. Authoritative DNS is
-managed at Spaceship, and `_dmarc.infosecnexus.com` currently has no DMARC TXT
-record; add a monitoring policy in DNS before later enforcement. No CAA record
-exists; adding a Let's Encrypt CAA restriction is optional, not a vulnerability
-fix. A phone number, street address, or social-profile links must not be
+managed at Spaceship. SPF, DKIM, and DMARC now pass external checks. No CAA
+record exists; adding a Let's Encrypt CAA restriction is optional, not a
+vulnerability fix. A phone number, street address, or social-profile links must not be
 invented solely for a score and should be added only when genuine public
 business details are supplied. Human organic traffic still depends on search
 demand, content quality, authority, and query-to-page matching; the next
 required evidence remains the Search Console Queries and Pages exports for the
 latest 28 and 90 days.
+
+### SEO Checker Reconciliation And Release 0.1.59 (2026-10-21)
+
+The PowerHost report scanned at `2026-10-21T11:53:48+05:30` scored 97/100
+(Grade A): On-Page 100, Technical 100, Site-wide 93, Content 92, Performance
+100, Security 100, Trust 88, Domain/DNS 98, and Social 93. It recorded 89
+passes, six warnings, and one failure. Its actionable external item is the
+absent CAA record. Optional public phone, address, and social-profile data must
+remain absent unless genuine details are supplied. The text-to-HTML and
+readability warnings describe the concise newsroom homepage, not an indexing
+failure. Analytics remains an informational item until a real GA4 measurement
+ID and consent decision are supplied.
+
+The report's claimed 39 possible orphan pages are a scanner-limit false
+positive. A first-party breadth-first crawl visited 500 same-origin HTML pages
+without request errors and found all 76 post-sitemap URLs linked internally;
+zero had no inlinks and zero had only one inlink. The live sitemap contains four
+child sitemaps and 94 unique URLs: 76 posts, seven pages, ten categories, and
+one author. It overlaps the 159-URL retirement inventory by zero URLs. Do not
+add a link dump merely to satisfy limited third-party crawlers.
+
+Release `0.1.59` exposes the permanent rolling brief's real WordPress modified
+date on the homepage using semantic `time` markup. It also emits configured X,
+GitHub, LinkedIn, and YouTube profiles in the Organization schema `sameAs`
+array and marks the matching visible profile links with `rel=me`. No profile is
+invented when the Customizer fields are empty. Source commit `c418382` produced
+GitHub Actions run `39564273120` and release `auto-v0.1.59`; the release theme
+ZIP SHA-256 is
+`ec1397953cfb577fb8aa96f9638e5f2dd6ad9ae975842c16742f349d5df498fc`.
+
+Before deployment, the verified rollback set was created at
+`/home/infosecnexus/backups/seo-checker-20261021T074233Z`. Its database
+SHA-256 is
+`a557127be61703fd6ea9a9f257fe1abd623fc9dc4dbe475fe245dacee1eb58`, and
+the `0.1.58` theme archive SHA-256 is
+`35a52b9a82d9ab46b7d7cf442469d1b6a1e633e25cb1ce576d888f761152d973`.
+
+Production is running `0.1.59`. Anonymous verification returned HTTP 200,
+served versioned `0.1.59` assets, one H1, the homepage canonical, no generator
+meta tag, and `Updated 21/10/2026` with a W3C datetime. The release passed
+JavaScript and CSS linting, `git diff --check`, package generation, all 76 PHP
+files on production PHP 8.4, a zero-vulnerability runtime npm audit, security
+header checks, sitemap/retirement reconciliation, and all 38 live desktop and
+mobile Playwright tests. Human traffic is not implied by this technical score;
+query-to-page work still requires fresh Search Console Performance exports for
+Queries and Pages over 28 and 90 days.
 
 ## 19. Definition Of Done
 
