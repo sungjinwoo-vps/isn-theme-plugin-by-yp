@@ -1342,6 +1342,53 @@ HTTP responses. The archive-card focus indicator was confirmed as a solid
 three-pixel outline. The unrelated untracked `new_design/` reference pack was
 not modified or included in either release.
 
+### Shared Surface Polish And Release 0.1.62 (2026-10-22)
+
+Release `0.1.62` refines the shared Neumorphic Editorial surfaces after the
+initial rollout. Directional top-left double-bevel shadows and duplicate hero
+borders were removed in favor of centered, restrained depth and a subtle inset
+highlight. Critical story cards now use a neutral perimeter with a controlled
+three-pixel red inset edge. Desktop navigation retains its simple active
+underline without a clipped inset box, and the footer brand is unframed. The
+same changes apply across home, archive/category/search, single, contact,
+special/legal, and 404 views in both color modes.
+
+Source commit `2a162f0` produced successful GitHub Actions run `39744210985`
+and release `auto-v0.1.62`. The published package hashes are:
+
+- Theme ZIP:
+  `8002afd814d67cc167eb7c823783b63e995ffe387a313f31a46d1053049a291e`.
+- Toolkit ZIP:
+  `21a56b4d7bd2d6e1160f36bcc07f9ba878a6f37a029ef73a651ee7a8ade90f1f`.
+- Elementor kit ZIP:
+  `07abb030fac00be83364790cd05544fb9523a467af0be409c7c262be4aa80ba1`.
+
+Before production deployment, a rollback set was created at
+`/home/infosecnexus/backups/box-polish-20261022T075029Z`. Its database
+SHA-256 is
+`bb31ff5922135c97dfe837f9f174833e832eddfc77e0e9c95ef227190a651717`,
+and its theme archive SHA-256 is
+`36998995c8f84f5d078c054f59d4ca0990f5a04778bf76af482090f667b8c933`.
+Both rollback artifacts are restricted to the site account.
+
+Production on the current AWS host was updated from `0.1.61` to `0.1.62`
+through the native WordPress updater, followed by a WordPress cache flush. All
+76 deployed PHP files passed linting, JavaScript and CSS linting passed,
+`git diff --check` passed, the runtime npm audit reported zero vulnerabilities,
+and the complete live Playwright suite passed 38 of 38 tests. An additional
+11-scenario production matrix covering home, category, single, contact, and
+404 pages across desktop/mobile and light/dark modes found no horizontal
+overflow, missing or duplicate H1, serious Axe violations, failed HTTP
+responses, or unexpected console-error scenarios. Search-modal focus handling,
+mobile navigation, visible card focus, and the circular back-to-top control
+also passed. A final cache-bypass request confirmed that anonymous production
+loads `neumorphic-editorial.css` version `0.1.62`, contains the new centered
+shadow and critical inset-edge rules, and no longer contains the old top-left
+shadow signature. The unrelated untracked `new_design/` reference pack was not
+modified or released. WP-CLI still reports an unrelated Elementor PHP
+deprecation notice during shutdown; it did not affect frontend rendering or
+the test suite.
+
 ## 19. Definition Of Done
 
 A task is not complete merely because code was edited. For this project, done
