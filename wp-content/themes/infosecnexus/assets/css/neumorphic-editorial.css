@@ -13,7 +13,7 @@
   --neu-surface-soft: #0a1831;
   --neu-text: #f3f7ff;
   --neu-muted: #a7b8d5;
-  --neu-line: rgb(125 168 224 / 22%);
+  --neu-line: rgb(125 168 224 / 14%);
   --neu-primary: #2788ff;
   --neu-primary-strong: #0967e8;
   --neu-cyan: #43dff6;
@@ -21,8 +21,8 @@
   --neu-critical: #e31b3d;
   --neu-warning: #f89a31;
   --neu-success: #20bf7a;
-  --neu-raised: -10px -10px 24px rgb(30 58 99 / 24%), 12px 12px 28px rgb(0 5 18 / 52%);
-  --neu-raised-soft: -6px -6px 16px rgb(32 61 103 / 18%), 7px 7px 18px rgb(0 5 18 / 42%);
+  --neu-raised: 0 22px 48px rgb(0 5 18 / 38%), inset 0 1px 0 rgb(255 255 255 / 4%);
+  --neu-raised-soft: 0 12px 28px rgb(0 5 18 / 28%), inset 0 1px 0 rgb(255 255 255 / 3%);
   --neu-inset: inset 4px 4px 10px rgb(0 5 18 / 48%), inset -4px -4px 10px rgb(41 74 119 / 20%);
   --neu-pressed: inset 3px 3px 8px rgb(0 5 18 / 52%), inset -2px -2px 7px rgb(49 86 137 / 18%);
   --neu-focus: 0 0 0 3px var(--neu-bg), 0 0 0 6px var(--neu-cyan);
@@ -75,7 +75,7 @@
   --neu-surface-soft: #e7eef8;
   --neu-text: #0a1d42;
   --neu-muted: #526887;
-  --neu-line: rgb(48 92 150 / 17%);
+  --neu-line: rgb(48 92 150 / 13%);
   --neu-primary: #005fc7;
   --neu-primary-strong: #004fa8;
   --neu-cyan: #00648a;
@@ -83,8 +83,8 @@
   --neu-critical: #d9163a;
   --neu-warning: #c86500;
   --neu-success: #087a4a;
-  --neu-raised: -10px -10px 24px rgb(255 255 255 / 90%), 12px 12px 28px rgb(74 105 145 / 20%);
-  --neu-raised-soft: -6px -6px 16px rgb(255 255 255 / 88%), 7px 7px 18px rgb(74 105 145 / 17%);
+  --neu-raised: 0 20px 44px rgb(74 105 145 / 16%), inset 0 1px 0 rgb(255 255 255 / 88%);
+  --neu-raised-soft: 0 11px 26px rgb(74 105 145 / 12%), inset 0 1px 0 rgb(255 255 255 / 78%);
   --neu-inset: inset 4px 4px 10px rgb(88 116 151 / 17%), inset -4px -4px 10px rgb(255 255 255 / 90%);
   --neu-pressed: inset 3px 3px 8px rgb(78 107 143 / 22%), inset -2px -2px 7px rgb(255 255 255 / 88%);
   --neu-focus: 0 0 0 3px var(--neu-bg), 0 0 0 6px #0875ed;
@@ -302,8 +302,8 @@ select:focus {
 .site-nav__dropdown-toggle:hover,
 .site-nav__dropdown-toggle[aria-expanded="true"] {
   color: var(--neu-primary);
-  background: var(--neu-surface);
-  box-shadow: var(--neu-pressed);
+  background: transparent;
+  box-shadow: none;
 }
 
 .site-nav .sub-menu,
@@ -367,7 +367,7 @@ select:focus {
 }
 
 .home-hero__feature {
-  border: 1px solid rgb(100 172 255 / 30%);
+  border: 1px solid var(--neu-line);
   border-radius: var(--neu-radius);
   box-shadow: var(--neu-raised);
 }
@@ -377,8 +377,9 @@ select:focus {
   z-index: 2;
   inset: 0;
   pointer-events: none;
-  border: 1px solid rgb(255 255 255 / 12%);
+  border: 0;
   border-radius: inherit;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 5%);
   content: "";
 }
 
@@ -405,14 +406,14 @@ select:focus {
 }
 
 .side-story:hover {
-  border-color: color-mix(in srgb, var(--neu-primary) 62%, var(--neu-line));
+  border-color: color-mix(in srgb, var(--neu-primary) 44%, var(--neu-line));
   box-shadow: var(--neu-raised), 0 0 24px rgb(39 136 255 / 12%);
   transform: translateY(-3px);
 }
 
 .side-story--critical,
 :root[data-color-mode="dark"] .side-story--critical {
-  border-color: color-mix(in srgb, var(--neu-critical) 62%, var(--neu-line));
+  border-color: var(--neu-line);
   box-shadow: inset 3px 0 0 var(--neu-critical), var(--neu-raised-soft);
 }
 
@@ -475,7 +476,7 @@ select:focus {
 
 .intel-card:hover,
 .post-card:hover {
-  border-color: color-mix(in srgb, var(--neu-primary) 60%, var(--neu-line));
+  border-color: color-mix(in srgb, var(--neu-primary) 42%, var(--neu-line));
   box-shadow: var(--neu-raised), 0 0 28px rgb(39 136 255 / 14%);
   transform: translateY(-4px);
 }
@@ -511,7 +512,7 @@ select:focus {
 
 .post-card--critical,
 :root[data-color-mode="dark"] .post-card--critical {
-  border-color: color-mix(in srgb, var(--neu-critical) 66%, var(--neu-line));
+  border-color: var(--neu-line);
   box-shadow: inset 3px 0 0 var(--neu-critical), var(--neu-raised-soft);
 }
 
@@ -765,7 +766,7 @@ select:focus {
 .entry-content .isnx-card:hover,
 .entry-content .isnx-contact-card:hover,
 .entry-content .isnx-legal-card:hover {
-  border-color: color-mix(in srgb, var(--neu-primary) 58%, var(--neu-line));
+  border-color: color-mix(in srgb, var(--neu-primary) 42%, var(--neu-line));
   box-shadow: var(--neu-raised);
   transform: translateY(-2px);
 }
@@ -855,16 +856,16 @@ select:focus {
 
 .site-footer .site-brand {
   padding: 0.55rem 0.8rem;
-  background: color-mix(in srgb, var(--neu-surface) 70%, transparent);
-  border: 1px solid var(--neu-line);
-  border-radius: var(--neu-radius);
-  box-shadow: var(--neu-raised-soft);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 :root[data-theme="light"] .site-footer .site-brand,
 :root[data-color-mode="light"] .site-footer .site-brand {
   color: var(--neu-text);
-  background: var(--neu-surface);
+  background: transparent;
 }
 
 :root[data-theme="light"] .site-footer .site-title,
