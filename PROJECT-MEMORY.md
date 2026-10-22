@@ -4,7 +4,7 @@
 > project. Then run the startup checklist in the next section. This is the
 > authoritative continuity handoff for the current project state.
 
-Last updated: 2026-10-21 (Asia/Kolkata)
+Last updated: 2026-10-22 (Asia/Kolkata)
 
 ## 1. Current Snapshot
 
@@ -14,20 +14,19 @@ Last updated: 2026-10-21 (Asia/Kolkata)
 - Main release branch: `stable`
 - Repository visibility: public, which permits unauthenticated WordPress update
   downloads. Moving it to private requires an authenticated update service.
-- Current theme version: `0.1.60`
-- Current known release: `auto-v0.1.60`
-- Current known code commit: `339a0c0` (`Add neumorphic editorial presentation`)
+- Current theme version: `0.1.61`
+- Current known release: `auto-v0.1.61`
+- Current known code commit: `9e9ecc7` (`Restore card keyboard focus visibility`)
 - WordPress was running version 7.1.2 at this checkpoint.
 - The live site is theme-first. The InfoSecNexus Toolkit features are bundled
   into the theme and the separate toolkit plugin is not required on this site.
-- Latest known verification: the complete 38-test desktop/mobile Playwright
-  suite passed against the live `0.1.59` baseline. The `0.1.60` Neumorphic
-  Editorial layer then passed an 11-scenario desktop/mobile injected-markup
-  browser and Axe matrix with no serious accessibility violations, horizontal
-  overflow, duplicate H1, or unexpected console errors. Production was still
-  serving `0.1.59` at the final source checkpoint, so repeat live visual and
-  functional verification after WordPress installs `0.1.60`. Lighthouse scores
-  and Core Web Vitals are targets, not permanent guarantees.
+- Latest known verification: production is running `0.1.61`. The complete
+  38-test desktop/mobile Playwright suite passed against the anonymous live
+  site. An additional 11-scenario light/dark desktop/mobile visual and Axe
+  matrix using the actual production CSS found no serious accessibility
+  violations, horizontal overflow, duplicate H1, unexpected console errors,
+  or failed HTTP responses. Lighthouse scores and Core Web Vitals are targets,
+  not permanent guarantees.
 
 ### Startup Checklist For Every New Session
 
@@ -1263,7 +1262,7 @@ mobile Playwright tests. Human traffic is not implied by this technical score;
 query-to-page work still requires fresh Search Console Performance exports for
 Queries and Pages over 28 and 90 days.
 
-### Neumorphic Editorial Redesign And Release 0.1.60 (2026-10-21)
+### Neumorphic Editorial Redesign And Releases 0.1.60-0.1.61 (2026-10-21)
 
 Release `0.1.60` adds a reversible Neumorphic Editorial presentation layer in
 `assets/css/neumorphic-editorial.css`, enqueued after the existing Anime
@@ -1307,12 +1306,41 @@ and it matches the release `SHA256SUMS`. The tracked `dist/` release metadata,
 SBOM, checksum file, and theme ZIP were synchronized from those exact release
 assets.
 
-At the final source checkpoint, the public update manifest advertised `0.1.60`
-but anonymous production HTML still loaded `0.1.59` assets and did not yet load
-`neumorphic-editorial.css`. Treat production deployment as pending until the
-WordPress theme update completes, caches are purged, and anonymous desktop and
-mobile verification passes. Do not report the redesign as live before that
-evidence exists.
+Before production installation, a database and theme rollback backup was
+created at
+`/home/infosecnexus/backups/neumorphic-20261021T154018Z`. The compressed
+database SHA-256 is
+`2e6824fb364a988c974d7af76a746ef5eed24abf19d17ab985bf7770d3154a64`,
+and the pre-deployment `0.1.59` theme archive SHA-256 is
+`9a95a997f549bcdf0a5910b42fc4c751cfcab34e84a2542809dc0891da5d033c`.
+Both archives passed integrity/listing checks, and the backup directory is
+restricted to the site account.
+
+Production was first updated to `0.1.60` through the native WordPress updater.
+The full live test suite then found a keyboard-focus regression on archive card
+links: 36 of 38 tests passed. Release `0.1.61` adds an explicit three-pixel cyan
+`focus-visible` outline for those linked cards. Source commit
+`9e9ecc7995942cc916fe63c59d990f95cc65d79f` produced successful GitHub Actions
+run `39635809948` and release `auto-v0.1.61`. The exact release theme ZIP
+SHA-256 is
+`2a36062c07a0c41b0eb2048991873029656a56fadc52769eb8639ef62b8bdbdf`,
+matching the published checksum. The tracked `dist/` theme, toolkit, and
+Elementor ZIPs plus the manifest, SBOM, and checksum file were synchronized
+from those exact release assets and all three ZIP hashes match `SHA256SUMS`.
+
+Production was then updated from `0.1.60` to `0.1.61` through the native
+WordPress updater and WordPress caches were flushed. Anonymous HTML returned
+HTTP 200 with one H1, retained the hardened security headers, and loaded
+`theme.css`, `anime-editorial.css`, and `neumorphic-editorial.css` versioned
+`0.1.61`. Production PHP lint passed for the changed PHP files; JavaScript and
+CSS linting and `git diff --check` passed. The complete live Playwright suite
+passed 38 of 38 tests. A separate 11-scenario production visual/Axe matrix
+covering home, category, single, contact, and 404 pages in light/dark desktop
+and mobile modes found zero serious Axe violations, horizontal overflow,
+duplicate/missing H1 failures, unexpected console-error scenarios, or failed
+HTTP responses. The archive-card focus indicator was confirmed as a solid
+three-pixel outline. The unrelated untracked `new_design/` reference pack was
+not modified or included in either release.
 
 ## 19. Definition Of Done
 

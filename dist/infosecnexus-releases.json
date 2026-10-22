@@ -1,33 +1,33 @@
 {
-  "plugin": {
-    "tested": "7.0",
-    "slug": "infosecnexus-toolkit",
+  "theme": {
     "sections": {
-      "changelog": "Keeps the optional legacy bridge aligned with the theme's rolling-date consistency release.",
-      "description": "Legacy bridge for older InfoSecNexus installs. Current toolkit features are bundled into the InfoSecNexus theme."
+      "description": "Cybersecurity newsroom theme for InfoSecNexus.",
+      "changelog": "* Restores an explicit high-contrast keyboard focus outline on linked editorial cards while retaining the Neumorphic focus glow."
+    },
+    "version": "0.1.61",
+    "requires_php": "8.1",
+    "last_updated": "2026-10-21",
+    "tested": "7.0",
+    "requires": "6.5",
+    "slug": "infosecnexus",
+    "homepage": "https://infosecnexus.com/",
+    "package": "https://github.com/sungjinwoo-vps/isn-theme-plugin-by-yp/releases/download/auto-v0.1.61/infosecnexus-theme.zip"
+  },
+  "generatedAt": "2026-10-21T16:33:31Z",
+  "plugin": {
+    "sections": {
+      "description": "Legacy bridge for older InfoSecNexus installs. Current toolkit features are bundled into the InfoSecNexus theme.",
+      "changelog": "Keeps the optional legacy bridge aligned with the theme's rolling-date consistency release."
     },
     "version": "0.1.45",
-    "homepage": "https://infosecnexus.com/",
-    "plugin": "infosecnexus-toolkit/infosecnexus-toolkit.php",
-    "last_updated": "2026-10-21",
-    "package": "https://github.com/sungjinwoo-vps/isn-theme-plugin-by-yp/releases/download/auto-v0.1.60/infosecnexus-toolkit.zip",
     "requires_php": "8.1",
-    "requires": "6.5"
-  },
-  "generatedAt": "2026-10-21T14:10:26Z",
-  "manifestVersion": 1,
-  "theme": {
-    "tested": "7.0",
-    "slug": "infosecnexus",
-    "sections": {
-      "changelog": "* Adds the reversible Neumorphic Editorial presentation layer across newsroom, archive, article, search, special, legal, and error views while preserving existing WordPress content and behavior. * Keeps light and dark modes visually coherent with responsive raised and inset surfaces, accessible interaction states, reduced-motion support, and a circular reading-progress control.",
-      "description": "Cybersecurity newsroom theme for InfoSecNexus."
-    },
-    "version": "0.1.60",
-    "homepage": "https://infosecnexus.com/",
-    "requires": "6.5",
     "last_updated": "2026-10-21",
-    "package": "https://github.com/sungjinwoo-vps/isn-theme-plugin-by-yp/releases/download/auto-v0.1.60/infosecnexus-theme.zip",
-    "requires_php": "8.1"
-  }
+    "plugin": "infosecnexus-toolkit/infosecnexus-toolkit.php",
+    "requires": "6.5",
+    "slug": "infosecnexus-toolkit",
+    "homepage": "https://infosecnexus.com/",
+    "package": "https://github.com/sungjinwoo-vps/isn-theme-plugin-by-yp/releases/download/auto-v0.1.61/infosecnexus-toolkit.zip",
+    "tested": "7.0"
+  },
+  "manifestVersion": 1
 }
