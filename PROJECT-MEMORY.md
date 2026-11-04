@@ -4,7 +4,7 @@
 > project. Then run the startup checklist in the next section. This is the
 > authoritative continuity handoff for the current project state.
 
-Last updated: 2026-10-22 (Asia/Kolkata)
+Last updated: 2026-11-04 (Asia/Kolkata)
 
 ## 1. Current Snapshot
 
@@ -14,18 +14,22 @@ Last updated: 2026-10-22 (Asia/Kolkata)
 - Main release branch: `stable`
 - Repository visibility: public, which permits unauthenticated WordPress update
   downloads. Moving it to private requires an authenticated update service.
-- Current theme version: `0.1.61`
-- Current known release: `auto-v0.1.61`
-- Current known code commit: `9e9ecc7` (`Restore card keyboard focus visibility`)
-- WordPress was running version 7.1.2 at this checkpoint.
+- Current theme version: `0.1.64`
+- Current known release: `auto-v0.1.64`
+- Current known code commit: `fa8bff4` (`Keep source refreshes stable and article guide focus readable`)
+- WordPress was verified running version 7.1.4 at this checkpoint.
 - The live site is theme-first. The InfoSecNexus Toolkit features are bundled
   into the theme and the separate toolkit plugin is not required on this site.
-- Latest known verification: production is running `0.1.61`. The complete
-  38-test desktop/mobile Playwright suite passed against the anonymous live
-  site. An additional 11-scenario light/dark desktop/mobile visual and Axe
-  matrix using the actual production CSS found no serious accessibility
-  violations, horizontal overflow, duplicate H1, unexpected console errors,
-  or failed HTTP responses. Lighthouse scores and Core Web Vitals are targets,
+- Latest known verification: production is running `0.1.64`. All 82 active
+  articles use the source-backed editorial schema: 81 individual stories and
+  the permanent rolling brief. The final desktop/mobile suite passed 40 of 42
+  checks; the two existing homepage artwork-diversity failures also occurred
+  before this task. All five additional actual-production desktop/tablet/mobile
+  light/dark article scenarios passed without serious Axe violations,
+  horizontal overflow, duplicate H1, page errors, or failed page responses.
+  All 77 deployed PHP files passed syntax checks, focused PHPStan and JS/CSS
+  linting passed, and 63 source-evidence regression checks plus editorial
+  persistence fixtures passed. Lighthouse and Core Web Vitals remain targets,
   not permanent guarantees.
 
 ### Startup Checklist For Every New Session
@@ -1388,6 +1392,119 @@ shadow signature. The unrelated untracked `new_design/` reference pack was not
 modified or released. WP-CLI still reports an unrelated Elementor PHP
 deprecation notice during shutdown; it did not affect frontend rendering or
 the test suite.
+
+### Source-Backed Articles And Releases 0.1.63-0.1.64 (2026-11-04)
+
+The complete Atlasum Linux IPv4 TCP article, including its version matrices,
+technical explanation, checks, remediation, exploitation timeline, update log,
+and sources, was reviewed as the owner's editorial benchmark. Its useful
+structure and evidence standards were adopted across the newsroom without
+copying its prose or pretending its tests were performed by InfoSecNexus.
+The enduring policy is `docs/blog-editorial-standard.md`.
+
+`class-live-intelligence.php` now uses content schema `12`. It preserves CISA
+notes and direct advisory links, CNA descriptions and affected/status ranges,
+CVSS authority/version/vector, NVD assessments, and GitHub affected/fixed
+package information. Valid public CVE IDs receive cached CNA enrichment during
+publication or CLI work; ordinary article reads do not fetch evidence. Articles
+distinguish permanent remediation, interim controls, validation, source-event
+dates, and confirmed exploitation. General announcements use their own neutral
+structure, and grouped advisories preserve the scope of exploitation rather
+than attributing attacks to every listed issue. Unknown facts remain unknown.
+
+`class-newsroom-editorial.php` and the publishing integration store normalized
+evidence, generated body hashes, and actual body-change history. A stored body
+hash or the explicit `_infosecnexus_editorial_manual` flag protects subsequent
+manual body edits. Initial adoption of hashless content requires recognized
+legacy generation markers and checks for prior editor saves. Six existing
+generated bodies with old `_edit_last` metadata were individually reviewed and
+explicitly adopted with their current SHA256 hashes; this included the rolling
+hub, whose old editor metadata would otherwise block future cron refreshes.
+Do not broadly bypass this guard on other installations or future custom posts.
+
+The historical upgrade command defaults to a dry run:
+
+```bash
+wp infosecnexus newsroom upgrade-articles
+wp infosecnexus newsroom upgrade-articles --apply
+```
+
+The migration upgraded all 81 existing individual stories: 79 CVE articles and
+two grouped Cisco hardening advisories. One current story refreshed through the
+normal publication flow, while the first explicit migration updated 80 and
+left that story unchanged. The permanent hub refreshed through its normal
+source-backed publishing flow. The two Cisco stories received reviewed official
+source snapshots from `docs/editorial-source-notes-2026-11-04.json`; these contain
+six email-appliance and 13 firewall release rows, source dates, exact reported
+fixes, and carefully scoped exploitation statements. They are dated evidence
+snapshots, not a substitute for checking later vendor revisions.
+
+The final audit found 82 active posts, all with schema `12`, matching generated
+body hashes, structured version evidence, technical source detail, and actual
+history. Seventy-one articles have structured scoring evidence; a numeric score
+is not invented for the others. Exact before/after reconciliation preserved all
+246 published post identities, titles, slugs, original publication dates,
+featured-image IDs, categories, retirement flags, and supersession targets.
+All 159 staged article bodies were unchanged. A historical rolling URL retained
+its `301` to the permanent hub. No retirement finalization or deletion occurred.
+
+Release `0.1.64` fixes a real repeat-refresh defect found during verification:
+duplicate source URLs and CNA self-references could rotate reference labels and
+needlessly rewrite three historical articles. URL attribution is now stable.
+The final full migration rerun reported `checked=82`, `eligible=0`, `updated=0`,
+`unchanged=81`, `skipped=1` (the rolling hub), and `failed=0`; complete article
+audits before and after were identical, including body hashes, update times,
+and history counts. Corrected deadlines and other rendered evidence fields are
+also included in source fingerprints so real source changes are not missed.
+
+The shared single-post reader now provides nested H2/H3 navigation with stable
+unique anchors, gated-section navigation, truthful Published/Updated dates,
+keyboard-scrollable code and version tables, multiline code copying, visible
+source citations in Article schema, and a single history section outside the
+gate. Light/dark article styles include accessible hover, current-section, and
+keyboard-focus states. Existing ad/unlock behavior and no-JavaScript reading
+remain functional.
+
+Release records:
+
+- `0.1.63`: source `2684738`, successful GitHub Actions run `41850310359`, theme
+  ZIP SHA256 `9d2987d79895e7a2d7a0fe7a9a4b6e1e72e2a8b52263f9c96d477fde2470cd1d`.
+- `0.1.64`: source `fa8bff4`, successful GitHub Actions run `41851924176`, theme
+  ZIP SHA256 `64549a02cce448fa418bb57af2408a0c74a308bad7f4fc61f5fa952bc1c7223b`.
+
+Both checksum-verified releases were installed through the native WordPress
+updater. Before the first release, the database/theme rollback set was created
+at `/home/infosecnexus/backups/editorial-20261104T142803Z`: database SHA256
+`c122362621dd772cec3cff89c45eb0606b679f445194d575da212ce1c0060011`, and theme
+SHA256 `6ad823cb7a618c0d9c733c399090f4a017737d428c00a2f712e07d4fa09b8e66`.
+Before `0.1.64`, another verified set was created at
+`/home/infosecnexus/backups/editorial-stability-20261104T145037Z`: database SHA256
+`a6cf822a2ccee04198fef0525e249431d51185f79808fdf1e66a04a6aad035a5`, and theme
+SHA256 `09e4a7cd15f79b0bba05f251bb6b9386068c23634b59140f9dd5ecaee1f5e87a`.
+Backup directories and files are restricted to the site account.
+
+Final validation passed all 77 deployed PHP syntax checks, focused PHPStan,
+JavaScript/CSS linting, clean packaging, 63 source-evidence checks, stateful
+editorial persistence fixtures, and whitespace checks. The five actual live
+article scenarios covered WordPress at 1366/light and 390/dark, Cisco at
+1366/dark and 390/light, and the rolling hub at 768/light. All returned `200`,
+loaded `0.1.64` assets, had one H1 and unique guide targets, unlocked gated
+subsections, exposed semantic dates and one history, and passed serious Axe,
+overflow, and page-error checks. The WordPress article displays all 25 explicit
+branch ranges plus the CNA default status, including 7.1; clipboard content
+matches the complete multiline code after Windows CRLF normalization.
+
+The complete anonymous Playwright suite passed 40 of 42 checks. Its two failures
+are the same pre-existing homepage artwork-diversity checks seen in the initial
+36-of-38 baseline: distinct generated photo attachments exist, but
+`Anime_Design::manual_featured_image_id()` deliberately substitutes the common
+critical-category artwork for generated images. This presentation policy was
+not changed or hidden by weakening those tests. Future artwork work should
+resolve that policy explicitly. The unrelated untracked `new_design/` pack was
+untouched. Generated `dist/` changes were not committed, following the source
+release policy; exact official packages and verification artifacts remain local
+under `.tmp/release-0.1.63`, `.tmp/release-0.1.64`, and
+`.tmp/editorial-live-final`.
 
 ## 19. Definition Of Done
 
