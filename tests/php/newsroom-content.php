@@ -156,4 +156,29 @@ $grouped['scoped_exploitation'] = 'The vendor reports exploitation of two named 
 $grouped_content = Live_Intelligence::article_for_item( $grouped, 'November 4, 2026' )['content'];
 check( false !== strpos( $grouped_content, '16.5.0-780' ) && false !== strpos( $grouped_content, $grouped['workarounds'] ) && false !== strpos( $grouped_content, $grouped['scoped_exploitation'] ), 'Grouped advisories must display supplied exact versions, workaround limits, and scoped exploitation evidence.' );
 
+// Production regressions: one CNA record listed three advisory names for the
+// same URL; two others included a self-reference to their own CVE record.
+$duplicate_record = $record;
+$duplicate_record['containers']['cna']['references'] = array(
+	array( 'url' => 'https://vendor.example/duplicate', 'name' => 'First advisory alias' ),
+	array( 'url' => 'https://vendor.example/duplicate', 'name' => 'Second advisory alias' ),
+	array( 'url' => 'https://vendor.example/duplicate', 'name' => 'Third advisory alias' ),
+	array( 'url' => 'https://www.cve.org/CVERecord?id=' . $seed['cve'], 'name' => 'url' ),
+);
+$roundtrip_item = call_private( 'merge_cve_evidence', $seed, $duplicate_record );
+$roundtrip_article = Live_Intelligence::article_for_item( $roundtrip_item, 'November 4, 2026' );
+for ( $iteration = 0; $iteration < 4; ++$iteration ) {
+	$roundtrip_item = call_private( 'merge_cve_evidence', $roundtrip_article['item'], $duplicate_record );
+	$next_article = Live_Intelligence::article_for_item( $roundtrip_item, 'November 4, 2026' );
+	check( $roundtrip_article['content'] === $next_article['content'], 'Duplicate URL and self-reference labels must not alternate on repeated enrichment.' );
+	check( $roundtrip_article['fingerprint'] === $next_article['fingerprint'], 'An unchanged CNA record must retain its fingerprint after repeated enrichment.' );
+	$roundtrip_article = $next_article;
+}
+check( false !== strpos( $roundtrip_article['content'], 'Third advisory alias' ) && false === strpos( $roundtrip_article['content'], 'First advisory alias' ), 'Duplicate source URLs must use a stable source-order winner.' );
+check( false !== strpos( $roundtrip_article['content'], 'CVE CNA: Example CNA: CVE-2026-12345 CNA record' ), 'The canonical CNA title must win over an incoming self-reference label.' );
+$removed_reference_record = $duplicate_record;
+$removed_reference_record['containers']['cna']['references'] = array();
+$removed_reference_item = call_private( 'merge_cve_evidence', $roundtrip_item, $removed_reference_record );
+check( ! in_array( 'https://vendor.example/duplicate', array_column( $removed_reference_item['references'], 'url' ), true ), 'A fresh CNA record must replace its earlier linked-reference set.' );
+
 echo 'PASS: ' . $checks . " source-evidence regression checks\n";

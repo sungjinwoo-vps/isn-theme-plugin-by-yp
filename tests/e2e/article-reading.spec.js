@@ -1,5 +1,6 @@
 const { test, expect } = require('@playwright/test');
 const path = require('node:path');
+const AxeBuilder = require('@axe-core/playwright').default;
 
 const theme = path.resolve(__dirname, '../../wp-content/themes/infosecnexus');
 
@@ -40,4 +41,23 @@ test('article guide reveals gated subsections and copies complete code without o
   await expect(page.getByRole('table')).toHaveCount(1);
   await expect(page.getByRole('region', { name: /Article table/ })).toHaveAttribute('tabindex', '0');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
+});
+
+test('article guide hover, keyboard focus, and current states keep contrast in both color modes', async ({ page }) => {
+  for (const mode of ['light', 'dark']) {
+    await page.setContent(`<!doctype html><html lang="en" data-color-mode="${mode}" data-theme="${mode}"><head><title>Article guide contrast</title></head><body>
+      <main><article class="single-entry"><aside class="single-rail"><nav class="toc" aria-label="Table of contents"><h2>On this page</h2><ol>
+        <li><a href="#facts" aria-current="location">Key facts</a></li>
+        <li><a href="#checks">Published implementation guidance</a></li>
+      </ol></nav></aside></article></main></body></html>`);
+    for (const stylesheet of ['theme.css', 'anime-editorial.css', 'neumorphic-editorial.css', 'article-content.css']) {
+      await page.addStyleTag({ path: path.join(theme, 'assets/css', stylesheet) });
+    }
+    const guideLink = page.getByRole('link', { name: 'Published implementation guidance' });
+    await guideLink.hover();
+    await guideLink.focus();
+    const result = await new AxeBuilder({ page }).include('.toc').withRules(['color-contrast']).analyze();
+    expect(result.violations, `${mode} guide contrast`).toEqual([]);
+    await expect(guideLink).toHaveCSS('color', mode === 'dark' ? 'rgb(67, 223, 246)' : 'rgb(0, 100, 138)');
+  }
 });

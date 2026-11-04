@@ -36,7 +36,7 @@
   content: "\203A";
 }
 
-.single-rail .toc a[aria-current="location"] {
+.single-entry .single-rail .toc a:is(:hover, :focus-visible, [aria-current="location"]) {
   color: var(--isn-cyan);
   text-decoration: underline;
   text-underline-offset: 0.2em;

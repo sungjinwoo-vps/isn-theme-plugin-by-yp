@@ -449,15 +449,33 @@ final class Live_Intelligence {
 				$item['score'] = (float) $metric['score'];
 			}
 		}
-		$references = (array) ( $item['references'] ?? array() );
-		$references[] = array( 'source' => $authority, 'title' => $cve . ' CNA record', 'url' => $url );
+		$references = array();
 		foreach ( (array) ( $cna['references'] ?? array() ) as $reference ) {
 			$reference_url = esc_url_raw( (string) ( $reference['url'] ?? '' ) );
 			if ( '' !== $reference_url ) {
 				$references[] = array( 'source' => 'CNA-linked reference', 'title' => self::clean_text( (string) ( $reference['name'] ?? wp_parse_url( $reference_url, PHP_URL_HOST ) ?? 'Reference' ), 20 ), 'url' => $reference_url );
 			}
 		}
-		$item['references'] = self::unique_evidence( $references );
+		// Deduplicate references by URL only after every fresh source row is added.
+		// Removing identical rows first makes duplicate-URL aliases alternate their
+		// winning labels on every refresh. The canonical CNA title also wins over
+		// self-references included in the source's own reference array.
+		$references[] = array( 'source' => $authority, 'title' => $cve . ' CNA record', 'url' => $url );
+		$fresh_references = array();
+		foreach ( $references as $reference ) {
+			$fresh_references[ $reference['url'] ] = $reference;
+		}
+		$references = array();
+		foreach ( self::item_references( $item ) as $reference ) {
+			$reference_url = (string) ( $reference['url'] ?? '' );
+			if ( isset( $fresh_references[ $reference_url ] ) ) {
+				$references[] = $fresh_references[ $reference_url ];
+				unset( $fresh_references[ $reference_url ] );
+			} elseif ( 'CNA-linked reference' !== (string) ( $reference['source'] ?? '' ) && $url !== $reference_url ) {
+				$references[] = $reference;
+			}
+		}
+		$item['references'] = array_merge( $references, array_values( $fresh_references ) );
 		return self::item( $item );
 	}
 
