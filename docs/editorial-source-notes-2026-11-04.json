@@ -1,0 +1,92 @@
+{
+  "reviewed_on": "2026-11-04",
+  "review_timezone": "Asia/Kolkata",
+  "purpose": "Reviewed primary-source snapshots for the two historical grouped Cisco advisories; original titles, URLs, publication dates and images remain unchanged.",
+  "records": [
+    {
+      "post_id": 2031,
+      "evidence": [
+        {
+          "id": "cisco_psirt-912955cef3b8f6fc5c8bde71b46fd381",
+          "source_key": "cisco_psirt",
+          "source": "Cisco PSIRT",
+          "type": "vendor_advisory",
+          "title": "Cisco Secure Email Gateway and Secure Email and Web Manager Security Hardening Release: September 2026",
+          "description": "Cisco released email-appliance hardening updates after internal testing found several security issues. Its advisory identifies two constituent vulnerabilities as exploited.",
+          "url": "https://sec.cloudapps.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-hardening-esa-dfCrfXkm",
+          "published": "2026-09-14T16:00:00Z",
+          "modified": "2026-10-14T16:00:00Z",
+          "cve": "",
+          "vendor": "Cisco",
+          "product": "Secure Email Gateway / Secure Email and Web Manager",
+          "severity": "Critical",
+          "score": null,
+          "active_exploitation": true,
+          "scoped_exploitation": "Cisco reports exploitation of two constituent issues, not every vulnerability in this grouped advisory.",
+          "technical_description": "Affected appliances require updates regardless of configuration. Cisco groups findings by weakness class; Secure Web Appliance is explicitly excluded.",
+          "technical_source": "Cisco PSIRT",
+          "technical_url": "https://sec.cloudapps.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-hardening-esa-dfCrfXkm",
+          "solutions": "Install a vendor-listed fixed release. Cisco documents upgrades through System Administration > System Upgrade or its upgrade CLI; the appliance then reboots.",
+          "workarounds": "Cisco establishes no workaround for these vulnerabilities.",
+          "affected_versions": [
+            { "product": "Secure Email Gateway", "affected": "15.5 and earlier", "fixed": "15.5.5-014", "status": "affected", "source": "Cisco PSIRT", "url": "https://sec.cloudapps.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-hardening-esa-dfCrfXkm" },
+            { "product": "Secure Email Gateway", "affected": "16.0", "fixed": "Migrate to a fixed release", "status": "affected", "source": "Cisco PSIRT", "url": "https://sec.cloudapps.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-hardening-esa-dfCrfXkm" },
+            { "product": "Secure Email Gateway", "affected": "16.5", "fixed": "16.5.0-780", "status": "affected", "source": "Cisco PSIRT", "url": "https://sec.cloudapps.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-hardening-esa-dfCrfXkm" },
+            { "product": "Secure Email and Web Manager", "affected": "15.5 and earlier", "fixed": "15.5.5-006", "status": "affected", "source": "Cisco PSIRT", "url": "https://sec.cloudapps.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-hardening-esa-dfCrfXkm" },
+            { "product": "Secure Email and Web Manager", "affected": "16.0", "fixed": "Migrate to a fixed release", "status": "affected", "source": "Cisco PSIRT", "url": "https://sec.cloudapps.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-hardening-esa-dfCrfXkm" },
+            { "product": "Secure Email and Web Manager", "affected": "16.5", "fixed": "16.5.0-429", "status": "affected", "source": "Cisco PSIRT", "url": "https://sec.cloudapps.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-hardening-esa-dfCrfXkm" }
+          ],
+          "references": [
+            { "source": "Cisco PSIRT", "title": "Email appliance hardening advisory", "url": "https://sec.cloudapps.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-hardening-esa-dfCrfXkm" }
+          ]
+        }
+      ]
+    },
+    {
+      "post_id": 2142,
+      "evidence": [
+        {
+          "id": "cisco_psirt-7ecd44cffe8df19e022d7f1918070ba9",
+          "source_key": "cisco_psirt",
+          "source": "Cisco PSIRT",
+          "type": "vendor_advisory",
+          "title": "Cisco Secure Firewall Adaptive Security Appliance, Secure Firewall Threat Defense, and Secure Firewall Management Center Software Hardening Release: September 2026",
+          "description": "Cisco issued firewall hardening releases following internal security testing. The grouped advisory covers ASA, FTD and FMC and identifies two exploited FMC issues.",
+          "url": "https://sec.cloudapps.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-hardening-asaftdfmc-uvpPROhN",
+          "published": "2026-09-16T16:00:00Z",
+          "modified": "2026-09-18T15:50:00Z",
+          "cve": "",
+          "vendor": "Cisco",
+          "product": "Secure Firewall ASA / FTD / FMC",
+          "severity": "Critical",
+          "score": null,
+          "active_exploitation": true,
+          "scoped_exploitation": "Cisco identifies two exploited FMC issues within one weakness grouping; this does not establish exploitation of all listed vulnerabilities.",
+          "technical_description": "Affected products need remediation regardless of configuration. Cisco explicitly lists affected ASA hot fixes; a larger-looking build number alone cannot establish safety.",
+          "technical_source": "Cisco PSIRT",
+          "technical_url": "https://sec.cloudapps.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-hardening-asaftdfmc-uvpPROhN",
+          "solutions": "Choose the fixed release for the deployed branch and check the affected hot-fix exceptions. Confirm hardware capacity and configuration support before upgrading.",
+          "workarounds": "Cisco establishes no workaround for these vulnerabilities.",
+          "affected_versions": [
+            { "product": "ASA", "affected": "9.16 and earlier", "fixed": "9.16.4.103", "status": "affected", "source": "Cisco PSIRT", "url": "https://sec.cloudapps.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-hardening-asaftdfmc-uvpPROhN" },
+            { "product": "ASA", "affected": "9.18; affected hot fix 9.18.4.135", "fixed": "9.18.4.94", "status": "affected", "source": "Cisco PSIRT", "url": "https://sec.cloudapps.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-hardening-asaftdfmc-uvpPROhN" },
+            { "product": "ASA", "affected": "9.20; affected hot fix 9.20.4.235", "fixed": "9.20.4.49", "status": "affected", "source": "Cisco PSIRT", "url": "https://sec.cloudapps.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-hardening-asaftdfmc-uvpPROhN" },
+            { "product": "ASA", "affected": "9.22; affected hot fix 9.22.3.191", "fixed": "9.22.3.26", "status": "affected", "source": "Cisco PSIRT", "url": "https://sec.cloudapps.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-hardening-asaftdfmc-uvpPROhN" },
+            { "product": "ASA", "affected": "9.23; affected hot fixes 9.23.1.195, 9.23.1.211", "fixed": "9.23.1.47", "status": "affected", "source": "Cisco PSIRT", "url": "https://sec.cloudapps.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-hardening-asaftdfmc-uvpPROhN" },
+            { "product": "ASA", "affected": "9.24; affected hot fixes 9.24.1.155, 9.24.1.221", "fixed": "9.24.1.26", "status": "affected", "source": "Cisco PSIRT", "url": "https://sec.cloudapps.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-hardening-asaftdfmc-uvpPROhN" },
+            { "product": "FTD / FMC", "affected": "7.0 and earlier", "fixed": "7.0.10", "status": "affected", "source": "Cisco PSIRT", "url": "https://sec.cloudapps.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-hardening-asaftdfmc-uvpPROhN" },
+            { "product": "FTD / FMC", "affected": "7.2", "fixed": "7.2.12", "status": "affected", "source": "Cisco PSIRT", "url": "https://sec.cloudapps.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-hardening-asaftdfmc-uvpPROhN" },
+            { "product": "FTD / FMC", "affected": "7.4", "fixed": "7.4.8", "status": "affected", "source": "Cisco PSIRT", "url": "https://sec.cloudapps.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-hardening-asaftdfmc-uvpPROhN" },
+            { "product": "FTD / FMC", "affected": "7.6", "fixed": "7.6.6", "status": "affected", "source": "Cisco PSIRT", "url": "https://sec.cloudapps.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-hardening-asaftdfmc-uvpPROhN" },
+            { "product": "FTD / FMC", "affected": "7.7", "fixed": "7.7.13", "status": "affected", "source": "Cisco PSIRT", "url": "https://sec.cloudapps.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-hardening-asaftdfmc-uvpPROhN" },
+            { "product": "FTD / FMC", "affected": "10.0", "fixed": "10.0.2", "status": "affected", "source": "Cisco PSIRT", "url": "https://sec.cloudapps.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-hardening-asaftdfmc-uvpPROhN" },
+            { "product": "FTD / FMC", "affected": "10.1", "fixed": "10.1.0", "status": "affected", "source": "Cisco PSIRT", "url": "https://sec.cloudapps.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-hardening-asaftdfmc-uvpPROhN" }
+          ],
+          "references": [
+            { "source": "Cisco PSIRT", "title": "Firewall hardening advisory", "url": "https://sec.cloudapps.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-hardening-asaftdfmc-uvpPROhN" }
+          ]
+        }
+      ]
+    }
+  ]
+}

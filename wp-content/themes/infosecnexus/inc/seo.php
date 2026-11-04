@@ -183,6 +183,7 @@ function render_metadata(): void {
 		'description'      => $description,
 		'datePublished'    => get_post_time( 'c', true, $post ),
 		'dateModified'     => get_post_modified_time( 'c', true, $post ),
+		'inLanguage'       => get_bloginfo( 'language' ),
 		'mainEntityOfPage' => array(
 			'@type' => 'WebPage',
 			'@id'   => $url,
@@ -203,6 +204,10 @@ function render_metadata(): void {
 	if ( ! is_wp_error( $categories ) && ! empty( $categories ) ) {
 		$schema['articleSection'] = array_values( $categories );
 	}
+	$citations = article_citations( (int) $post->ID );
+	if ( ! empty( $citations ) ) {
+		$schema['citation'] = $citations;
+	}
 
 	if ( '' !== $image ) {
 		$schema['image'] = array(
@@ -214,6 +219,35 @@ function render_metadata(): void {
 	}
 
 	echo '<script type="application/ld+json">' . wp_json_encode( $schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) . '</script>' . "\n";
+}
+
+/**
+ * Describe the same source records linked by the published article.
+ *
+ * @param int $post_id Post ID.
+ * @return array<int,array<string,string>>
+ */
+function article_citations( int $post_id ): array {
+	$sources = json_decode( (string) get_post_meta( $post_id, '_infosecnexus_source_urls', true ), true );
+	if ( ! is_array( $sources ) ) {
+		return array();
+	}
+	$citations = array();
+	foreach ( $sources as $source ) {
+		if ( ! is_array( $source ) ) {
+			continue;
+		}
+		$url  = esc_url_raw( (string) ( $source[1] ?? '' ), array( 'https', 'http' ) );
+		$name = sanitize_text_field( (string) ( $source[0] ?? '' ) );
+		if ( '' !== $url && '' !== $name ) {
+			$citations[ $url ] = array(
+				'@type' => 'CreativeWork',
+				'name'  => $name,
+				'url'   => $url,
+			);
+		}
+	}
+	return array_values( $citations );
 }
 
 /**

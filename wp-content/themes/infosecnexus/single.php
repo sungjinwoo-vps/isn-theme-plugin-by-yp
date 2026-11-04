@@ -24,7 +24,7 @@ if ( \InfoSecNexus\Theme\Elementor\render_location( 'single' ) ) {
 					<p class="editorial-eyebrow"><?php esc_html_e( 'InfoSecNexus briefing', 'infosecnexus' ); ?></p>
 					<?php \InfoSecNexus\Theme\Template_Tags\category_badges(); ?>
 					<h1><?php the_title(); ?></h1>
-					<?php \InfoSecNexus\Theme\Template_Tags\post_meta(); ?>
+					<?php \InfoSecNexus\Theme\Template_Tags\post_meta( true ); ?>
 				</div>
 				<div class="single-hero__media">
 					<?php
@@ -50,6 +50,12 @@ if ( \InfoSecNexus\Theme\Elementor\render_location( 'single' ) ) {
 				<div class="entry-content-wrap">
 					<?php \InfoSecNexus\Theme\Template_Tags\featured_video(); ?>
 					<?php \InfoSecNexus\Theme\AdSense\render_gated_post_content(); ?>
+					<?php
+					if ( ! post_password_required() && class_exists( '\\InfoSecNexus\\Theme\\Toolkit\\Newsroom_Editorial' ) ) {
+						// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The editorial helper escapes all history entries.
+						echo \InfoSecNexus\Theme\Toolkit\Newsroom_Editorial::history_html( (int) get_the_ID() );
+					}
+					?>
 					<?php
 					wp_link_pages(
 						array(

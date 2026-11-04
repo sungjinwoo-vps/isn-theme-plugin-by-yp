@@ -42,8 +42,8 @@ test('homepage uses one permanent live brief without repeating it in the latest 
 
   await page.goto(`${baseURL}/live-cybersecurity-brief/`, { waitUntil: 'networkidle' });
   await expect(page.locator('nav.post-navigation')).toHaveCount(0);
-  await expect(page.locator('.single-hero .entry-meta time')).toContainText('Updated');
-  await expect(page.locator('.single-hero .entry-meta time')).toHaveAttribute('datetime', /^\d{4}-\d{2}-\d{2}T/);
+  await expect(page.locator('.single-hero .entry-meta .entry-meta__updated')).toContainText('Updated');
+  await expect(page.locator('.single-hero .entry-meta .entry-meta__updated')).toHaveAttribute('datetime', /^\d{4}-\d{2}-\d{2}T/);
 
   const sitemap = await request.get(`${baseURL}/news-sitemap.xml`);
   expect(sitemap.ok()).toBeTruthy();
@@ -471,8 +471,8 @@ test('published briefings hide internal notes and use topic-aware analysis', asy
   const article = page.locator('.single-entry').first();
   await expect(article).toBeVisible();
   await expect(page.locator('h1')).toHaveCount(1);
-  await expect(article).toContainText(/Why this matters|Why it matters:/);
-  await expect(article).toContainText(/Detection and validation|What to verify:/);
+  await expect(article).toContainText(/Why this matters|Why it matters:|How the vulnerability works|Technical context/);
+  await expect(article).toContainText(/Detection and validation|What to verify:|How to check|Validation/);
   await expect(article).not.toContainText(/Live verification|Validation checklist|Accuracy and source notes|Generator note/i);
 
   const postTitle = post.title?.rendered || '';
@@ -504,6 +504,9 @@ test('published briefings hide internal notes and use topic-aware analysis', asy
   const articleSchema = schema.find((item) => ['Article', 'BlogPosting', 'NewsArticle'].includes(item['@type']));
   expect(articleSchema.keywords?.length).toBeGreaterThan(0);
   expect(articleSchema.articleSection?.length).toBeGreaterThan(0);
+  expect(articleSchema.citation?.length).toBeGreaterThan(0);
+  const linkedSources = await article.locator('a[href^="https://"]').evaluateAll((links) => links.map((link) => link.href));
+  expect(articleSchema.citation.every((source) => linkedSources.includes(source.url))).toBeTruthy();
 
   await expectNoHorizontalOverflow(page);
 });

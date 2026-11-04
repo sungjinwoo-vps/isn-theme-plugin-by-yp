@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 namespace InfoSecNexus\Theme\Toolkit;
 
+require_once __DIR__ . '/class-newsroom-editorial.php';
+
 /**
  * Demo content importer.
  */
@@ -28,6 +30,7 @@ final class Demo_Content {
 	 * Register hooks.
 	 */
 	public static function boot(): void {
+		Newsroom_Editorial::boot();
 		add_action( 'admin_menu', array( __CLASS__, 'admin_menu' ) );
 		add_action( 'admin_init', array( __CLASS__, 'handle_import' ) );
 		add_action( 'admin_init', array( __CLASS__, 'maybe_auto_seed' ) );
@@ -993,6 +996,10 @@ final class Demo_Content {
 
 			$post_slug  = ! empty( $post['dated_slug'] ) ? $date_slug . '-' . $post['slug'] : (string) $post['slug'];
 			$existing   = get_page_by_path( $post_slug, OBJECT, 'post' );
+			if ( $existing instanceof \WP_Post && ! Newsroom_Editorial::can_update( $existing ) ) {
+				continue;
+			}
+			$evidence = is_array( $post['evidence'] ?? null ) ? $post['evidence'] : array();
 			$is_rolling = 'rolling' === sanitize_key( (string) ( $post['kind'] ?? '' ) );
 			$keywords   = self::newsroom_keywords(
 				(string) ( $post['title'] ?? '' ),
@@ -1009,6 +1016,7 @@ final class Demo_Content {
 					(string) $post['fingerprint']
 				)
 			) {
+				Newsroom_Editorial::record_update( (int) $existing->ID, $evidence, (string) $existing->post_content );
 				self::sync_newsroom_post_metadata( (int) $existing->ID, $author_id, $keywords, $keyword_meta );
 				if ( $is_rolling ) {
 					$superseded = Content_Retirement::consolidate_rolling_posts( (int) $existing->ID );
@@ -1062,6 +1070,7 @@ final class Demo_Content {
 				$post_data
 			);
 			if ( $post_id > 0 ) {
+				Newsroom_Editorial::record_update( $post_id, $evidence, $existing instanceof \WP_Post ? (string) $existing->post_content : '' );
 				self::sync_newsroom_post_metadata( $post_id, $author_id, $keywords, $keyword_meta );
 				Post_Artwork::ensure( $post_id );
 				++$changed;

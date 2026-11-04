@@ -25,7 +25,7 @@ final class Live_Intelligence {
 	private const GENERAL_SOURCE_TTL = 30 * MINUTE_IN_SECONDS;
 	private const LOOKBACK_DAYS = 7;
 	private const MAX_ITEMS = 220;
-	private const CONTENT_SCHEMA_VERSION = '11';
+	private const CONTENT_SCHEMA_VERSION = '12';
 
 	/**
 	 * Hide retired generator notes immediately while the database migration runs.
@@ -305,6 +305,184 @@ final class Live_Intelligence {
 	}
 
 	/**
+	 * Build a factual article without imposing the new-story age or quota limits.
+	 * Existing managed posts can use this during an explicit content migration.
+	 *
+	 * @return array<string,mixed>
+	 */
+	public static function article_for_item( array $item, string $date ): array {
+		$item = self::item( $item );
+		return array(
+			'content'     => '' !== self::extract_primary_cve( $item ) ? self::render_breaking_article( $date, $item ) : self::render_news_article( $item ),
+			'sources'     => self::source_pairs( array( $item ) ),
+			'fingerprint' => hash( 'sha256', self::CONTENT_SCHEMA_VERSION . '|breaking|' . self::story_key( $item ) . '|' . self::items_fingerprint( array( $item ) ) ),
+			'item'        => $item,
+		);
+	}
+
+	/**
+	 * Compatibility name for the guarded historical-post migration.
+	 *
+	 * @return array<string,mixed>
+	 */
+	public static function render_for_existing( array $item, string $date ): array {
+		return self::article_for_item( self::enrich_cve_item( $item ), $date );
+	}
+
+	/**
+	 * Enrich a valid identifier from its CNA record; never fetch a source-supplied URL.
+	 * This runs only during publication/CLI, with a six-hour per-CVE cache.
+	 *
+	 * @return array<string,mixed>
+	 */
+	public static function enrich_cve_item( array $item, bool $force = false ): array {
+		$cve = self::extract_primary_cve( $item );
+		if ( '' === $cve ) {
+			return $item;
+		}
+		$key = 'infosecnexus_cve_evidence_' . strtolower( $cve );
+		$record = $force ? false : get_transient( $key );
+		if ( false === $record ) {
+			$record = self::fetch_json( 'https://cveawg.mitre.org/api/cve/' . rawurlencode( $cve ) );
+			if ( is_wp_error( $record ) || $cve !== (string) ( $record['cveMetadata']['cveId'] ?? '' ) || 'PUBLISHED' !== (string) ( $record['cveMetadata']['state'] ?? '' ) ) {
+				set_transient( $key, array(), 15 * MINUTE_IN_SECONDS );
+				return $item;
+			}
+			set_transient( $key, $record, 6 * HOUR_IN_SECONDS );
+		}
+		if ( ! is_array( $record ) || empty( $record ) ) {
+			return $item;
+		}
+		return self::merge_cve_evidence( $item, $record );
+	}
+
+	/** Preserve the CNA's exact structured claims and their provenance. */
+	private static function merge_cve_evidence( array $item, array $record ): array {
+		$cve = (string) ( $record['cveMetadata']['cveId'] ?? '' );
+		$cna = (array) ( $record['containers']['cna'] ?? array() );
+		$authority = 'CVE CNA: ' . (string) ( $cna['providerMetadata']['shortName'] ?? $record['cveMetadata']['assignerShortName'] ?? 'assigning authority' );
+		$url = 'https://www.cve.org/CVERecord?id=' . rawurlencode( $cve );
+		// A fresh record replaces this CNA's earlier claims instead of accumulating
+		// mutually contradictory ranges and scores across historical refreshes.
+		$had_cna_metrics = count( (array) ( $item['metrics'] ?? array() ) );
+		foreach ( array( 'metrics', 'affected_versions' ) as $field ) {
+			$item[ $field ] = array_values( array_filter( (array) ( $item[ $field ] ?? array() ), static fn( array $row ): bool => $url !== (string) ( $row['url'] ?? '' ) ) );
+		}
+		$had_cna_metrics = $had_cna_metrics > count( $item['metrics'] );
+		if ( $url === (string) ( $item['technical_url'] ?? '' ) ) {
+			unset( $item['technical_description'], $item['technical_source'], $item['technical_url'], $item['solutions'], $item['workarounds'] );
+		}
+		$item['cve'] = $cve;
+		$item['cve_published'] = (string) ( $record['cveMetadata']['datePublished'] ?? '' );
+		$item['modified'] = (string) ( $record['cveMetadata']['dateUpdated'] ?? $item['modified'] ?? '' );
+		$description = self::english_value( (array) ( $cna['descriptions'] ?? array() ) );
+		if ( '' !== $description ) {
+			$item['technical_description'] = self::clean_text( $description, 1200 );
+			$item['technical_source'] = $authority;
+			$item['technical_url'] = $url;
+		}
+		foreach ( array( 'solutions', 'workarounds' ) as $field ) {
+			$value = self::english_value( (array) ( $cna[ $field ] ?? array() ) );
+			if ( '' !== $value ) {
+				$item[ $field ] = self::clean_text( $value, 1000 );
+			}
+		}
+		$weaknesses = array_values( array_diff( (array) ( $item['weaknesses'] ?? array() ), (array) ( $item['cna_weaknesses'] ?? array() ) ) );
+		$item['cna_weaknesses'] = array();
+		foreach ( (array) ( $cna['problemTypes'] ?? array() ) as $problem ) {
+			foreach ( (array) ( $problem['descriptions'] ?? array() ) as $weakness ) {
+				if ( 0 === stripos( (string) ( $weakness['lang'] ?? '' ), 'en' ) ) {
+					$weakness_value = self::clean_text( (string) ( $weakness['description'] ?? $weakness['cweId'] ?? '' ), 20 );
+					$weaknesses[] = $weakness_value;
+					$item['cna_weaknesses'][] = $weakness_value;
+				}
+			}
+		}
+		$item['weaknesses'] = array_values( array_unique( array_filter( $weaknesses ) ) );
+		$affected = (array) ( $item['affected_versions'] ?? array() );
+		foreach ( (array) ( $cna['affected'] ?? array() ) as $product ) {
+			$name = trim( (string) ( $product['vendor'] ?? '' ) . ' ' . (string) ( $product['product'] ?? $product['packageName'] ?? '' ) );
+			if ( ! empty( $product['platforms'] ) ) {
+				$name .= ' (' . implode( ', ', array_map( 'strval', (array) $product['platforms'] ) ) . ')';
+			}
+			if ( '' === trim( (string) ( $item['vendor'] ?? '' ) ) && ! empty( $product['vendor'] ) ) {
+				$item['vendor'] = (string) $product['vendor'];
+			}
+			if ( '' === trim( (string) ( $item['product'] ?? '' ) ) && ! empty( $product['product'] ) ) {
+				$item['product'] = (string) $product['product'];
+			}
+			foreach ( (array) ( $product['versions'] ?? array() ) as $version ) {
+				$range = (string) ( $version['version'] ?? '' );
+				if ( isset( $version['lessThan'] ) ) {
+					$range .= ' to < ' . (string) $version['lessThan'];
+				} elseif ( isset( $version['lessThanOrEqual'] ) ) {
+					$range .= ' to <= ' . (string) $version['lessThanOrEqual'];
+				}
+				foreach ( (array) ( $version['changes'] ?? array() ) as $change ) {
+					$range .= '; status becomes ' . (string) ( $change['status'] ?? 'unknown' ) . ' at ' . (string) ( $change['at'] ?? '' );
+				}
+				if ( ! empty( $version['versionType'] ) ) {
+					$range .= ' (version type: ' . (string) $version['versionType'] . ')';
+				}
+				$affected[] = array( 'product' => $name, 'affected' => $range, 'status' => (string) ( $version['status'] ?? 'unknown' ), 'source' => $authority, 'url' => $url );
+			}
+			if ( ! empty( $product['defaultStatus'] ) ) {
+				$affected[] = array( 'product' => $name, 'affected' => 'Versions outside the explicitly listed ranges', 'status' => (string) $product['defaultStatus'], 'source' => $authority, 'url' => $url );
+			}
+		}
+		$item['affected_versions'] = self::unique_evidence( $affected );
+		$metrics = (array) ( $item['metrics'] ?? array() );
+		foreach ( (array) ( $cna['metrics'] ?? array() ) as $metric ) {
+			foreach ( array( 'cvssV4_0', 'cvssV3_1', 'cvssV3_0', 'cvssV2_0' ) as $format ) {
+				$data = (array) ( $metric[ $format ] ?? array() );
+				if ( isset( $data['baseScore'] ) && is_numeric( $data['baseScore'] ) ) {
+					$metrics[] = array( 'score' => (float) $data['baseScore'], 'version' => (string) ( $data['version'] ?? '' ), 'vector' => (string) ( $data['vectorString'] ?? '' ), 'severity' => (string) ( $data['baseSeverity'] ?? '' ), 'source' => $authority, 'url' => $url );
+				}
+			}
+		}
+		$item['metrics'] = self::unique_evidence( $metrics );
+		if ( $had_cna_metrics ) {
+			$item['score'] = null;
+		}
+		foreach ( $item['metrics'] as $metric ) {
+			if ( isset( $metric['score'] ) && is_numeric( $metric['score'] ) && ( ! isset( $item['score'] ) || ! is_numeric( $item['score'] ) || (float) $metric['score'] > (float) $item['score'] ) ) {
+				$item['score'] = (float) $metric['score'];
+			}
+		}
+		$references = (array) ( $item['references'] ?? array() );
+		$references[] = array( 'source' => $authority, 'title' => $cve . ' CNA record', 'url' => $url );
+		foreach ( (array) ( $cna['references'] ?? array() ) as $reference ) {
+			$reference_url = esc_url_raw( (string) ( $reference['url'] ?? '' ) );
+			if ( '' !== $reference_url ) {
+				$references[] = array( 'source' => 'CNA-linked reference', 'title' => self::clean_text( (string) ( $reference['name'] ?? wp_parse_url( $reference_url, PHP_URL_HOST ) ?? 'Reference' ), 20 ), 'url' => $reference_url );
+			}
+		}
+		$item['references'] = self::unique_evidence( $references );
+		return self::item( $item );
+	}
+
+	/** Pick an English CVE schema value without combining languages. */
+	private static function english_value( array $rows ): string {
+		foreach ( $rows as $row ) {
+			if ( is_array( $row ) && 0 === stripos( (string) ( $row['lang'] ?? '' ), 'en' ) ) {
+				return (string) ( $row['value'] ?? '' );
+			}
+		}
+		return '';
+	}
+
+	/** Remove duplicate structured source claims while preserving source order. */
+	private static function unique_evidence( array $rows ): array {
+		$unique = array();
+		foreach ( $rows as $row ) {
+			if ( is_array( $row ) ) {
+				$unique[ hash( 'sha256', (string) wp_json_encode( $row ) ) ] = $row;
+			}
+		}
+		return array_values( $unique );
+	}
+
+	/**
 	 * Build one canonical rolling brief plus conservative breaking stories.
 	 *
 	 * @param string              $date Human-readable site date.
@@ -318,6 +496,10 @@ final class Live_Intelligence {
 		}
 
 		$selected   = self::select_rolling_items( $items );
+		// Limit enrichment to the visible lead records, never every item on each cron.
+		foreach ( array_slice( array_keys( $selected ), 0, 10 ) as $selected_index ) {
+			$selected[ $selected_index ] = self::enrich_cve_item( $selected[ $selected_index ] );
+		}
 		$item_ids   = array_values( array_filter( array_map( static fn( array $item ): string => (string) ( $item['id'] ?? '' ), $selected ) ) );
 		$lead_titles = array_values( array_filter( array_map( static fn( array $item ): string => (string) ( $item['title'] ?? '' ), array_slice( $selected, 0, 2 ) ) ) );
 		$excerpt = wp_trim_words(
@@ -345,6 +527,7 @@ final class Live_Intelligence {
 				'source_ids'  => $item_ids,
 				'severity'    => self::brief_severity( $selected ),
 				'score'       => self::brief_score( $selected ),
+				'evidence'    => $selected,
 			),
 		);
 
@@ -359,6 +542,7 @@ final class Live_Intelligence {
 			if ( '' === $story_key || '' === $title || '' === $summary ) {
 				continue;
 			}
+			$item = self::enrich_cve_item( $item );
 
 			$posts[] = array(
 				'kind'        => 'breaking',
@@ -368,12 +552,13 @@ final class Live_Intelligence {
 				'dated_slug'  => false,
 				'categories'  => array_values( array_unique( (array) ( $item['categories'] ?? array( 'cybersecurity' ) ) ) ),
 				'excerpt'     => $summary,
-				'content'     => self::render_breaking_article( $date, $item ),
+				'content'     => '' !== self::extract_primary_cve( $item ) ? self::render_breaking_article( $date, $item ) : self::render_news_article( $item ),
 				'sources'     => self::source_pairs( array( $item ) ),
 				'fingerprint' => hash( 'sha256', self::CONTENT_SCHEMA_VERSION . '|breaking|' . $story_key . '|' . self::items_fingerprint( array( $item ) ) ),
 				'source_ids'  => array( (string) ( $item['id'] ?? $story_key ) ),
 				'severity'    => (string) ( $item['severity'] ?? 'Known Exploited' ),
 				'score'       => $item['score'] ?? null,
+				'evidence'    => array( $item ),
 			);
 			++$breaking_count;
 		}
@@ -531,34 +716,93 @@ final class Live_Intelligence {
 		$insight = self::item_insight( $item, $label, 0 );
 		$actions = self::operational_actions( $item );
 		$checks  = self::validation_checks( $item );
-
-		$content  = '<p class="isnx-live-deck">An official source reports active exploitation. Teams running ' . esc_html( $subject ) . ' should verify exposure and begin risk-reduction work now.</p>';
-		$content .= '<p>' . esc_html( (string) ( $item['description'] ?? '' ) ) . '</p>';
-		$content .= '<!--more-->';
-		$content .= '<h2>What changed</h2>';
-		$content .= '<p>On ' . esc_html( $date ) . ', this issue entered the urgent InfoSecNexus queue because exploitation is identified by an authoritative source. The source record, affected versions, and vendor remediation remain the controlling references; asset inventory and network context determine which systems should move first.</p>';
-		$content .= '<h2>Why this matters</h2><p>' . esc_html( $insight['why'] ) . '</p>';
-		$content .= '<p>Exploit-first prioritization does not mean patching blindly. Confirm the vulnerable component is installed, identify the reachable attack path, preserve evidence of suspicious activity, and protect critical workloads while the permanent fix is deployed.</p>';
-		$content .= '<h2>Immediate response plan</h2><ol>';
+		$exploited = ! empty( $item['active_exploitation'] );
+		$content = '<p class="isnx-live-deck">' . esc_html( $exploited ? 'Known exploitation makes this an urgent exposure review for teams running ' . $subject . '.' : 'A source-based exposure and remediation guide for teams running ' . $subject . '.' ) . '</p>';
+		$content .= '<p>' . esc_html( (string) ( $item['description'] ?? '' ) ) . ' ' . self::source_link( (string) ( $item['url'] ?? '' ), (string) ( $item['source'] ?? 'Source record' ) ) . '</p>';
+		$content .= '<h2>Key facts</h2>' . self::render_key_facts( $item );
+		$content .= '<!--more--><h2>Who is affected and which versions are fixed</h2>';
+		$content .= self::render_affected_versions( $item );
+		$content .= '<h2>How the vulnerability works</h2>';
+		$technical = (string) ( $item['technical_description'] ?? '' );
+		if ( '' !== $technical && $technical !== (string) ( $item['description'] ?? '' ) ) {
+			$content .= '<p>' . esc_html( $technical ) . ' ' . self::source_link( (string) ( $item['technical_url'] ?? $item['url'] ?? '' ), (string) ( $item['technical_source'] ?? $item['source'] ?? 'Technical record' ) ) . '</p>';
+		}
+		$content .= '<p>' . esc_html( $insight['why'] ) . '</p>';
+		$content .= '<h2>How to check your systems</h2><p>' . esc_html( $insight['verify'] ) . '</p>';
+		$content .= self::render_inventory_checks( $item );
+		$content .= '<h2>How to fix</h2><h3>Permanent remediation</h3>';
+		if ( ! empty( $item['solutions'] ) ) {
+			$content .= '<p>' . esc_html( (string) $item['solutions'] ) . ' ' . self::source_link( (string) ( $item['technical_url'] ?? $item['url'] ?? '' ), 'CNA remediation guidance' ) . '</p>';
+		}
+		$content .= '<ol>';
 		foreach ( $actions as $action ) {
 			$content .= '<li>' . esc_html( $action ) . '</li>';
 		}
 		$content .= '</ol>';
 		if ( ! empty( $item['due_date'] ) || ! empty( $item['action'] ) ) {
-			$content .= '<h2>Official remediation direction</h2><p>';
+			$content .= '<p><strong>Official remediation direction:</strong> ';
 			if ( ! empty( $item['due_date'] ) ) {
-				$content .= '<strong>CISA due date: ' . esc_html( (string) $item['due_date'] ) . '.</strong> ';
+				$content .= 'CISA due date: ' . esc_html( (string) $item['due_date'] ) . '. This deadline applies to covered US federal civilian agencies; other organizations should set a risk-based deadline. ';
 			}
-			$content .= esc_html( (string) ( $item['action'] ?? 'Follow the current vendor advisory and CISA guidance.' ) ) . '</p>';
+			$content .= esc_html( (string) ( $item['action'] ?? '' ) ) . ' ' . self::source_link( (string) ( $item['kev_url'] ?? $item['url'] ?? '' ), 'Official action' ) . '</p>';
 		}
-		$content .= '<h2>Detection and validation</h2><p>' . esc_html( $insight['verify'] ) . '</p><ul>';
+		$content .= '<h3>If you cannot patch yet</h3>';
+		if ( ! empty( $item['workarounds'] ) ) {
+			$content .= '<p>' . esc_html( (string) $item['workarounds'] ) . ' ' . self::source_link( (string) ( $item['technical_url'] ?? $item['url'] ?? '' ), 'Published workaround' ) . '</p>';
+		} else {
+			$content .= '<p>No product-specific workaround is established by the source data available for this article. Ask the vendor for supported options. As an operational precaution, restrict access to the affected interface or isolate the component where service dependencies permit; this is not evidence that the underlying flaw is fixed.</p>';
+		}
+		$content .= '<p>Give any temporary control an owner and expiry, verify it covers every affected instance, and retain a rollback path. Remove it only after the permanent remediation is verified.</p>';
+		$content .= '<h2>Detection and post-fix validation</h2><ul>';
 		foreach ( $checks as $check ) {
 			$content .= '<li>' . esc_html( $check ) . '</li>';
 		}
 		$content .= '</ul>';
-		$content .= '<h2>Accuracy note</h2><p>Severity, affected-version ranges, and remediation details can change as the vendor and vulnerability databases add evidence. Recheck the linked primary records before closing the incident or approving a long-lived exception.</p>';
+		$content .= '<p>A clean scan or a version match alone does not rule out earlier compromise. If telemetry suggests exploitation, preserve evidence and follow the incident-response process alongside patching.</p>';
+		$content .= '<h2>Timeline and exploitation status</h2>' . self::render_source_timeline( $item );
+		$content .= '<p>' . esc_html( $exploited ? 'The linked official record reports exploitation in the wild. This does not establish that any particular deployment has been compromised.' : 'The sources available for this article do not establish exploitation in the wild. A CVSS score, public proof of concept, or technical feasibility is not the same as confirmed attacks.' ) . '</p>';
+		$content .= '<p>Public proof-of-concept availability is not independently established here. Recheck the vendor and government records as evidence changes.</p>';
 		$content .= self::render_references( self::source_pairs( array( $item ) ) );
 		return $content;
+	}
+
+	/** Apply the same evidence standard to official news without forcing CVE fields. */
+	private static function render_news_article( array $item ): string {
+		$content = '<p class="isnx-live-deck">' . esc_html( (string) ( $item['description'] ?? '' ) ) . '</p>';
+		$content .= '<h2>What happened</h2><p>' . self::source_link( (string) ( $item['url'] ?? '' ), (string) ( $item['source'] ?? 'The official source' ) ) . ' describes this development. The linked announcement defines its scope and current availability.</p>';
+		$content .= '<h2>Who should review this</h2><p>Administrators and owners of ' . esc_html( self::affected_subject( $item, 'the products or services named in the announcement' ) ) . ' should compare the announced change with their deployed features, subscriptions, and operating requirements.</p>';
+		$content .= '<h2>Technical context</h2>';
+		if ( ! empty( $item['technical_description'] ) ) {
+			$content .= '<p>' . esc_html( (string) $item['technical_description'] ) . ' ' . self::source_link( (string) ( $item['technical_url'] ?? $item['url'] ?? '' ), (string) ( $item['technical_source'] ?? $item['source'] ?? 'Technical source' ) ) . '</p>';
+		} else {
+			$content .= '<p>Assess the named product, feature, or control in the announcement against the deployed environment. The source summary alone does not establish which versions, accounts, or configurations require a change; confirm those details in the linked announcement.</p>';
+		}
+		if ( ! empty( $item['affected_versions'] ) ) {
+			$content .= '<h2>Affected versions and reported fixes</h2>' . self::render_affected_versions( $item );
+		}
+		foreach ( array( 'solutions' => 'Published implementation guidance', 'workarounds' => 'Published workaround status' ) as $field => $heading ) {
+			if ( ! empty( $item[ $field ] ) ) {
+				$content .= '<h2>' . esc_html( $heading ) . '</h2><p>' . esc_html( (string) $item[ $field ] ) . ' ' . self::source_link( (string) ( $item['technical_url'] ?? $item['url'] ?? '' ), 'Official guidance' ) . '</p>';
+			}
+		}
+		if ( ! empty( $item['scoped_exploitation'] ) || ! empty( $item['active_exploitation'] ) ) {
+			$content .= '<h2>Reported exploitation scope</h2><p>' . esc_html( (string) ( $item['scoped_exploitation'] ?? 'The official advisory reports exploitation for the issues it identifies. Check the advisory for the specific identifiers and conditions; this statement does not apply automatically to every item in a grouped announcement.' ) ) . ' ' . self::source_link( (string) ( $item['technical_url'] ?? $item['url'] ?? '' ), 'Official evidence' ) . '</p>';
+		}
+		$content .= '<h2>Recommended next steps</h2><ol>';
+		foreach ( array(
+			'Check the announced availability, supported products, licensing, release channels, and any administrator opt-in requirements.',
+			'Identify the owner of the relevant service and review changes to permissions, data retention, integrations, and operating procedures.',
+			'If adoption is appropriate, test the documented behavior on a representative environment and record the expected result before rollout.',
+			'For configuration changes, retain the previous settings and a supported rollback path, then confirm service health and monitoring after rollout.',
+		) as $action ) {
+			$content .= '<li>' . esc_html( $action ) . '</li>';
+		}
+		$content .= '</ol><h2>Validation and follow-up</h2><p>Record the applicable scope, responsible owner, decision, and evidence. If a change is needed, test the affected behavior and service health, and revisit the original announcement for corrections or rollout updates.</p>';
+		$timeline = self::render_source_timeline( $item );
+		if ( '' !== $timeline ) {
+			$content .= '<h2>Source timeline</h2>' . $timeline;
+		}
+		return $content . self::render_references( self::source_pairs( array( $item ) ) );
 	}
 
 	/**
@@ -579,10 +823,141 @@ final class Live_Intelligence {
 		if ( count( $related_cves ) > 1 ) {
 			$content .= '<p><strong>Related identifiers:</strong> ' . esc_html( implode( ', ', array_slice( $related_cves, 0, 12 ) ) ) . '</p>';
 		}
-		$content  .= '<p><strong>Why it matters:</strong> ' . esc_html( $insight['why'] ) . '</p>';
-		$content  .= '<p><strong>What to verify:</strong> ' . esc_html( $insight['verify'] ) . '</p>';
+		if ( '' !== self::extract_primary_cve( $item ) ) {
+			$content .= self::render_key_facts( $item );
+			if ( ! empty( $item['affected_versions'] ) ) {
+				$content .= self::render_affected_versions( $item, 4 );
+			}
+			if ( ! empty( $item['action'] ) ) {
+				$content .= '<p><strong>Official action:</strong> ' . esc_html( (string) $item['action'] ) . '</p>';
+			}
+		}
+		if ( '' === self::extract_primary_cve( $item ) && empty( $item['active_exploitation'] ) ) {
+			$technical = (string) ( $item['technical_description'] ?? '' );
+			if ( strlen( $technical ) > strlen( (string) ( $item['description'] ?? '' ) ) + 80 ) {
+				$content .= '<p>' . esc_html( self::clean_text( $technical, 220 ) ) . ' ' . self::source_link( (string) ( $item['technical_url'] ?? $item['url'] ?? '' ), 'Technical source' ) . '</p>';
+			}
+			$content .= '<p><strong>Review decision:</strong> confirm availability for the deployed product, assess permissions and integration changes, and test the documented behavior before adopting it.</p>';
+		} else {
+			$content .= '<p><strong>Operational impact:</strong> ' . esc_html( $insight['why'] ) . '</p>';
+			$content .= '<p><strong>Exposure check:</strong> ' . esc_html( $insight['verify'] ) . '</p>';
+		}
 		$content  .= '<p><a href="' . esc_url( (string) $item['url'] ) . '" rel="nofollow noopener" target="_blank">Open the original source record</a></p></section>';
 		return $content;
+	}
+
+	/** Render a direct, escaped citation. */
+	private static function source_link( string $url, string $label ): string {
+		return '' !== esc_url( $url ) ? '<a href="' . esc_url( $url ) . '" rel="noopener" target="_blank">' . esc_html( $label ) . '</a>' : esc_html( $label );
+	}
+
+	/** Render attributed facts while keeping exploitation separate from severity. */
+	private static function render_key_facts( array $item ): string {
+		$facts = array();
+		$cve = self::extract_primary_cve( $item );
+		if ( '' !== $cve ) {
+			$facts['Identifier'] = esc_html( $cve );
+		}
+		$facts['Affected technology'] = esc_html( self::affected_subject( $item, 'See the source record' ) );
+		$metrics = (array) ( $item['metrics'] ?? array() );
+		if ( ! empty( $metrics ) ) {
+			$scoring = array();
+			foreach ( array_slice( $metrics, 0, 5 ) as $metric ) {
+				if ( ! is_array( $metric ) || ! isset( $metric['score'] ) || ! is_numeric( $metric['score'] ) ) {
+					continue;
+				}
+				$line = trim( 'CVSS ' . (string) ( $metric['version'] ?? '' ) . ' ' . number_format_i18n( (float) $metric['score'], 1 ) . ' ' . (string) ( $metric['severity'] ?? '' ) );
+				$line = esc_html( $line ) . ' — ' . self::source_link( (string) ( $metric['url'] ?? $item['url'] ?? '' ), (string) ( $metric['source'] ?? 'Source record' ) );
+				if ( ! empty( $metric['vector'] ) ) {
+					$line .= '<br><code>' . esc_html( (string) $metric['vector'] ) . '</code>';
+				}
+				$scoring[] = $line;
+			}
+			if ( ! empty( $scoring ) ) {
+				$facts['Severity and scoring authority'] = implode( '<br>', $scoring );
+			}
+		}
+		if ( ! isset( $facts['Severity and scoring authority'] ) ) {
+			$facts['CVSS'] = isset( $item['score'] ) && is_numeric( $item['score'] ) ? esc_html( number_format_i18n( (float) $item['score'], 1 ) . ' (scoring version/vector not supplied in the collected record)' ) : 'A numeric score is not supplied in the collected source record.';
+		}
+		if ( ! empty( $item['weaknesses'] ) ) {
+			$facts['Weakness'] = esc_html( implode( '; ', array_map( 'strval', (array) $item['weaknesses'] ) ) );
+		}
+		$facts['Exploitation evidence'] = ! empty( $item['active_exploitation'] ) ? 'Reported by the linked official source; review exposure immediately.' : 'Exploitation in the wild is not established by the collected sources.';
+		if ( ! empty( $item['due_date'] ) ) {
+			$facts['CISA remediation due date'] = esc_html( (string) $item['due_date'] ) . ' (covered US federal civilian agencies)';
+		}
+		$facts['Primary record'] = self::source_link( (string) ( $item['technical_url'] ?? $item['url'] ?? '' ), (string) ( $item['technical_source'] ?? $item['source'] ?? 'Source record' ) );
+		$content = '<table class="isnx-key-facts"><caption>Verified source facts</caption><tbody>';
+		foreach ( $facts as $key => $value ) {
+			$content .= '<tr><th scope="row">' . esc_html( $key ) . '</th><td>' . $value . '</td></tr>';
+		}
+		return $content . '</tbody></table>';
+	}
+
+	/** Render version claims with their authority; never infer a fix from a range. */
+	private static function render_affected_versions( array $item, int $limit = 100 ): string {
+		$rows = (array) ( $item['affected_versions'] ?? array() );
+		if ( empty( $rows ) ) {
+			return '<p>The collected source does not provide an exact affected-version or fixed-version matrix. Match your installed product and release channel against ' . self::source_link( (string) ( $item['url'] ?? '' ), 'the current advisory' ) . ' before treating a system as affected or remediated.</p>';
+		}
+		$content = '<table class="isnx-version-matrix"><caption>Affected and fixed versions reported by the sources</caption><thead><tr><th scope="col">Product or package</th><th scope="col">Affected range / status</th><th scope="col">Reported fix</th><th scope="col">Source</th></tr></thead><tbody>';
+		foreach ( array_slice( $rows, 0, $limit ) as $row ) {
+			if ( ! is_array( $row ) ) {
+				continue;
+			}
+			$content .= '<tr><th scope="row">' . esc_html( (string) ( $row['product'] ?? '' ) ) . '</th><td>' . esc_html( trim( (string) ( $row['affected'] ?? '' ) . ( ! empty( $row['status'] ) ? ' [' . (string) $row['status'] . ']' : '' ) ) ) . '</td><td>' . esc_html( (string) ( $row['fixed'] ?? 'Not stated in this record' ) ) . '</td><td>' . self::source_link( (string) ( $row['url'] ?? $item['url'] ?? '' ), (string) ( $row['source'] ?? $item['source'] ?? 'Source' ) ) . '</td></tr>';
+		}
+		$content .= '</tbody></table><p>Compare the exact product, branch, package, platform, and vendor status. An upstream version boundary is not proof that a distribution backport or appliance firmware is vulnerable or fixed.</p>';
+		if ( count( $rows ) > $limit ) {
+			$content .= '<p>The table shows ' . esc_html( (string) $limit ) . ' of ' . esc_html( (string) count( $rows ) ) . ' recorded ranges; consult the linked record for the complete scope.</p>';
+		}
+		return $content;
+	}
+
+	/** Read-only inventory examples, chosen only when their platform is identified. */
+	private static function render_inventory_checks( array $item ): string {
+		$text = strtolower( self::item_subject_text( $item ) );
+		if ( 1 === preg_match( '/\bwordpress\b/', $text ) ) {
+			return '<pre><code>wp core version
+wp plugin list --fields=name,status,version
+wp theme list --fields=name,status,version</code></pre><p>Run WP-CLI from the WordPress installation with the site account. Match the named component and its active version to the advisory; an installed but inactive extension still needs a separate reachability assessment. These are inventory checks, not exploit tests.</p>';
+		}
+		if ( 1 === preg_match( '/\b(linux kernel|kernel|ubuntu|debian|red hat|rhel)\b/', $text ) ) {
+			return '<pre><code>uname -r
+cat /etc/os-release</code></pre><p>These read-only commands report the running kernel and distribution. Compare the package build against the distribution advisory, including backports. A newly installed kernel is not active until the host boots into it. For containers and Kubernetes workloads, assess the host or node kernel; replacing a container image does not replace it.</p>';
+		}
+		return '<p>Record the running product build and enabled component from the vendor-supported inventory interface. Compare it with each affected range above, then check the documented authentication and network prerequisites. Keep the output, asset identifier, observation time, and advisory revision with the change ticket.</p>';
+	}
+
+	/** Display source event dates, never fabricate a disclosure or first-exploit date. */
+	private static function render_source_timeline( array $item ): string {
+		$events = array(
+			'cve_published' => 'CVE record published',
+			'published' => 'Source entry published',
+			'kev_added' => 'Added to CISA KEV',
+			'modified' => 'Source record updated',
+		);
+		$dated_events = array();
+		foreach ( $events as $key => $label ) {
+			$raw_date = (string) ( $item[ $key ] ?? '' );
+			$date_only = 1 === preg_match( '/^\d{4}-\d{2}-\d{2}$/', $raw_date );
+			$timestamp = strtotime( $raw_date . ( $date_only ? ' 00:00:00 UTC' : '' ) );
+			if ( false === $timestamp ) {
+				continue;
+			}
+			$dated_events[] = array( 'timestamp' => $timestamp, 'label' => $label, 'datetime' => $date_only ? $raw_date : gmdate( 'c', $timestamp ) );
+		}
+		if ( empty( $dated_events ) ) {
+			return '';
+		}
+		usort( $dated_events, static fn( array $left, array $right ): int => $left['timestamp'] <=> $right['timestamp'] );
+		$content = '<ul class="isnx-source-timeline">';
+		foreach ( $dated_events as $event ) {
+			$content .= '<li><time datetime="' . esc_attr( $event['datetime'] ) . '">' . esc_html( wp_date( 'F j, Y', $event['timestamp'] ) ) . '</time> — ' . esc_html( $event['label'] ) . '.</li>';
+		}
+		$note = ! empty( $item['kev_added'] ) || '' !== self::extract_primary_cve( $item ) ? 'Record publication and KEV addition dates describe those source events; they do not establish when exploitation first began.' : 'These dates describe source publication and revision, not when a feature reached every deployment.';
+		return $content . '</ul><p>' . esc_html( $note ) . '</p>';
 	}
 
 	/**
@@ -640,11 +1015,28 @@ final class Live_Intelligence {
 					'severity' => (string) ( $item['severity'] ?? '' ), 'score' => $item['score'] ?? null,
 					'action' => (string) ( $item['action'] ?? '' ), 'references' => self::item_references( $item ),
 					'active' => ! empty( $item['active_exploitation'] ),
+					'due_date' => (string) ( $item['due_date'] ?? '' ), 'vendor' => (string) ( $item['vendor'] ?? '' ), 'product' => (string) ( $item['product'] ?? '' ),
+					'categories' => (array) ( $item['categories'] ?? array() ), 'related_cves' => (array) ( $item['related_cves'] ?? array() ),
+					'scoped_exploitation' => (string) ( $item['scoped_exploitation'] ?? '' ), 'kev_url' => (string) ( $item['kev_url'] ?? '' ),
+					'evidence' => array_intersect_key( $item, array_flip( array( 'metrics', 'affected_versions', 'technical_description', 'technical_source', 'technical_url', 'weaknesses', 'solutions', 'workarounds', 'modified', 'cve_published', 'kev_added' ) ) ),
 				);
 			},
 			$items
 		);
-		return hash( 'sha256', (string) wp_json_encode( $facts ) );
+		return hash( 'sha256', (string) wp_json_encode( self::canonical_fingerprint_data( $facts ) ) );
+	}
+
+	/** Hash source facts independently of associative-key insertion order. */
+	private static function canonical_fingerprint_data( array $data ): array {
+		if ( ! array_is_list( $data ) ) {
+			ksort( $data );
+		}
+		foreach ( $data as $key => $value ) {
+			if ( is_array( $value ) ) {
+				$data[ $key ] = self::canonical_fingerprint_data( $value );
+			}
+		}
+		return $data;
 	}
 
 	/**
@@ -780,6 +1172,9 @@ final class Live_Intelligence {
 					'product'     => (string) ( $row['product'] ?? '' ),
 					'due_date'    => (string) ( $row['dueDate'] ?? '' ),
 					'action'      => (string) ( $row['requiredAction'] ?? '' ),
+					'kev_added'   => (string) ( $row['dateAdded'] ?? '' ),
+					'kev_url'     => 'https://www.cisa.gov/known-exploited-vulnerabilities-catalog?field_cve=' . rawurlencode( $cve ),
+					'references'  => self::references_from_text( (string) ( $row['notes'] ?? '' ), 'CISA-linked vendor guidance' ),
 					'priority'    => 120,
 					'active_exploitation' => true,
 				)
@@ -855,6 +1250,11 @@ final class Live_Intelligence {
 						'product'     => '',
 						'due_date'    => '',
 						'action'      => '',
+						'modified'    => (string) ( $cve['lastModified'] ?? '' ),
+						'metrics'     => (array) ( $metric['metrics'] ?? array() ),
+						'references'  => self::nvd_references( $cve ),
+						'affected_versions' => self::nvd_affected_versions( (array) ( $cve['configurations'] ?? array() ), 'https://nvd.nist.gov/vuln/detail/' . rawurlencode( $id ) ),
+						'weaknesses'  => self::nvd_weaknesses( $cve ),
 						'priority'    => 'CRITICAL' === $severity ? 100 : 90,
 					)
 				);
@@ -909,11 +1309,15 @@ final class Live_Intelligence {
 			}
 
 			$packages = array();
+			$affected_versions = array();
 			foreach ( (array) ( $row['vulnerabilities'] ?? array() ) as $vulnerability ) {
 				$package = is_array( $vulnerability['package'] ?? null ) ? $vulnerability['package'] : array();
 				$name    = sanitize_text_field( (string) ( $package['name'] ?? '' ) );
 				if ( '' !== $name ) {
 					$packages[] = $name;
+					$fixed = $vulnerability['first_patched_version'] ?? '';
+					$fixed = is_array( $fixed ) ? (string) ( $fixed['identifier'] ?? '' ) : (string) $fixed;
+					$affected_versions[] = array( 'product' => $name . ' (' . (string) ( $package['ecosystem'] ?? '' ) . ')', 'affected' => (string) ( $vulnerability['vulnerable_version_range'] ?? '' ), 'status' => 'affected', 'fixed' => '' !== $fixed ? $fixed : 'No patched version supplied', 'source' => 'GitHub Advisory Database', 'url' => (string) ( $row['html_url'] ?? '' ) );
 				}
 			}
 
@@ -935,6 +1339,10 @@ final class Live_Intelligence {
 					'product'     => implode( ', ', array_slice( array_unique( $packages ), 0, 3 ) ),
 					'due_date'    => '',
 					'action'      => '',
+					'modified'    => (string) ( $row['updated_at'] ?? '' ),
+					'affected_versions' => $affected_versions,
+					'metrics'     => null !== $score ? array( array( 'score' => $score, 'version' => '', 'vector' => (string) ( $row['cvss']['vector_string'] ?? '' ), 'severity' => $severity, 'source' => 'GitHub Advisory Database', 'url' => (string) ( $row['html_url'] ?? '' ) ) ) : array(),
+					'references'  => array_map( static fn( $reference ): array => array( 'source' => 'GitHub advisory reference', 'title' => 'Linked advisory evidence', 'url' => is_array( $reference ) ? (string) ( $reference['url'] ?? '' ) : (string) $reference ), (array) ( $row['references'] ?? array() ) ),
 					'priority'    => 'CRITICAL' === $severity ? 95 : ( 'HIGH' === $severity ? 85 : 65 ),
 				)
 			);
@@ -980,6 +1388,10 @@ final class Live_Intelligence {
 		foreach ( $feed->get_items( 0, min( 40, $limit * 4 ) ) as $entry ) {
 			$title       = self::clean_text( (string) $entry->get_title(), 30 );
 			$description = self::clean_text( (string) $entry->get_description(), 90 );
+			$technical_content = method_exists( $entry, 'get_content' ) ? self::clean_text( (string) $entry->get_content(), 1200 ) : '';
+			if ( '' === $technical_content ) {
+				$technical_content = self::clean_text( (string) $entry->get_description(), 1200 );
+			}
 			$search_text = $title . ' ' . $description;
 			if ( '' !== $filter && 1 !== preg_match( $filter, $search_text ) ) {
 				continue;
@@ -1016,6 +1428,9 @@ final class Live_Intelligence {
 					'type'        => $direct_vendor ? 'vendor_advisory' : 'official_news',
 					'title'       => $title,
 					'description' => $description,
+					'technical_description' => $technical_content,
+					'technical_source' => $source,
+					'technical_url' => $link,
 					'url'         => $link,
 					'published'   => $published > 0 ? gmdate( 'c', $published ) : '',
 					'severity'    => $active ? 'Known Exploited' : $severity,
@@ -1278,6 +1693,14 @@ final class Live_Intelligence {
 				$primary[ $field ] = $secondary[ $field ];
 			}
 		}
+		foreach ( array( 'metrics', 'affected_versions', 'weaknesses' ) as $field ) {
+			$primary[ $field ] = 'weaknesses' === $field ? array_values( array_unique( array_merge( (array) ( $left[ $field ] ?? array() ), (array) ( $right[ $field ] ?? array() ) ) ) ) : self::unique_evidence( array_merge( (array) ( $left[ $field ] ?? array() ), (array) ( $right[ $field ] ?? array() ) ) );
+		}
+		foreach ( array( 'technical_description', 'technical_source', 'technical_url', 'solutions', 'workarounds', 'kev_added', 'kev_url', 'cve_published', 'modified' ) as $field ) {
+			if ( empty( $primary[ $field ] ) && ! empty( $secondary[ $field ] ) ) {
+				$primary[ $field ] = $secondary[ $field ];
+			}
+		}
 		if (
 			self::is_generic_source_name( (string) ( $primary['vendor'] ?? '' ) )
 			&& ! self::is_generic_source_name( (string) ( $secondary['vendor'] ?? '' ) )
@@ -1329,7 +1752,18 @@ final class Live_Intelligence {
 				'url'    => $url,
 			);
 		}
-		return array_values( array_filter( $references, static fn( array $reference ): bool => ! empty( $reference['url'] ) ) );
+		$unique = array();
+		foreach ( $references as $reference ) {
+			if ( ! is_array( $reference ) ) {
+				continue;
+			}
+			$reference_url = esc_url_raw( (string) ( $reference['url'] ?? '' ) );
+			if ( '' !== $reference_url ) {
+				$reference['url'] = $reference_url;
+				$unique[ $reference_url ] = $reference;
+			}
+		}
+		return array_values( $unique );
 	}
 
 	/**
@@ -2288,14 +2722,16 @@ final class Live_Intelligence {
 	 * Extract a useful NVD metric.
 	 *
 	 * @param array<string,mixed> $cve NVD CVE data.
-	 * @return array{score:float|null,severity:string}
+	 * @return array{score:float|null,severity:string,metrics:array<int,array<string,mixed>>}
 	 */
 	private static function nvd_metric( array $cve ): array {
 		$metrics = is_array( $cve['metrics'] ?? null ) ? $cve['metrics'] : array();
 		$best    = array(
 			'score'    => null,
 			'severity' => '',
+			'metrics'  => array(),
 		);
+		$evidence = array();
 		foreach ( array( 'cvssMetricV40', 'cvssMetricV31', 'cvssMetricV30' ) as $key ) {
 			$rows = is_array( $metrics[ $key ] ?? null ) ? $metrics[ $key ] : array();
 			foreach ( $rows as $row ) {
@@ -2304,6 +2740,9 @@ final class Live_Intelligence {
 				}
 				$data  = $row['cvssData'];
 				$score = isset( $data['baseScore'] ) && is_numeric( $data['baseScore'] ) ? (float) $data['baseScore'] : null;
+				if ( null !== $score ) {
+					$evidence[] = array( 'score' => $score, 'version' => (string) ( $data['version'] ?? '' ), 'vector' => (string) ( $data['vectorString'] ?? '' ), 'severity' => (string) ( $data['baseSeverity'] ?? '' ), 'source' => (string) ( $row['source'] ?? 'NVD scoring contributor' ), 'url' => 'https://nvd.nist.gov/vuln/detail/' . rawurlencode( (string) ( $cve['id'] ?? '' ) ) );
+				}
 				if ( null === $score || ( null !== $best['score'] && $score <= $best['score'] ) ) {
 					continue;
 				}
@@ -2313,8 +2752,73 @@ final class Live_Intelligence {
 				);
 			}
 		}
-
+		$best['metrics'] = self::unique_evidence( $evidence );
 		return $best;
+	}
+
+	/** Preserve useful links listed by a government source without fetching them. */
+	private static function references_from_text( string $text, string $source ): array {
+		preg_match_all( '~https?://[^\s<>"\x27]+~i', $text, $matches );
+		$references = array();
+		foreach ( (array) ( $matches[0] ?? array() ) as $url ) {
+			$url = esc_url_raw( rtrim( $url, '.,;)' ) );
+			if ( '' !== $url ) {
+				$references[] = array( 'source' => $source, 'title' => (string) wp_parse_url( $url, PHP_URL_HOST ), 'url' => $url );
+			}
+		}
+		return $references;
+	}
+
+	/** Preserve NVD references and identify their published tags. */
+	private static function nvd_references( array $cve ): array {
+		$references = array();
+		foreach ( (array) ( $cve['references'] ?? array() ) as $reference ) {
+			$url = esc_url_raw( (string) ( $reference['url'] ?? '' ) );
+			if ( '' !== $url ) {
+				$tags = implode( ', ', array_map( 'strval', (array) ( $reference['tags'] ?? array() ) ) );
+				$references[] = array( 'source' => 'NVD-linked reference', 'title' => (string) wp_parse_url( $url, PHP_URL_HOST ) . ( '' !== $tags ? ' (' . $tags . ')' : '' ), 'url' => $url );
+			}
+		}
+		return $references;
+	}
+
+	/** Read CPE match ranges without treating them as vendor fix announcements. */
+	private static function nvd_affected_versions( array $nodes, string $url ): array {
+		$rows = array();
+		foreach ( $nodes as $node ) {
+			foreach ( (array) ( $node['cpeMatch'] ?? array() ) as $match ) {
+				if ( empty( $match['vulnerable'] ) ) {
+					continue;
+				}
+				$criteria = explode( ':', (string) ( $match['criteria'] ?? '' ) );
+				$product = str_replace( '_', ' ', trim( (string) ( $criteria[3] ?? '' ) . ' ' . (string) ( $criteria[4] ?? '' ) ) );
+				$range = array();
+				foreach ( array( 'versionStartIncluding' => '>= ', 'versionStartExcluding' => '> ', 'versionEndIncluding' => '<= ', 'versionEndExcluding' => '< ' ) as $key => $operator ) {
+					if ( isset( $match[ $key ] ) ) {
+						$range[] = $operator . (string) $match[ $key ];
+					}
+				}
+				$rows[] = array( 'product' => $product, 'affected' => ! empty( $range ) ? implode( ', ', $range ) : (string) ( $criteria[5] ?? 'See CPE record' ), 'status' => 'NVD candidate match; configuration conditions apply', 'source' => 'NVD applicability data', 'url' => $url );
+			}
+			foreach ( array( 'nodes', 'children' ) as $children ) {
+				if ( ! empty( $node[ $children ] ) ) {
+					$rows = array_merge( $rows, self::nvd_affected_versions( (array) $node[ $children ], $url ) );
+				}
+			}
+		}
+		return self::unique_evidence( $rows );
+	}
+
+	/** Keep the weakness identifiers supplied by NVD's contributors. */
+	private static function nvd_weaknesses( array $cve ): array {
+		$weaknesses = array();
+		foreach ( (array) ( $cve['weaknesses'] ?? array() ) as $row ) {
+			$value = self::english_value( (array) ( $row['description'] ?? array() ) );
+			if ( '' !== $value && 0 !== stripos( $value, 'NVD-CWE-' ) ) {
+				$weaknesses[] = $value;
+			}
+		}
+		return array_values( array_unique( $weaknesses ) );
 	}
 
 	/**

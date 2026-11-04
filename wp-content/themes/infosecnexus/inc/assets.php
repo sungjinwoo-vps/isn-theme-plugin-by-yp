@@ -32,6 +32,20 @@ function enqueue(): void {
 	wp_enqueue_style( 'infosecnexus-neumorphic-editorial', get_template_directory_uri() . '/assets/css/neumorphic-editorial.css', array( 'infosecnexus-anime-editorial' ), INFOSECNEXUS_VERSION );
 
 	wp_enqueue_script( 'infosecnexus-theme', get_template_directory_uri() . '/assets/js/theme.js', array(), INFOSECNEXUS_VERSION, array( 'in_footer' => true, 'strategy' => 'defer' ) );
+	if ( is_singular( 'post' ) ) {
+		wp_enqueue_style( 'infosecnexus-article-content', get_template_directory_uri() . '/assets/css/article-content.css', array( 'infosecnexus-neumorphic-editorial' ), INFOSECNEXUS_VERSION );
+		wp_enqueue_script( 'infosecnexus-article-content', get_template_directory_uri() . '/assets/js/article-content.js', array( 'infosecnexus-theme' ), INFOSECNEXUS_VERSION, array( 'in_footer' => true, 'strategy' => 'defer' ) );
+		wp_localize_script(
+			'infosecnexus-article-content',
+			'infosecnexusArticle',
+			array(
+				'copy'       => __( 'Copy code', 'infosecnexus' ),
+				'copied'     => __( 'Copied', 'infosecnexus' ),
+				'copyFailed' => __( 'Select the code and copy it manually.', 'infosecnexus' ),
+				'table'      => __( 'Article table: scroll horizontally to see all columns', 'infosecnexus' ),
+			)
+		);
+	}
 	if ( is_singular() && comments_open() && get_option( 'thread_comments' ) ) {
 		wp_enqueue_script( 'comment-reply' );
 	}

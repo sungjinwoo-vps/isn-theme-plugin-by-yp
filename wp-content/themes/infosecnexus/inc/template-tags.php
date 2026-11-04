@@ -76,13 +76,26 @@ function rolling_brief_post(): ?\WP_Post {
 }
 
 /**
- * Render post meta.
+ * Render post meta, with full publication history on the article itself.
+ *
+ * @param bool $article_dates Include the published and changed dates.
  */
-function post_meta(): void {
+function post_meta( bool $article_dates = false ): void {
 	$date = post_date_data( (int) get_the_ID() );
 
 	echo '<div class="entry-meta">';
-	echo '<time datetime="' . esc_attr( $date['datetime'] ) . '">' . esc_html( $date['label'] ) . '</time>';
+	if ( $article_dates ) {
+		/* translators: %s: article publication date. */
+		$published = sprintf( __( 'Published %s', 'infosecnexus' ), get_the_date() );
+		echo '<time class="entry-meta__published" datetime="' . esc_attr( (string) get_the_date( DATE_W3C ) ) . '">' . esc_html( $published ) . '</time>';
+		if ( (int) get_post_modified_time( 'U', true ) > (int) get_post_time( 'U', true ) ) {
+			/* translators: %s: article modification date. */
+			$updated = sprintf( __( 'Updated %s', 'infosecnexus' ), get_the_modified_date() );
+			echo '<time class="entry-meta__updated" datetime="' . esc_attr( (string) get_post_modified_time( DATE_W3C ) ) . '">' . esc_html( $updated ) . '</time>';
+		}
+	} else {
+		echo '<time datetime="' . esc_attr( $date['datetime'] ) . '">' . esc_html( $date['label'] ) . '</time>';
+	}
 	echo '<span>' . esc_html( get_the_author() ) . '</span>';
 	/* translators: %d: estimated reading time in minutes. */
 	echo '<span>' . esc_html( sprintf( _n( '%d min read', '%d min read', reading_time(), 'infosecnexus' ), reading_time() ) ) . '</span>';
@@ -307,20 +320,55 @@ function featured_video( ?int $post_id = null ): void {
  * @param string $content Post content.
  */
 function table_of_contents( string $content = '' ): void {
+	if ( post_password_required() ) {
+		return;
+	}
 	if ( '' === $content ) {
 		$content = (string) get_post_field( 'post_content', get_the_ID() );
 	}
 	$content = \InfoSecNexus\Theme\Anime_Design\without_seeded_page_hero( $content );
 	$content = apply_filters( 'the_content', $content );
 	$outline = \InfoSecNexus\Theme\Anime_Design\heading_outline( $content );
+	if ( is_singular( 'post' ) && class_exists( '\\InfoSecNexus\\Theme\\Toolkit\\Newsroom_Editorial' ) ) {
+		$history = \InfoSecNexus\Theme\Toolkit\Newsroom_Editorial::history_html( (int) get_the_ID() );
+		if ( '' !== $history ) {
+			$outline[] = array(
+				'id'    => 'article-updates',
+				'label' => __( 'Updates to this article', 'infosecnexus' ),
+				'level' => 2,
+			);
+		}
+	}
 	if ( empty( $outline ) ) {
 		return;
 	}
 
-	echo '<nav class="toc" aria-label="' . esc_attr__( 'Table of contents', 'infosecnexus' ) . '"><span class="toc__eyebrow">' . esc_html__( 'Article guide', 'infosecnexus' ) . '</span><h2>' . esc_html__( 'On this page', 'infosecnexus' ) . '</h2><ol>';
+	echo '<nav class="toc" data-article-guide aria-label="' . esc_attr__( 'Table of contents', 'infosecnexus' ) . '"><span class="toc__eyebrow">' . esc_html__( 'Article guide', 'infosecnexus' ) . '</span><h2>' . esc_html__( 'On this page', 'infosecnexus' ) . '</h2><ol>';
+	$has_parent = false;
+	$in_sublist = false;
 	foreach ( $outline as $heading ) {
-		echo '<li><a href="#' . esc_attr( $heading['id'] ) . '">' . esc_html( $heading['label'] ) . '</a></li>';
+		if ( 3 === $heading['level'] && $has_parent ) {
+			if ( ! $in_sublist ) {
+				echo '<ol>';
+				$in_sublist = true;
+			}
+			echo '<li><a href="#' . esc_attr( $heading['id'] ) . '">' . esc_html( $heading['label'] ) . '</a></li>';
+			continue;
+		}
+		if ( $in_sublist ) {
+			echo '</ol>';
+			$in_sublist = false;
+		}
+		if ( $has_parent ) {
+			echo '</li>';
+		}
+		echo '<li><a href="#' . esc_attr( $heading['id'] ) . '">' . esc_html( $heading['label'] ) . '</a>';
+		$has_parent = true;
 	}
+	if ( $in_sublist ) {
+		echo '</ol>';
+	}
+	echo '</li>';
 	echo '</ol></nav>';
 }
 

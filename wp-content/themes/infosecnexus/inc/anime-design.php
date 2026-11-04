@@ -453,7 +453,7 @@ function ensure_secure_contact_form( string $content ): string {
 }
 
 /**
- * Add stable IDs to second-level content headings.
+ * Add stable IDs to second- and third-level content headings.
  *
  * Existing editor-authored IDs remain authoritative. Duplicate IDs receive a
  * deterministic fallback so table-of-contents links stay unique.
@@ -462,27 +462,44 @@ function ensure_secure_contact_form( string $content ): string {
  * @return string Content with stable heading IDs.
  */
 function add_heading_ids( string $content ): string {
-	if ( '' === trim( $content ) || ! str_contains( strtolower( $content ), '<h2' ) || ! class_exists( '\\WP_HTML_Tag_Processor' ) ) {
+	if ( '' === trim( $content ) || ! preg_match( '/<h[23]\b/i', $content ) || ! class_exists( '\\WP_HTML_Tag_Processor' ) ) {
 		return $content;
 	}
 
+	$processor    = new \WP_HTML_Tag_Processor( $content );
+	$reserved_ids = array();
+	$used_ids     = array();
+	$positions    = array( 'H2' => 0, 'H3' => 0 );
+	while ( $processor->next_tag() ) {
+		$id = $processor->get_attribute( 'id' );
+		if ( is_string( $id ) && '' !== trim( $id ) ) {
+			$reserved_ids[ trim( $id ) ] = true;
+			if ( ! in_array( $processor->get_tag(), array( 'H2', 'H3' ), true ) ) {
+				$used_ids[ trim( $id ) ] = true;
+			}
+		}
+	}
 	$processor = new \WP_HTML_Tag_Processor( $content );
-	$used_ids  = array();
-	$position  = 0;
 
-	while ( $processor->next_tag( array( 'tag_name' => 'H2' ) ) ) {
-		++$position;
-		$current_id = $processor->get_attribute( 'id' );
-		$current_id = is_string( $current_id ) ? trim( $current_id ) : '';
+	while ( $processor->next_tag() ) {
+		$tag = $processor->get_tag();
+		if ( ! in_array( $tag, array( 'H2', 'H3' ), true ) ) {
+			continue;
+		}
+		++$positions[ $tag ];
+		$raw_id     = $processor->get_attribute( 'id' );
+		$current_id = is_string( $raw_id ) ? trim( $raw_id ) : '';
 
 		if ( '' === $current_id || isset( $used_ids[ $current_id ] ) ) {
-			$base_id    = 'section-' . $position;
+			$base_id    = ( 'H2' === $tag ? 'section-' : 'subsection-' ) . $positions[ $tag ];
 			$current_id = $base_id;
 			$suffix     = 2;
-			while ( isset( $used_ids[ $current_id ] ) ) {
+			while ( isset( $used_ids[ $current_id ] ) || isset( $reserved_ids[ $current_id ] ) ) {
 				$current_id = $base_id . '-' . $suffix;
 				++$suffix;
 			}
+		}
+		if ( $current_id !== $raw_id ) {
 			$processor->set_attribute( 'id', $current_id );
 		}
 
@@ -493,29 +510,30 @@ function add_heading_ids( string $content ): string {
 }
 
 /**
- * Return the second-level heading outline used by article navigation.
+ * Return the article heading outline with levels for nested navigation.
  *
  * @param string $content Rendered article content.
- * @return array<int,array{id:string,label:string}>
+ * @return array<int,array{id:string,label:string,level:int}>
  */
 function heading_outline( string $content ): array {
 	$content = add_heading_ids( $content );
-	if ( ! preg_match_all( '/<h2\b([^>]*)>(.*?)<\/h2>/is', $content, $matches, PREG_SET_ORDER ) ) {
+	if ( ! preg_match_all( '/<h([23])\b([^>]*)>(.*?)<\/h\1>/is', $content, $matches, PREG_SET_ORDER ) ) {
 		return array();
 	}
 
 	$outline = array();
 	foreach ( $matches as $match ) {
-		if ( ! preg_match( '/\bid\s*=\s*(["\'])(.*?)\1/is', (string) $match[1], $id_match ) ) {
+		if ( ! preg_match( '/(?:^|\s)id\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s>]+))/is', (string) $match[2], $id_match ) ) {
 			continue;
 		}
 
-		$id    = trim( wp_specialchars_decode( (string) $id_match[2], ENT_QUOTES ) );
-		$label = trim( wp_specialchars_decode( wp_strip_all_tags( (string) $match[2] ), ENT_QUOTES ) );
+		$id    = trim( wp_specialchars_decode( (string) ( ( $id_match[1] ?? '' ) ?: ( ( $id_match[2] ?? '' ) ?: ( $id_match[3] ?? '' ) ) ), ENT_QUOTES ) );
+		$label = trim( wp_specialchars_decode( wp_strip_all_tags( (string) $match[3] ), ENT_QUOTES ) );
 		if ( '' !== $id && '' !== $label ) {
 			$outline[] = array(
 				'id'    => $id,
 				'label' => $label,
+				'level' => (int) $match[1],
 			);
 		}
 	}
