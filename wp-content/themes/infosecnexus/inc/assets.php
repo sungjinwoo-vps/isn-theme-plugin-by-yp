@@ -65,6 +65,7 @@ function enqueue(): void {
 	wp_enqueue_style( 'infosecnexus-cinematic-pages', get_template_directory_uri() . '/assets/css/cinematic-pages.css', array( 'infosecnexus-cinematic-glass' ), (string) filemtime( get_template_directory() . '/assets/css/cinematic-pages.css' ) );
 	wp_enqueue_style( 'infosecnexus-ivory-home', get_template_directory_uri() . '/assets/css/ivory-home.css', array( 'infosecnexus-cinematic-pages' ), (string) filemtime( get_template_directory() . '/assets/css/ivory-home.css' ) );
 	wp_enqueue_style( 'infosecnexus-ivory-pages', get_template_directory_uri() . '/assets/css/ivory-pages.css', array( 'infosecnexus-ivory-home' ), (string) filemtime( get_template_directory() . '/assets/css/ivory-pages.css' ) );
+	wp_enqueue_style( 'infosecnexus-ivory-preferences', get_template_directory_uri() . '/assets/css/ivory-preferences.css', array( 'infosecnexus-ivory-pages' ), INFOSECNEXUS_VERSION );
 	wp_enqueue_script( 'infosecnexus-cinematic-glass', get_template_directory_uri() . '/assets/js/cinematic-glass.js', array( 'infosecnexus-theme' ), (string) filemtime( get_template_directory() . '/assets/js/cinematic-glass.js' ), array( 'in_footer' => true, 'strategy' => 'defer' ) );
 	wp_localize_script(
 		'infosecnexus-theme',
@@ -110,7 +111,7 @@ function preload_critical_image(): void {
 		);
 		$href   = (string) $data['url'];
 		$srcset = (string) $data['srcset'];
-		$sizes  = '(max-width: 700px) 100vw, 1280px';
+		$sizes  = '(max-width: 600px) 600px, 1600px';
 	} elseif ( is_singular( 'post' ) ) {
 		$post_id = get_queried_object_id();
 		$data    = \InfoSecNexus\Theme\Anime_Design\post_image_data( $post_id );

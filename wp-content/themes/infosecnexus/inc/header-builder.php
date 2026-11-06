@@ -132,13 +132,21 @@ function render_primary_nav( string $variant = 'desktop' ): void {
 	<nav class="site-nav site-nav--<?php echo esc_attr( $variant ); ?>" aria-label="<?php esc_attr_e( 'Primary navigation', 'infosecnexus' ); ?>">
 		<ul>
 			<?php foreach ( $items as $item ) : ?>
-				<?php $children = isset( $item['children'] ) && is_array( $item['children'] ) ? $item['children'] : array(); ?>
+				<?php
+				$children   = isset( $item['children'] ) && is_array( $item['children'] ) ? $item['children'] : array();
+				$submenu_id = 'infosecnexus-' . $variant . '-' . sanitize_title( $item['label'] ) . '-topics';
+				?>
 				<li class="<?php echo $children ? 'has-submenu' : ''; ?>">
-					<a class="<?php echo $item['active'] ? 'is-active' : ''; ?>" href="<?php echo esc_url( $item['url'] ); ?>"<?php echo $children ? ' aria-haspopup="true"' : ''; ?><?php echo $item['active'] && ( ! $children || is_page( 'blog' ) ) ? ' aria-current="page"' : ''; ?>>
+					<a class="<?php echo $item['active'] ? 'is-active' : ''; ?>" href="<?php echo esc_url( $item['url'] ); ?>"<?php echo $children && 'desktop' === $variant ? ' aria-haspopup="true"' : ''; ?><?php echo $item['active'] && ( ! $children || is_page( 'blog' ) ) ? ' aria-current="page"' : ''; ?>>
 						<?php echo esc_html( $item['label'] ); ?>
 					</a>
 					<?php if ( $children ) : ?>
-						<ul class="sub-menu">
+						<?php if ( 'mobile' === $variant ) : ?>
+							<button class="icon-button mobile-submenu-toggle" type="button" data-mobile-submenu-toggle aria-expanded="false" aria-controls="<?php echo esc_attr( $submenu_id ); ?>" aria-label="<?php esc_attr_e( 'Toggle intelligence topics', 'infosecnexus' ); ?>" hidden>
+								<?php icon( 'chevron-down' ); ?>
+							</button>
+						<?php endif; ?>
+						<ul class="sub-menu" id="<?php echo esc_attr( $submenu_id ); ?>">
 							<?php foreach ( $children as $child ) : ?>
 								<li>
 									<a class="<?php echo $child['active'] ? 'is-active' : ''; ?>" href="<?php echo esc_url( $child['url'] ); ?>"<?php echo $child['active'] ? ' aria-current="page"' : ''; ?>>
@@ -314,11 +322,17 @@ function icon( string $name ): void {
 		case 'arrow-right':
 			echo '<svg ' . $common . ' viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 			break;
+		case 'chevron-down':
+			echo '<svg ' . $common . ' viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+			break;
 		case 'layers':
 			echo '<svg ' . $common . ' viewBox="0 0 24 24"><path d="m12 3 10 5-10 5L2 8l10-5zM2 12l10 5 10-5M2 16l10 5 10-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 			break;
 		case 'book':
 			echo '<svg ' . $common . ' viewBox="0 0 24 24"><path d="M12 5c-3-2-6-2-10-1v15c4-1 7-1 10 1 3-2 6-2 10-1V4c-4-1-7-1-10 1zm0 0v15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+			break;
+		case 'calendar':
+			echo '<svg ' . $common . ' viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7 3v4M17 3v4M3 10h18M7 14h3M14 14h3M7 17h3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
 			break;
 	}
 }

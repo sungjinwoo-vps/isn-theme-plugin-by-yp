@@ -129,6 +129,8 @@
 
 /* Three separate paper capsules, as in the supplied reference. */
 :root body.cinematic-editorial.ivory-editorial .site-header {
+  --iv-header-width: min(calc(100% - 72px), 1200px);
+
   padding: 13px 0 7px;
   background: transparent;
   box-shadow: none;
@@ -136,7 +138,7 @@
 
 :root body.cinematic-editorial.ivory-editorial .site-header__main,
 :root body.cinematic-editorial.ivory-editorial .site-header:is(.is-scrolled, .is-compact) .site-header__main {
-  width: min(calc(100% - 72px), 1200px);
+  width: var(--iv-header-width);
   background: transparent;
   border: 0;
   border-radius: 0;
@@ -294,6 +296,78 @@
 
 :root body.cinematic-editorial.ivory-editorial .site-nav--mobile a {
   color: var(--iv-ink);
+}
+
+:root body.cinematic-editorial.ivory-editorial .site-nav--mobile .has-submenu {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  align-items: center;
+  column-gap: 8px;
+}
+
+:root body.cinematic-editorial.ivory-editorial .site-nav--mobile .has-submenu > a::before {
+  display: none;
+}
+
+:root body.cinematic-editorial.ivory-editorial .site-nav--mobile .mobile-submenu-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  padding: 10px;
+  color: var(--iv-ink);
+  background: var(--iv-raised);
+  border: 1px solid var(--iv-edge);
+  border-radius: 14px;
+  box-shadow: var(--iv-small-shadow);
+  transition: color 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+:root body.cinematic-editorial.ivory-editorial .site-nav--mobile .mobile-submenu-toggle:hover {
+  color: var(--iv-link);
+  border-color: var(--iv-link);
+}
+
+:root body.cinematic-editorial.ivory-editorial .site-nav--mobile .mobile-submenu-toggle:focus-visible {
+  outline: 3px solid var(--iv-link);
+  outline-offset: 3px;
+}
+
+:root body.cinematic-editorial.ivory-editorial .site-nav--mobile .mobile-submenu-toggle svg {
+  width: 20px;
+  height: 20px;
+  transition: transform 180ms ease;
+}
+
+:root body.cinematic-editorial.ivory-editorial .site-nav--mobile .mobile-submenu-toggle[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+:root body.cinematic-editorial.ivory-editorial .site-nav--mobile .has-submenu > .sub-menu {
+  grid-column: 1 / -1;
+  min-width: 0;
+  margin-block: 6px 12px;
+  padding: 5px 8px;
+  background: var(--iv-raised);
+  border-radius: 16px;
+}
+
+:root body.cinematic-editorial.ivory-editorial .site-nav--mobile .sub-menu a {
+  min-height: 44px;
+  white-space: normal;
+}
+
+:root body.cinematic-editorial.ivory-editorial .site-nav--mobile :is(.sub-menu, .mobile-submenu-toggle)[hidden] {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root body.cinematic-editorial.ivory-editorial .site-nav--mobile .mobile-submenu-toggle,
+  :root body.cinematic-editorial.ivory-editorial .site-nav--mobile .mobile-submenu-toggle svg {
+    transition: none;
+  }
 }
 
 :root body.cinematic-editorial.ivory-editorial :is(.search-modal__eyebrow, .search-modal__quick span, .search-modal__recent-label) {
@@ -799,11 +873,9 @@
 
 @media (width <= 640px) {
   :root body.cinematic-editorial.ivory-editorial .site-header {
-    padding-block: 10px 6px;
-  }
+    --iv-header-width: calc(100% - 28px);
 
-  :root body.cinematic-editorial.ivory-editorial .site-header__main {
-    width: calc(100% - 28px);
+    padding-block: 10px 6px;
   }
 
   :root body.cinematic-editorial.ivory-editorial .site-header__inner,
@@ -892,8 +964,8 @@
 }
 
 @media (width <= 380px) {
-  :root body.cinematic-editorial.ivory-editorial .site-header__main {
-    width: calc(100% - 20px);
+  :root body.cinematic-editorial.ivory-editorial .site-header {
+    --iv-header-width: calc(100% - 20px);
   }
 
   :root body.cinematic-editorial.ivory-editorial .site-header__inner {

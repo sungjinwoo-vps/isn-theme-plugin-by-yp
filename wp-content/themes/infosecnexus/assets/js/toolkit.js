@@ -184,10 +184,27 @@
       return false;
     }
   };
-  if (cookie && !cookieAccepted()) {
+  const cookieDismissed = () => {
+    try {
+      return sessionStorage.getItem('infosecnexus-cookie-dismissed') === '1';
+    } catch {
+      return false;
+    }
+  };
+  if (cookie && !cookieAccepted() && !cookieDismissed()) {
     cookie.hidden = false;
   }
   document.addEventListener('click', (event) => {
+    if (event.target.closest('[data-isnx-cookie-dismiss]')) {
+      try {
+        sessionStorage.setItem('infosecnexus-cookie-dismissed', '1');
+      } catch {
+        document.documentElement.dataset.cookiePreference = 'dismissed';
+      }
+      if (cookie) {
+        cookie.hidden = true;
+      }
+    }
     if (event.target.closest('[data-isnx-cookie-accept]')) {
       try {
         localStorage.setItem('infosecnexus-cookie-ok', '1');

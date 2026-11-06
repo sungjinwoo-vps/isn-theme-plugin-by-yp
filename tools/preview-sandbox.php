@@ -7,7 +7,11 @@ add_filter('pre_option_blog_public',static fn()=>0);
 add_filter('wp_sitemaps_enabled','__return_true');
 add_filter('pre_schedule_event',static fn()=>false);
 add_filter('automatic_updater_disabled','__return_true');
-add_filter('pre_option_infosecnexus_toolkit_options',static fn()=>array('daily_content_enabled'=>false,'newsletter_digest_enabled'=>false,'updates_enabled'=>false,'smtp_enabled'=>false,'adsense_enabled'=>false,'mail_from_email'=>'preview@localhost.invalid','contact_recipient'=>'preview@localhost.invalid'));
+add_filter('pre_option_infosecnexus_toolkit_options',static function(){
+    $options=array('daily_content_enabled'=>false,'newsletter_digest_enabled'=>false,'updates_enabled'=>false,'smtp_enabled'=>false,'adsense_enabled'=>false,'mail_from_email'=>'preview@localhost.invalid','contact_recipient'=>'preview@localhost.invalid','cookie_text'=>'InfoSecNexus uses essential cookies and optional preference storage to improve the reading experience.');
+    if(class_exists('InfoSecNexus\\Theme\\Toolkit\\Plugin')){$options['modules']=array_replace(\InfoSecNexus\Theme\Toolkit\Plugin::default_modules(),array('cookie_consent'=>true));}
+    return $options;
+});
 add_filter('pre_http_request',static fn()=>new WP_Error('preview_external_http_disabled','Server-side external requests are disabled in this isolated preview.'),999);
 add_filter('pre_wp_mail',static function($result,$atts){
     unset($result,$atts);

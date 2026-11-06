@@ -1,0 +1,67 @@
+/* Preferences stay in the page flow so they never obscure reading or controls. */
+:root {
+  background: #f5f0e9;
+}
+
+:root[data-color-mode="dark"] {
+  background: #211e1b;
+}
+
+:root body.cinematic-editorial.ivory-editorial .isnx-cookie {
+  position: relative;
+  inset: auto;
+  z-index: auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 20px;
+  align-items: center;
+  width: min(calc(100% - 48px), 1200px);
+  max-width: 1200px;
+  margin: 16px auto 24px;
+  padding: 16px 20px;
+  border-radius: 18px;
+}
+
+:root body.cinematic-editorial.ivory-editorial .isnx-cookie[hidden] {
+  display: none;
+}
+
+:root body.cinematic-editorial.ivory-editorial .isnx-cookie p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.isnx-cookie__actions {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+}
+
+:root body.cinematic-editorial.ivory-editorial .isnx-cookie button {
+  width: auto;
+  min-height: 44px;
+  margin: 0;
+  padding: 10px 16px;
+  font-size: 13px;
+}
+
+:root body.cinematic-editorial.ivory-editorial .isnx-cookie .isnx-cookie__dismiss {
+  color: var(--iv-ink);
+  border-color: var(--iv-edge);
+  background: var(--iv-surface);
+  box-shadow: none;
+}
+
+@media (width <= 700px) {
+  :root body.cinematic-editorial.ivory-editorial .isnx-cookie {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    width: calc(100% - 28px);
+    padding: 16px;
+  }
+
+  .isnx-cookie__actions {
+    flex-wrap: wrap;
+  }
+}

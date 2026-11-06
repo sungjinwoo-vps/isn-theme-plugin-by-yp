@@ -3,7 +3,7 @@ Contributors: infosecnexus
 Requires at least: 6.5
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.3.1
+Stable tag: 0.3.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,6 +25,11 @@ InfoSecNexus WordPress Theme, Copyright 2026 InfoSecNexus.
 InfoSecNexus is distributed under the terms of the GNU GPL.
 
 == Changelog ==
+
+= 0.3.2 =
+* Keeps mobile header controls inside the viewport while scrolling and makes mobile topic navigation collapsible and keyboard accessible.
+* Sharpens and shortens the mobile hero, improves small story text, fixes saved dark-mode hero styling, and chooses more relevant article artwork without changing editorial images or content.
+* Moves cookie preferences into the footer flow and provides a session-only dismissal that does not grant advertising consent.
 
 = 0.3.1 =
 * Keeps share badge text readable against the warm orange background in the optional dark appearance.

@@ -154,8 +154,52 @@
     }
 
     return Array.from(container.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'))
-      .filter((element) => !element.hidden && element.getAttribute('aria-hidden') !== 'true');
+      .filter((element) => !element.hidden && element.getAttribute('aria-hidden') !== 'true' && element.getClientRects().length > 0 && window.getComputedStyle(element).visibility !== 'hidden');
   }
+
+  // Keep the parent archive link usable and progressively disclose its topics.
+  document.querySelectorAll('[data-mobile-submenu-toggle]').forEach((toggle) => {
+    const submenu = document.getElementById(toggle.getAttribute('aria-controls'));
+    if (!submenu) {
+      return;
+    }
+    let animation = null;
+    submenu.hidden = true;
+    toggle.hidden = false;
+    toggle.addEventListener('click', () => {
+      const expanded = toggle.getAttribute('aria-expanded') !== 'true';
+      const startHeight = submenu.hidden ? 0 : submenu.getBoundingClientRect().height;
+      if (animation) {
+        animation.cancel();
+      }
+      toggle.setAttribute('aria-expanded', String(expanded));
+      if (!expanded && submenu.contains(document.activeElement)) {
+        toggle.focus();
+      }
+      if (reducedMotionQuery.matches || !submenu.animate) {
+        submenu.hidden = !expanded;
+        submenu.style.removeProperty('overflow');
+        animation = null;
+        return;
+      }
+      submenu.hidden = false;
+      submenu.style.overflow = 'hidden';
+      animation = submenu.animate([
+        { height: `${startHeight}px`, opacity: expanded ? 0 : 1 },
+        { height: `${expanded ? submenu.scrollHeight : 0}px`, opacity: expanded ? 1 : 0 }
+      ], { duration: 220, easing: 'cubic-bezier(.2,.75,.25,1)' });
+      animation.onfinish = () => {
+        submenu.hidden = !expanded;
+        submenu.style.removeProperty('overflow');
+        animation = null;
+      };
+    });
+    reducedMotionQuery.addEventListener('change', () => {
+      if (reducedMotionQuery.matches && animation) {
+        animation.finish();
+      }
+    });
+  });
 
   function trapFocus(event, container) {
     if (event.key !== 'Tab' || !container || container.hidden) {

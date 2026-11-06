@@ -122,21 +122,32 @@ function post_asset_key( int $post_id ): string {
 		}
 	}
 
-	$haystack = strtolower( $post->post_title . ' ' . implode( ' ', $terms ) );
-
+	$title = strtolower( $post->post_title );
+	$topic = strtolower( str_replace( array( '-', '_' ), ' ', implode( ' ', $terms ) ) );
 	$rules = array(
 		'windows' => '/\b(windows|microsoft|winsock|win32|sharepoint|exchange|active directory|defender|bitlocker|ntlm)\b/i',
-		'network' => '/\b(network|cisco|sonicwall|fortinet|fortios|palo alto|firewall|router|vpn|loadmaster|progress kemp|f5|checkpoint|check point)\b/i',
-		'linux'   => '/\b(linux|ubuntu|debian|red hat|rhel|kernel|devops|docker|kubernetes|jenkins|teamcity|gitlab|github actions|pipeline)\b/i',
-		'cloud'   => '/\b(cloud|aws|amazon web services|google cloud|gcp|azure cloud|iam|storage bucket)\b/i',
-		'ai'      => '/\b(ai security|artificial intelligence|machine learning|llm|model|agentic|openai|anthropic|langflow|prompt injection)\b/i',
+		'network' => '/\b(network|cisco|sonicwall|fortinet|fortios|palo alto|firewall|router|vpn|loadmaster|progress kemp|f5|checkpoint|check point|arista|velocloud|juniper|ivanti connect secure|netscaler)\b/i',
+		'cloud'   => '/\b(cloud|aws|amazon web services|google cloud|gcp|azure cloud|iam|storage bucket|serverless)\b/i',
+		'ai'      => '/\b(ai security|artificial intelligence|machine learning|llm|language model|agentic|openai|anthropic|langflow|prompt injection)\b/i',
+		'linux'   => '/\b(linux|ubuntu|debian|red hat|rhel|kernel|devops|docker|kubernetes|jenkins|teamcity|gitlab|github actions|pipeline|wordpress|php|brotli|plex|collabora|apache|nginx|drupal|joomla|magento|node[.]?js|openssl|zlib)\b/i',
 	);
 
-	foreach ( $rules as $key => $pattern ) {
-		if ( preg_match( $pattern, $haystack ) ) {
-			return $key;
+	// Product context outranks broad categories such as Critical CVEs or Web Security.
+	// The workspace artwork also represents software runtimes; it is not evidence
+	// that an affected product runs on Linux or that the image depicts that product.
+	foreach ( array( $title, $topic ) as $context ) {
+		foreach ( $rules as $key => $pattern ) {
+			if ( preg_match( $pattern, $context ) ) {
+				return $key;
+			}
 		}
 	}
+
+	if ( preg_match( '/\b(server|software|web security|application security)\b/i', $title . ' ' . $topic ) ) {
+		return 'linux';
+	}
+
+	$haystack = $title . ' ' . implode( ' ', $terms );
 
 	if ( str_contains( $haystack, 'critical-cves' ) || preg_match( '/\bcve-\d{4}-\d{4,}\b/i', $haystack ) ) {
 		return 'critical';
