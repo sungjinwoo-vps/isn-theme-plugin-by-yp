@@ -1,6 +1,12 @@
 # Ivory and coral InfoSecNexus redesign
 
-Release candidate `0.3.0`, November 6, 2026.
+Deployed release `0.3.1`, November 6, 2026.
+
+**Live site: https://infosecnexus.com/**
+
+The owner requested the replacement after the earlier navy rollout. Both
+`0.3.0` and its small optional-dark-mode contrast fix `0.3.1` were installed
+through the native WordPress updater, after verified rollback backups.
 
 The latest supplied AHEAD reference supersedes the previous navy/cyan direction.
 The requested design is a warm ivory page, near-black rounded headings, coral
@@ -65,4 +71,14 @@ PHPStan and repository JS/CSS lint passed. Six homepage dark/light cases at
 violations, document overflow or JS page errors. Real logo and favicon URLs
 returned successful images. No production email/contact message is needed for
 these checks. Reports and screenshots remain ignored under `.tmp/ivory-*` and
-`.tmp/glass-home-review/`. Final deployment evidence belongs in PROJECT-MEMORY.md.
+`.tmp/glass-home-review/`.
+
+The production functional suite passed 62 applicable checks; two preview-only
+form postbacks were skipped. Eleven actual live visual cases, 45 internal links
+and three favicon PNG sizes were checked. A dark share-badge contrast failure
+was fixed in `0.3.1` and retested against the actual article in dark/light.
+Native logo `3681`, Site Icon `3682` and the light default are configured.
+Post identities, stored dates, editorial images, categories, retirement state
+and Toolkit options are preserved. Existing Zoho Mail and advertising remain
+configured. No new SMTP/API configuration or manual ZIP installation is needed.
+PROJECT-MEMORY.md records the release commits, workflow runs and rollback points.

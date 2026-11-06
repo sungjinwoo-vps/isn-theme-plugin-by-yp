@@ -14,13 +14,26 @@ Last updated: 2026-11-06 (Asia/Kolkata)
 - Main release branch: `stable`
 - Repository visibility: public, which permits unauthenticated WordPress update
   downloads. Moving it to private requires an authenticated update service.
-- Current theme version: `0.2.0`
-- Current known release: `auto-v0.2.0`
-- Current known code commit: `30aad51` (`Release cinematic glass newsroom design across public pages`)
+- Current theme version: `0.3.1`
+- Current known release: `auto-v0.3.1`
+- Current known code commit: `8d58be3` (`Keep warm dark appearance share badges readable`)
 - WordPress was verified running version 7.1.4 at this checkpoint.
 - The live site is theme-first. The InfoSecNexus Toolkit features are bundled
   into the theme and the separate toolkit plugin is not required on this site.
-- Latest known verification: production is running `0.2.0`, installed through
+- Latest known verification: production is running `0.3.1` with the owner's
+  replacement ivory/orange reference design and original IN branding. Native
+  logo attachment `3681` and Site Icon `3682` are installed, and light is the
+  default; footer/mobile controls retain optional warm dark mode. All 82 deployed
+  PHP files passed syntax checks. The full live functional suite passed 62
+  applicable checks with two preview-only form tests skipped. Eleven production
+  visual/Axe cases and 45 internal links were reviewed; an optional dark share
+  badge contrast issue was repaired in `0.3.1` and retested in dark/light.
+  Public post/page identities, stored publication dates, featured images,
+  categories, retirement/supersession state and private Toolkit configuration
+  match the pre-redesign audit. Counts remain 247 published posts, six pages,
+  159 retired and five superseded posts. Zoho Mail and advertising stay active;
+  preview blockers are absent. No test email/contact message was sent.
+- Previous verification on November 6: production was running `0.2.0`, installed through
   WordPress' native updater after verified database/theme backups. The live
   desktop/mobile suite passed 62 checks with two preview-only form tests skipped.
   All 11 additional live desktop/tablet/mobile visual/Axe scenarios and all 45
@@ -120,7 +133,8 @@ Last updated: 2026-11-06 (Asia/Kolkata)
   plus a replacement logo and Site Icon. This supersedes the earlier request
   to preserve the blue shield/navy branding. The project name, actual posts,
   URLs, SEO/article evidence and working integrations remain authoritative.
-- Work is on `design/ivory-orange-reference`, candidate `0.3.0`. The latest
+- Work began on `design/ivory-orange-reference` and was promoted to `stable`
+  as `0.3.0`, followed by the targeted `0.3.1` contrast fix. The latest
   reference is implemented as responsive WordPress components: oval-window
   hero, five photographic category/story cards, four transparent 3D focus
   cards, compact briefing/desk and stories/newsletter rows, and a full-bleed
@@ -138,8 +152,31 @@ Last updated: 2026-11-06 (Asia/Kolkata)
   errors. The native logo/icon, responsive artwork, search disclosure, and
   four-card mobile grid were verified. The previous navy CSS's blue card
   overrides, mobile hero overflow and oversized banner were corrected before
-  release preparation. New code and assets are not yet installed on production
-  at this checkpoint; the current snapshot above still describes `0.2.0`.
+  release preparation. Both releases are installed on production through the
+  native WordPress updater and caches were purged after the native branding
+  settings and light default were applied.
+- `0.3.0` source commit: `d1483c3`, release workflow `42202155513`.
+  `0.3.1` source commit: `8d58be3`, workflow `42215040772`.
+  Published `0.3.1` theme SHA256:
+  `770ccc3b3c8aedf6b0fa48e45ac8423c04a318fdecc53f3ac310a2aeca445054`.
+  All 233 packaged files match source plus the existing workflow's update-URL
+  stamp. Production syntax checks passed for all 82 PHP files.
+- Rollback checkpoints `ivory-20261106T102004Z` (pre-`0.3.0`, theme `0.2.0`)
+  and `ivory-20261106T120459Z` (pre-`0.3.1`, theme `0.3.0`) have verified database
+  exports and compressed theme archives in the existing private backups folder.
+  Exact paths/checksums remain in ignored `.tmp/ivory-production-backup-result.txt`
+  and `.tmp/ivory-patch-backup-result.txt`, never in public configuration.
+- Live evidence: `.tmp/ivory-production-e2e.txt` (62 passed, two skipped),
+  `.tmp/ivory-production-review/` (11 visual cases, 45 links and three PNG icon
+  sizes), plus targeted `.tmp/ivory-share-contrast-fix/` dark/light verification.
+  Staging evidence remains `.tmp/ivory-e2e-final.txt`, `.tmp/ivory-shared-final/`
+  and `.tmp/glass-home-review/`.
+- The body aggregate changed across the longer design session; post `1169`, the
+  permanent live brief, was the only published post/page with a newer modified
+  timestamp in the deployment window. No editorial migration was run for this
+  redesign. The subsequent `0.3.0` to `0.3.1` update has matching complete body,
+  identity and Toolkit-settings hashes. The new branding imports are native
+  attachments, not changes to editorial featured images.
 
 ### Startup Checklist For Every New Session
 
