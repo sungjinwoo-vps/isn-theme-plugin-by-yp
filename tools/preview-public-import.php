@@ -25,7 +25,11 @@ update_option('infosecnexus_public_cache_release','design-preview');
 update_option('infosecnexus_post_artwork_backfill_version','9');
 update_option('infosecnexus_primary_email_migration','1');
 $preview_mods=$data['theme_mods'];
-$preview_mods['default_color_mode']='dark';
+$preview_mods['default_color_mode']='light';
 update_option('theme_mods_infosecnexus',$preview_mods);
+if(function_exists('InfoSecNexus\\Theme\\Brand\\install_logo')){
+    \InfoSecNexus\Theme\Brand\install_logo();
+    \InfoSecNexus\Theme\Brand\install_site_icon();
+}
 wp_cache_flush();flush_rewrite_rules(false);
 WP_CLI::success(sprintf('Imported %d public posts/pages/attachments, %d public metadata sets and %d category/tag definitions into isolated SQLite. No private production data imported.',count($data['posts']),count($data['meta']),count($data['terms'])));

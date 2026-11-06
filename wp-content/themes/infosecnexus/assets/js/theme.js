@@ -508,6 +508,9 @@
     window.addEventListener('scroll', requestUpdate, { passive: true });
     window.addEventListener('resize', requestUpdate);
     window.addEventListener('load', requestUpdate, { once: true });
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(requestUpdate);
+    }
   }
 
   if (siteHeader) {

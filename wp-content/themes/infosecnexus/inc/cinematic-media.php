@@ -29,6 +29,9 @@ function normalize_key( string $key ): string {
  * @return string Escapable public URL.
  */
 function asset_url( string $key, int $width = 1280 ): string {
+	if ( function_exists( '\\InfoSecNexus\\Theme\\Ivory_Media\\asset_url' ) ) {
+		return \InfoSecNexus\Theme\Ivory_Media\asset_url( $key, $width );
+	}
 	$key = normalize_key( $key );
 	$widths = 'hero' === $key ? array( 640, 800, 1280, 1600 ) : array( 256, 512, 960 );
 	$selected = (int) end( $widths );
@@ -48,6 +51,9 @@ function asset_url( string $key, int $width = 1280 ): string {
  * @return string Localized description.
  */
 function alt_text( string $key ): string {
+	if ( function_exists( '\\InfoSecNexus\\Theme\\Ivory_Media\\alt_text' ) ) {
+		return \InfoSecNexus\Theme\Ivory_Media\alt_text( $key );
+	}
 	$labels = array(
 		'hero'       => __( 'Blue and cyan light flowing through optical fibers', 'infosecnexus' ),
 		'shield'     => __( 'Layered blue security shield and padlock on a raised platform', 'infosecnexus' ),
@@ -89,6 +95,9 @@ function image_attributes( array $attrs ): string {
  * @return string Escaped image markup.
  */
 function image( string $key, array $attrs = array() ): string {
+	if ( function_exists( '\\InfoSecNexus\\Theme\\Ivory_Media\\image' ) ) {
+		return \InfoSecNexus\Theme\Ivory_Media\image( $key, $attrs );
+	}
 	$key = normalize_key( $key );
 	$is_hero = 'hero' === $key;
 	$widths = $is_hero ? array( 640, 800, 1280, 1600 ) : array( 256, 512, 960 );
@@ -123,6 +132,9 @@ function image( string $key, array $attrs = array() ): string {
  * @return string Source URL.
  */
 function card_url( string $key, int $width = 1280 ): string {
+	if ( function_exists( '\\InfoSecNexus\\Theme\\Ivory_Media\\card_url' ) ) {
+		return \InfoSecNexus\Theme\Ivory_Media\card_url( $key, $width );
+	}
 	$key = normalize_key( $key );
 	$width = $width <= 640 ? 640 : 1280;
 	if ( 'hero' === $key ) {
@@ -139,6 +151,9 @@ function card_url( string $key, int $width = 1280 ): string {
  * @return string Escaped image markup.
  */
 function card_image( string $key, array $attrs = array() ): string {
+	if ( function_exists( '\\InfoSecNexus\\Theme\\Ivory_Media\\card_image' ) ) {
+		return \InfoSecNexus\Theme\Ivory_Media\card_image( $key, $attrs );
+	}
 	$attrs = array_merge(
 		array(
 			'alt'      => alt_text( $key ),

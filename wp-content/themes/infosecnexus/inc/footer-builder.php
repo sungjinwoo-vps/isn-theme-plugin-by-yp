@@ -32,7 +32,7 @@ function render(): void {
 		<div class="cinematic-footer__main">
 			<div class="cinematic-footer__identity">
 				<?php render_logo(); ?>
-				<p><?php esc_html_e( 'A clearer view of cybersecurity. Source-backed analysis and practical guidance for your next informed decision.', 'infosecnexus' ); ?></p>
+				<p><?php esc_html_e( 'Stay informed. Stay ahead.', 'infosecnexus' ); ?></p>
 				<?php render_social_links(); ?>
 			</div>
 			<nav class="cinematic-footer__links" aria-label="<?php esc_attr_e( 'Security topics', 'infosecnexus' ); ?>">
@@ -66,6 +66,11 @@ function render(): void {
 		</div>
 		<div class="cinematic-footer__bottom">
 			<?php render_element( 'copyright' ); ?>
+			<button class="color-mode-toggle ivory-footer-mode" type="button" data-color-mode-toggle aria-label="<?php esc_attr_e( 'Switch to dark mode', 'infosecnexus' ); ?>">
+				<span class="color-mode-toggle__icon color-mode-toggle__icon--moon"><?php \InfoSecNexus\Theme\Header_Builder\icon( 'moon' ); ?></span>
+				<span class="color-mode-toggle__icon color-mode-toggle__icon--sun"><?php \InfoSecNexus\Theme\Header_Builder\icon( 'sun' ); ?></span>
+				<span data-color-mode-label><?php esc_html_e( 'Dark mode', 'infosecnexus' ); ?></span>
+			</button>
 			<?php if ( has_nav_menu( 'legal' ) ) : ?>
 				<?php render_menu( 'legal' ); ?>
 			<?php else : ?>

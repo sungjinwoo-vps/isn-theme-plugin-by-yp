@@ -38,8 +38,8 @@ test('cinematic homepage uses live stories, unique article links and correct top
   expect(response.status()).toBe(200);
   await expect(page.locator('body')).toHaveClass(/cinematic-editorial/);
   await expect(page.locator('h1')).toHaveCount(1);
-  await expect(page.locator('.cg-hero h1')).toContainText('Intelligence');
-  await expect(page.locator('.cg-hero h1')).toContainText('Beyond the Noise.');
+  await expect(page.locator('.cg-hero h1')).toContainText('Know the risks.');
+  await expect(page.locator('.cg-hero h1')).toContainText('one step ahead.');
   const byPath = new Map(published.map((post) => [pathOf(post.link), post]));
   const articleLinks = await page.locator('.cg-highlights .cg-highlight__link, .cg-latest__list .cg-latest__item > a').evaluateAll((links) => links.map((link) => link.href));
   expect(articleLinks.length).toBeGreaterThan(0);
@@ -56,11 +56,13 @@ test('cinematic homepage uses live stories, unique article links and correct top
   }
   expect(new Set(stories.map((post) => post.id)).size).toBe(stories.length);
   const topicLinks = await page.locator('.cg-topics__grid .cg-topic').evaluateAll((links) => links.map((link) => link.href));
-  expect(topicLinks).toHaveLength(topicSlugs.length);
+  expect(topicLinks).toHaveLength(topicSlugs.length - 1);
   for (const slug of topicSlugs) {
     const term = categories.find((item) => item.slug === slug);
     expect(term).toBeTruthy();
-    expect(topicLinks.map(pathOf)).toContain(pathOf(term.link));
+    if (slug !== 'critical-cves') {
+      expect(topicLinks.map(pathOf)).toContain(pathOf(term.link));
+    }
     const archive = await request.get(term.link);
     expect(archive.status()).toBe(200);
   }
@@ -79,6 +81,7 @@ test('hero keyword and topic controls submit a real intersection of published po
   const keyword = candidate.title.rendered.match(/CVE-\d{4}-\d{4,}/i)[0];
   const expected = new Set(published.filter((post) => post.categories.includes(term.id) && post.title.rendered.includes(keyword)).map((post) => post.id));
   await page.goto(baseURL);
+  await page.locator('.iv-discovery summary').click();
   const discovery = page.getByRole('search', { name: 'Filter security intelligence', exact: true });
   await discovery.locator('select[name=category_name]').selectOption(term.slug);
   await discovery.locator('[name=s]').fill(keyword);
@@ -98,6 +101,7 @@ test('hero priority controls distinguish recorded critical and high scores', asy
   const expectedPath = pathOf(await alert.getAttribute('href'));
   const keyword = (await alert.locator('span').first().innerText()).match(/CVE-\d{4}-\d{4,}/i)?.[0];
   expect(keyword).toBeTruthy();
+  await page.locator('.iv-discovery summary').click();
   const form = page.locator('.cg-discovery');
   await form.locator('[name=category_name]').selectOption('critical-cves');
   await form.locator('[name=isn_severity]').selectOption('critical');
@@ -241,7 +245,7 @@ test('motion reduction and disabled JavaScript retain all homepage content', asy
   await expect(plain.locator('.cg-hero h1')).toBeVisible();
   await plain.locator('.cg-final-cta').scrollIntoViewIfNeeded();
   await expect(plain.locator('.cg-final-cta h2')).toBeVisible();
-  await expect(plain.locator('.cg-topics__grid .cg-topic')).toHaveCount(topicSlugs.length);
+  await expect(plain.locator('.cg-topics__grid .cg-topic')).toHaveCount(topicSlugs.length - 1);
   await context.close();
 });
 

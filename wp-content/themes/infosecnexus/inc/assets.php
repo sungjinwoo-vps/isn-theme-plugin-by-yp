@@ -20,6 +20,14 @@ function bootstrap(): void {
 	add_action( 'wp_enqueue_scripts', __NAMESPACE__ . '\\dequeue_unused_front_page_styles', 100 );
 	add_action( 'enqueue_block_editor_assets', __NAMESPACE__ . '\\enqueue_editor' );
 	add_action( 'wp_head', __NAMESPACE__ . '\\preload_critical_image', 1 );
+	add_action( 'wp_head', __NAMESPACE__ . '\\preload_editorial_font', 1 );
+}
+
+/** Start the small self-hosted variable font before CSS discovery. */
+function preload_editorial_font(): void {
+	if ( ! is_admin() ) {
+		echo '<link rel="preload" href="' . esc_url( get_template_directory_uri() . '/assets/fonts/nunito-sans-latin.woff2' ) . '" as="font" type="font/woff2" crossorigin>' . "\n";
+	}
 }
 
 /**
@@ -55,6 +63,8 @@ function enqueue(): void {
 	}
 	wp_enqueue_style( 'infosecnexus-cinematic-glass', get_template_directory_uri() . '/assets/css/cinematic-glass.css', $cinematic_dependencies, (string) filemtime( get_template_directory() . '/assets/css/cinematic-glass.css' ) );
 	wp_enqueue_style( 'infosecnexus-cinematic-pages', get_template_directory_uri() . '/assets/css/cinematic-pages.css', array( 'infosecnexus-cinematic-glass' ), (string) filemtime( get_template_directory() . '/assets/css/cinematic-pages.css' ) );
+	wp_enqueue_style( 'infosecnexus-ivory-home', get_template_directory_uri() . '/assets/css/ivory-home.css', array( 'infosecnexus-cinematic-pages' ), (string) filemtime( get_template_directory() . '/assets/css/ivory-home.css' ) );
+	wp_enqueue_style( 'infosecnexus-ivory-pages', get_template_directory_uri() . '/assets/css/ivory-pages.css', array( 'infosecnexus-ivory-home' ), (string) filemtime( get_template_directory() . '/assets/css/ivory-pages.css' ) );
 	wp_enqueue_script( 'infosecnexus-cinematic-glass', get_template_directory_uri() . '/assets/js/cinematic-glass.js', array( 'infosecnexus-theme' ), (string) filemtime( get_template_directory() . '/assets/js/cinematic-glass.js' ), array( 'in_footer' => true, 'strategy' => 'defer' ) );
 	wp_localize_script(
 		'infosecnexus-theme',

@@ -115,4 +115,19 @@
       }
     });
   });
+  document.querySelectorAll('.iv-discovery').forEach((details) => {
+    const summary = details.querySelector('summary');
+    const panel = details.querySelector('.cg-discovery');
+    summary.addEventListener('click', (event) => {
+      if (details.open && !motion.matches && panel.animate) {
+        event.preventDefault();
+        panel.animate([{ opacity: 1, transform: 'translateY(0)' }, { opacity: 0, transform: 'translateY(-6px)' }], { duration: 160, easing: 'ease-out' }).onfinish = () => { details.open = false; };
+      }
+    });
+    details.addEventListener('toggle', () => {
+      if (details.open && !motion.matches && panel.animate) {
+        panel.animate([{ opacity: 0, transform: 'translateY(-6px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 220, easing: 'ease-out' });
+      }
+    });
+  });
 }());

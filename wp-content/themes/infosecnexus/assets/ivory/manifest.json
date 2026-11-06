@@ -1,0 +1,222 @@
+{
+  "generated": "2026-11-06",
+  "mode": "built-in image_gen",
+  "files": {
+    "hero-640.webp": {
+      "width": 640,
+      "height": 279,
+      "bytes": 11584,
+      "alpha": false
+    },
+    "hero-800.webp": {
+      "width": 800,
+      "height": 349,
+      "bytes": 16044,
+      "alpha": false
+    },
+    "hero-1280.webp": {
+      "width": 1280,
+      "height": 558,
+      "bytes": 34498,
+      "alpha": false
+    },
+    "hero-1600.webp": {
+      "width": 1600,
+      "height": 697,
+      "bytes": 50418,
+      "alpha": false
+    },
+    "hero-card-640.webp": {
+      "width": 640,
+      "height": 360,
+      "bytes": 19032,
+      "alpha": false
+    },
+    "hero-card-1280.webp": {
+      "width": 1280,
+      "height": 720,
+      "bytes": 63050,
+      "alpha": false
+    },
+    "critical-320.webp": {
+      "width": 320,
+      "height": 180,
+      "bytes": 6628,
+      "alpha": false
+    },
+    "critical-640.webp": {
+      "width": 640,
+      "height": 360,
+      "bytes": 15392,
+      "alpha": false
+    },
+    "critical-1280.webp": {
+      "width": 1280,
+      "height": 720,
+      "bytes": 48140,
+      "alpha": false
+    },
+    "critical-portrait.webp": {
+      "width": 640,
+      "height": 480,
+      "bytes": 22162,
+      "alpha": false
+    },
+    "cloud-320.webp": {
+      "width": 320,
+      "height": 180,
+      "bytes": 8216,
+      "alpha": false
+    },
+    "cloud-640.webp": {
+      "width": 640,
+      "height": 360,
+      "bytes": 21716,
+      "alpha": false
+    },
+    "cloud-1280.webp": {
+      "width": 1280,
+      "height": 720,
+      "bytes": 58510,
+      "alpha": false
+    },
+    "cloud-portrait.webp": {
+      "width": 640,
+      "height": 480,
+      "bytes": 34292,
+      "alpha": false
+    },
+    "linux-320.webp": {
+      "width": 320,
+      "height": 180,
+      "bytes": 8170,
+      "alpha": false
+    },
+    "linux-640.webp": {
+      "width": 640,
+      "height": 360,
+      "bytes": 20800,
+      "alpha": false
+    },
+    "linux-1280.webp": {
+      "width": 1280,
+      "height": 720,
+      "bytes": 63328,
+      "alpha": false
+    },
+    "linux-portrait.webp": {
+      "width": 640,
+      "height": 480,
+      "bytes": 30180,
+      "alpha": false
+    },
+    "ai-320.webp": {
+      "width": 320,
+      "height": 180,
+      "bytes": 7232,
+      "alpha": false
+    },
+    "ai-640.webp": {
+      "width": 640,
+      "height": 360,
+      "bytes": 16492,
+      "alpha": false
+    },
+    "ai-1280.webp": {
+      "width": 1280,
+      "height": 720,
+      "bytes": 57014,
+      "alpha": false
+    },
+    "ai-portrait.webp": {
+      "width": 640,
+      "height": 480,
+      "bytes": 20438,
+      "alpha": false
+    },
+    "network-320.webp": {
+      "width": 320,
+      "height": 180,
+      "bytes": 8498,
+      "alpha": false
+    },
+    "network-640.webp": {
+      "width": 640,
+      "height": 360,
+      "bytes": 21390,
+      "alpha": false
+    },
+    "network-1280.webp": {
+      "width": 1280,
+      "height": 720,
+      "bytes": 56826,
+      "alpha": false
+    },
+    "network-portrait.webp": {
+      "width": 640,
+      "height": 480,
+      "bytes": 28654,
+      "alpha": false
+    },
+    "icon-critical-256.webp": {
+      "width": 256,
+      "height": 256,
+      "bytes": 8640,
+      "alpha": true
+    },
+    "icon-critical-512.webp": {
+      "width": 512,
+      "height": 512,
+      "bytes": 20270,
+      "alpha": true
+    },
+    "icon-cloud-256.webp": {
+      "width": 256,
+      "height": 256,
+      "bytes": 7330,
+      "alpha": true
+    },
+    "icon-cloud-512.webp": {
+      "width": 512,
+      "height": 512,
+      "bytes": 16092,
+      "alpha": true
+    },
+    "icon-linux-256.webp": {
+      "width": 256,
+      "height": 256,
+      "bytes": 9242,
+      "alpha": true
+    },
+    "icon-linux-512.webp": {
+      "width": 512,
+      "height": 512,
+      "bytes": 20588,
+      "alpha": true
+    },
+    "icon-ai-256.webp": {
+      "width": 256,
+      "height": 256,
+      "bytes": 10992,
+      "alpha": true
+    },
+    "icon-ai-512.webp": {
+      "width": 512,
+      "height": 512,
+      "bytes": 23486,
+      "alpha": true
+    },
+    "icon-network-256.webp": {
+      "width": 256,
+      "height": 256,
+      "bytes": 13188,
+      "alpha": true
+    },
+    "icon-network-512.webp": {
+      "width": 512,
+      "height": 512,
+      "bytes": 30214,
+      "alpha": true
+    }
+  }
+}

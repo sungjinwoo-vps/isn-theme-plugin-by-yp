@@ -3,7 +3,7 @@ Contributors: infosecnexus
 Requires at least: 6.5
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.2.0
+Stable tag: 0.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,6 +25,11 @@ InfoSecNexus WordPress Theme, Copyright 2026 InfoSecNexus.
 InfoSecNexus is distributed under the terms of the GNU GPL.
 
 == Changelog ==
+
+= 0.3.0 =
+* Rebuilds the homepage and shared page design around the supplied ivory-and-coral reference, with a sculptural oval-window hero, compact image-led cards, self-hosted rounded typography, and original warm 3D artwork.
+* Introduces an original IN monogram, matching wordmark and native WordPress Site Icon, while retaining real content, existing routes, forms, severity evidence and accessible search controls.
+* Restores the light default, keeps an optional warm dark appearance, adds compact footer appearance controls, and respects reduced motion.
 
 = 0.2.0 =
 * Cinematic glass redesign with rounded editorial sections, original blue 3D artwork, source-backed homepage content, real topic/priority search, and a shared design across every page type.

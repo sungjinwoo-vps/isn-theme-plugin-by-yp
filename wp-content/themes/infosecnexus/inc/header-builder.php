@@ -59,19 +59,21 @@ function render(): void {
  */
 function render_logo(): void {
 	$custom_logo_id = (int) get_theme_mod( 'custom_logo' );
+	$brand_logo_id  = (int) get_theme_mod( 'infosecnexus_brand_logo_attachment' );
+	$custom_override = $brand_logo_id > 0 && $custom_logo_id > 0 && $custom_logo_id !== $brand_logo_id;
 	?>
 	<a class="site-brand" href="<?php echo esc_url( home_url( '/' ) ); ?>" rel="home" aria-label="<?php echo esc_attr( get_bloginfo( 'name' ) ); ?>">
+		<?php if ( $custom_override ) : ?>
+			<?php echo wp_get_attachment_image( $custom_logo_id, 'full', false, array( 'class' => 'site-brand__custom-logo', 'loading' => 'eager', 'decoding' => 'async', 'style' => 'width:auto;height:auto;max-width:180px;max-height:42px' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+		<?php else : ?>
 		<span class="site-brand__mark" aria-hidden="true">
-			<?php if ( $custom_logo_id > 0 ) : ?>
-				<?php echo wp_get_attachment_image( $custom_logo_id, 'full', false, array( 'class' => 'site-brand__custom-logo', 'loading' => 'eager', 'decoding' => 'async' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-			<?php else : ?>
-				<?php icon( 'shield' ); ?>
-			<?php endif; ?>
+			<?php \InfoSecNexus\Theme\Brand\mark(); ?>
 		</span>
 		<span class="site-brand__text">
 			<span class="site-title"><?php if ( 'InfoSecNexus' === get_bloginfo( 'name' ) ) : ?>InfoSec<span class="site-title__accent">Nexus</span><?php else : ?><?php bloginfo( 'name' ); ?><?php endif; ?></span>
 			<span class="site-description"><?php bloginfo( 'description' ); ?></span>
 		</span>
+		<?php endif; ?>
 	</a>
 	<?php
 }
@@ -289,7 +291,7 @@ function icon( string $name ): void {
 
 	switch ( $name ) {
 		case 'shield':
-			echo '<svg ' . $common . ' viewBox="0 0 48 56"><path fill="#0b1d4d" d="M24 2 5 9v16c0 13 8 23 19 29 11-6 19-16 19-29V9L24 2z"/><path fill="#0b72ff" d="M24 8 11 13v12c0 9 5 17 13 22 8-5 13-13 13-22V13L24 8z"/><path fill="#fff" d="m21 32-7-7 4-4 4 4 9-11 5 4-14 16z"/></svg>';
+			echo '<svg ' . $common . ' viewBox="0 0 24 24"><path d="m12 3 8 3v6c0 5-4 8-8 10-4-2-8-5-8-10V6l8-3Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="m8 12 3 3 5-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 			break;
 		case 'alert':
 			echo '<svg ' . $common . ' viewBox="0 0 24 24"><path d="M12 3 2 21h20L12 3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 9v5M12 17h.01" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';

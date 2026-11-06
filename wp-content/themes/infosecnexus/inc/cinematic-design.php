@@ -11,6 +11,7 @@ namespace InfoSecNexus\Theme\Cinematic_Design;
 function bootstrap(): void {
 	add_filter( 'body_class', static function ( array $classes ): array {
 		$classes[] = 'cinematic-editorial';
+		$classes[] = 'ivory-editorial';
 		return $classes;
 	} );
 	add_filter( 'query_vars', static function ( array $vars ): array {

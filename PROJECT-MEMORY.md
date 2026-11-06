@@ -113,6 +113,34 @@ Last updated: 2026-11-06 (Asia/Kolkata)
   header/legal menus were preserved. Desktop/mobile footer links, layout and
   accessibility were checked again, and final home screenshots were refreshed.
 
+### Ivory/Orange Reference Revision - November 6, 2026
+
+- The owner rejected the navy `0.2.0` appearance and supplied the warm AHEAD
+  reference, explicitly requesting the same cream/orange palette and layout,
+  plus a replacement logo and Site Icon. This supersedes the earlier request
+  to preserve the blue shield/navy branding. The project name, actual posts,
+  URLs, SEO/article evidence and working integrations remain authoritative.
+- Work is on `design/ivory-orange-reference`, candidate `0.3.0`. The latest
+  reference is implemented as responsive WordPress components: oval-window
+  hero, five photographic category/story cards, four transparent 3D focus
+  cards, compact briefing/desk and stories/newsletter rows, and a full-bleed
+  banner. `ivory-home.css` and `ivory-pages.css` own the new appearance;
+  `template-parts/home/ivory.php` owns the actual homepage markup. Default is
+  light; optional warm dark mode is available in the footer/mobile menu.
+- New original IN monogram/wordmark and favicon assets live under
+  `assets/brand/`. `inc/brand.php` provides explicit idempotent native WordPress
+  logo/icon installers. Existing editorial featured attachments are preserved.
+  All new artwork/prompt provenance is in `docs/ivory-assets.md`; full handoff
+  is `docs/ivory-redesign.md`. Nunito Sans is self-hosted with its OFL license.
+- Local verification passed all 64 browser checks, 82 PHP syntax checks,
+  focused PHPStan and JS/CSS lint. Six homepage and 22 shared-page visual/Axe
+  scenarios passed without serious/critical issues, document overflow or page
+  errors. The native logo/icon, responsive artwork, search disclosure, and
+  four-card mobile grid were verified. The previous navy CSS's blue card
+  overrides, mobile hero overflow and oversized banner were corrected before
+  release preparation. New code and assets are not yet installed on production
+  at this checkpoint; the current snapshot above still describes `0.2.0`.
+
 ### Startup Checklist For Every New Session
 
 1. Read this whole file.

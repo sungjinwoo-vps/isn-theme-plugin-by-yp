@@ -231,6 +231,7 @@ test('color mode choice persists across navigation and reload', async ({ page },
 test('back-to-top reports reading progress and clears footer navigation', async ({ page }) => {
   test.setTimeout(60000);
   await page.goto(`${baseURL}/live-cybersecurity-brief/`, { waitUntil: 'domcontentloaded' });
+  await page.evaluate(() => document.fonts.ready);
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
 
   const control = page.locator('[data-scroll-top]');

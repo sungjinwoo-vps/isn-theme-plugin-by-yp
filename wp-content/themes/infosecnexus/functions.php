@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'INFOSECNEXUS_VERSION', '0.2.0' );
+define( 'INFOSECNEXUS_VERSION', '0.3.0' );
 define( 'INFOSECNEXUS_DIR', get_template_directory() );
 define( 'INFOSECNEXUS_URI', get_template_directory_uri() );
 
@@ -28,6 +28,8 @@ $infosecnexus_includes = array(
 	'inc/comment-controls.php',
 	'inc/adsense.php',
 	'inc/cinematic-media.php',
+	'inc/ivory-media.php',
+	'inc/brand.php',
 	'inc/cinematic-design.php',
 	'inc/anime-design.php',
 	'inc/assets.php',
@@ -55,6 +57,7 @@ foreach ( $infosecnexus_includes as $infosecnexus_file ) {
 \InfoSecNexus\Theme\Comment_Controls\bootstrap();
 \InfoSecNexus\Theme\AdSense\bootstrap();
 \InfoSecNexus\Theme\Assets\bootstrap();
+\InfoSecNexus\Theme\Brand\bootstrap();
 \InfoSecNexus\Theme\Cinematic_Design\bootstrap();
 \InfoSecNexus\Theme\Header_Builder\bootstrap();
 \InfoSecNexus\Theme\Footer_Builder\bootstrap();
