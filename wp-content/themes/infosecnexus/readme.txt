@@ -3,7 +3,7 @@ Contributors: infosecnexus
 Requires at least: 6.5
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.3.0
+Stable tag: 0.3.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,6 +25,9 @@ InfoSecNexus WordPress Theme, Copyright 2026 InfoSecNexus.
 InfoSecNexus is distributed under the terms of the GNU GPL.
 
 == Changelog ==
+
+= 0.3.1 =
+* Keeps share badge text readable against the warm orange background in the optional dark appearance.
 
 = 0.3.0 =
 * Rebuilds the homepage and shared page design around the supplied ivory-and-coral reference, with a sculptural oval-window hero, compact image-led cards, self-hosted rounded typography, and original warm 3D artwork.

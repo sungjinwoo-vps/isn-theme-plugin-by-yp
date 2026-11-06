@@ -471,6 +471,10 @@
   color: var(--iv-link);
 }
 
+:root[data-color-mode="dark"] body.cinematic-editorial.ivory-editorial .share-links a > span {
+  color: #171922;
+}
+
 :root body.cinematic-editorial.ivory-editorial .toc a {
   color: var(--iv-muted);
 }

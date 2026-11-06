@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'INFOSECNEXUS_VERSION', '0.3.0' );
+define( 'INFOSECNEXUS_VERSION', '0.3.1' );
 define( 'INFOSECNEXUS_DIR', get_template_directory() );
 define( 'INFOSECNEXUS_URI', get_template_directory_uri() );
 
