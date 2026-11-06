@@ -14,13 +14,23 @@ Last updated: 2026-11-06 (Asia/Kolkata)
 - Main release branch: `stable`
 - Repository visibility: public, which permits unauthenticated WordPress update
   downloads. Moving it to private requires an authenticated update service.
-- Current theme version: `0.3.1`
-- Current known release: `auto-v0.3.1`
-- Current known code commit: `8d58be3` (`Keep warm dark appearance share badges readable`)
+- Current theme version: `0.3.2`
+- Current known release: `auto-v0.3.2`
+- Current known code commit: `067ae15` (`Fix mobile layout, saved appearance and reading obstructions`)
 - WordPress was verified running version 7.1.4 at this checkpoint.
 - The live site is theme-first. The InfoSecNexus Toolkit features are bundled
   into the theme and the separate toolkit plugin is not required on this site.
-- Latest known verification: production is running `0.3.1` with the owner's
+- Latest known verification: production is running `0.3.2`. Fresh normal-motion
+  audits reproduced and repaired the mobile sticky-header clipping, oversized
+  soft hero, broken saved-dark hero, tiny story copy and obstructive cookie
+  banner. Mobile topics now collapse accessibly and editorial fallback art uses
+  actual technology context. Production passed 68 applicable browser checks
+  (two preview-only mail tests skipped), 11 normal-motion visual/Axe cases, 45
+  internal links and three icon sizes. All 82 deployed PHP files passed syntax
+  checks. Complete body/identity/Toolkit-settings hashes match before and after
+  this update. Existing logo, Site Icon, saved appearance choices and mail/ads
+  configuration remain unchanged. No test email/contact message was sent.
+- Previous verification on November 6: production was running `0.3.1` with the owner's
   replacement ivory/orange reference design and original IN branding. Native
   logo attachment `3681` and Site Icon `3682` are installed, and light is the
   default; footer/mobile controls retain optional warm dark mode. All 82 deployed
@@ -177,6 +187,53 @@ Last updated: 2026-11-06 (Asia/Kolkata)
   redesign. The subsequent `0.3.0` to `0.3.1` update has matching complete body,
   identity and Toolkit-settings hashes. The new branding imports are native
   attachments, not changes to editorial featured images.
+
+### Live Runtime Repair - November 6, 2026
+
+- The owner reported the site still looked wrong after the ivory rollout. Fresh
+  contexts with normal animation and saved appearance reproduced real issues
+  despite previous static/Axe checks passing. A clipped menu button could exist
+  while document.scrollWidth still matched the viewport. Always test actual
+  control rectangles at scroll 0 and 700, loaded fonts, normal motion, mobile
+  navigation and existing dark/system preferences before declaring visual QA
+  complete. Include the production consent UI in preview checks.
+- Release `0.3.2`, commit `067ae15`, workflow `42224254408`, installed through the
+  native updater. Published theme SHA256:
+  `f691afbc2eefe0a23b3cfe748eaed92eee9020436175103138f2011af0db4442`.
+  All 234 packaged files match source plus the established workflow stamp.
+- The mobile sticky/compact header now uses consistent responsive widths and
+  stays within 320px. Intelligence has a separate 44px disclosure while retaining
+  its real Blog link; hidden topic links leave the tab sequence. Escape/focus
+  restoration and no-JS topic access remain intact.
+- The mobile hero uses a separate 220px image area with correct source/preload
+  hints, compact action labels on one row, and readable coverage links. Tablet
+  receives the sharp 1600px source. Dark preference uses a coherent overlay with
+  readable text rather than a cream rectangle with pale text. Story text sizes
+  increased and the page canvas matches the ivory/dark body below the footer.
+- Cookie preferences are in document flow after the footer, never over stories.
+  Not now dismisses the current session without setting consent or dispatching
+  advertising consent. Explicit acceptance behavior is preserved. The isolated
+  preview now enables this public module while continuing to block advertising,
+  outbound mail and other side effects.
+- Actual technology titles/topics now precede generic CVE artwork selection.
+  The latest 12 stories use two protection, eight software-workspace and two
+  network illustrations. No random AI/cloud claims were introduced. Fifty PHP
+  fixtures preserve manual editor-selected image source, dimensions, alt and
+  srcset; article bodies, IDs, URLs and categories are not rewritten.
+- Validation: local 70/70 Playwright, six normal-motion light/dark home Axe cases,
+  Chromium/WebKit rendering checks, 50 shared-page header cases, eight menu
+  cases, 50 media fixtures, 82 PHP syntax checks, focused PHPStan and JS/CSS lint
+  passed. Live 68 applicable browser checks plus all 11 normal-motion visual
+  cases, 45 links and three icons passed. Evidence is ignored under
+  `.tmp/runtime-repair-production/`, `.tmp/runtime-production-e2e.txt`,
+  `.tmp/runtime-repair-home/`, `.tmp/repaired-webkit-audit/` and
+  `.tmp/current-runtime-audit/`. Full implementation notes:
+  `docs/ivory-runtime-fixes.md`.
+- Rollback checkpoint `runtime-20261106T131430Z` contains verified database and
+  compressed `0.3.1` theme backups in the private backup directory. Exact paths
+  and checksums stay in ignored `.tmp/runtime-production-backup-result.txt` and
+  secure records. This update's complete before/after body, identity, retirement,
+  appearance and Toolkit-settings audits match.
 
 ### Startup Checklist For Every New Session
 

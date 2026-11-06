@@ -33,14 +33,18 @@ screenshots.
   Manually selected editorial images, their alt text/dimensions and srcsets are
   preserved. No article body, identity, category or private setting is changed.
 
-Candidate version: `0.3.2`. Local validation passed 70 browser tests, all 82
+Deployed version: `0.3.2` at **https://infosecnexus.com/**. Local validation passed 70 browser tests, all 82
 theme PHP syntax checks, focused PHPStan and JS/CSS lint. Fifty standalone media
 fixtures cover classification and preservation of manual editorial images.
 Normal/reduced mobile-menu checks and fifty shared-page header/appearance cases
-also passed. The final production state and rollback checkpoint are recorded
-in PROJECT-MEMORY.md after installation.
+also passed. Production passed 68 applicable browser checks (two preview-only
+mail tests skipped), all 11 normal-motion visual/Axe cases, 45 links and three
+icons. Published content bodies, identities, retirement state, appearance and
+private Toolkit settings have matching before/after hashes. The production
+state and verified rollback checkpoint are recorded in PROJECT-MEMORY.md.
 
 Evidence remains ignored: `.tmp/current-visual-audit/`,
 `.tmp/current-runtime-audit/`, `.tmp/repaired-visual-audit/`,
 `.tmp/repaired-webkit-audit/`, `.tmp/runtime-repair-home/` and
 `.tmp/runtime-repair-e2e.txt`.
+Final live screenshots and reports: `.tmp/runtime-repair-production/`.
