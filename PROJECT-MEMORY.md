@@ -14,13 +14,25 @@ Last updated: 2026-11-06 (Asia/Kolkata)
 - Main release branch: `stable`
 - Repository visibility: public, which permits unauthenticated WordPress update
   downloads. Moving it to private requires an authenticated update service.
-- Current theme version: `0.1.64`
-- Current known release: `auto-v0.1.64`
-- Current known code commit: `fa8bff4` (`Keep source refreshes stable and article guide focus readable`)
+- Current theme version: `0.2.0`
+- Current known release: `auto-v0.2.0`
+- Current known code commit: `30aad51` (`Release cinematic glass newsroom design across public pages`)
 - WordPress was verified running version 7.1.4 at this checkpoint.
 - The live site is theme-first. The InfoSecNexus Toolkit features are bundled
   into the theme and the separate toolkit plugin is not required on this site.
-- Latest known verification: production is running `0.1.64`. All 82 active
+- Latest known verification: production is running `0.2.0`, installed through
+  WordPress' native updater after verified database/theme backups. The live
+  desktop/mobile suite passed 62 checks with two preview-only form tests skipped.
+  All 11 additional live desktop/tablet/mobile visual/Axe scenarios and all 45
+  discovered internal links passed. All 79 deployed PHP files passed syntax
+  checks. Published identities, article/page bodies, dates, featured images,
+  categories, retirement state and Toolkit settings have matching before/after
+  hashes. Production has 247 published posts, six pages, 159 retired and five
+  superseded posts, leaving 83 active stories. Default navy/dark mode is set;
+  visitors' saved light/dark preferences remain effective. Existing Zoho Mail
+  stays active, advertising stays configured, and preview blockers are absent.
+  Actual message delivery was not exercised by the production checks.
+- Previous verification on November 4: production was running `0.1.64`. All 82 active
   articles use the source-backed editorial schema: 81 individual stories and
   the permanent rolling brief. The final desktop/mobile suite passed 40 of 42
   checks; the two existing homepage artwork-diversity failures also occurred
@@ -32,14 +44,15 @@ Last updated: 2026-11-06 (Asia/Kolkata)
   persistence fixtures passed. Lighthouse and Core Web Vitals remain targets,
   not permanent guarantees.
 
-### Local Cinematic Redesign Preview - November 6, 2026
+### Cinematic Redesign And Production Deployment - November 6, 2026
 
 - The initial request required a local/staging implementation with no automatic
   deployment. After reviewing the completed preview, the owner explicitly asked
   to deploy production on November 6. Production was verified at `0.1.64` and a
   database/theme rollback backup was verified before preparing release `0.2.0`.
-- Work is on local branch `design/cinematic-glass-preview`, theme version
-  `0.2.0-preview.1`. The cinematic glass hero and raised 3D editorial layout are
+- Work began on local branch `design/cinematic-glass-preview`, preview version
+  `0.2.0-preview.1`, then was promoted to `stable` as release `0.2.0`. The
+  cinematic glass hero and raised 3D editorial layout are
   implemented across the homepage and every shared public page template, with
   real content, accessible controls, dark/light modes and reduced-motion/no-JS
   fallbacks. Existing branding, URLs, SEO, article content and forms are retained.
@@ -77,6 +90,24 @@ Last updated: 2026-11-06 (Asia/Kolkata)
   Final screenshot/Axe review passed all 21 desktop/tablet/mobile dark/light
   scenarios with no serious/critical violations, page errors or document
   overflow. The article screenshots show the complete unlocked content.
+- Production release workflow run `42191345324` succeeded for source commit
+  `30aad51`. Published theme ZIP SHA256:
+  `716d3c85ab0b3e4d5d80c09f7e48097b5fd26dbb1dc904a8b03632d0b7c81e12`.
+  All 177 packaged files match the committed source plus the existing workflow's
+  update-URL stamp. Native WordPress updated `0.1.64` to `0.2.0`; caches were
+  purged, the intended dark default was applied, and the live stylesheet and
+  homepage components were verified anonymously.
+- Rollback checkpoint: `cinematic-20261106T085325Z` in the site's existing private
+  backups directory, with verified non-empty database export and valid compressed
+  `0.1.64` theme archive. Exact location and checksums stay in the ignored local
+  `.tmp/cinematic-production-backup-result.txt` and secure server records.
+- Live review evidence is ignored under `.tmp/cinematic-production-review/`;
+  live suite output is `.tmp/cinematic-production-e2e.txt`. All 11 visual cases
+  passed without serious/critical Axe issues, JS page errors, document overflow
+  or duplicate H1, and all 45 audited internal links returned successful pages.
+  The production suite passed 62/62 applicable checks; its two preview-only form
+  postbacks were skipped deliberately. The existing Zoho provider and all Toolkit
+  settings remain unchanged. No test email or contact message was sent.
 
 ### Startup Checklist For Every New Session
 

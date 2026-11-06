@@ -1,14 +1,15 @@
 # InfoSecNexus cinematic glass preview
 
-Review build: `0.2.0-preview.1`; production candidate: `0.2.0`, November 6, 2026.
+Review build: `0.2.0-preview.1`; deployed release: `0.2.0`, November 6, 2026.
 
 **Working preview: http://localhost:8890/**
 
 This is an isolated WordPress implementation with real public content. The
 initial preview was completed without a production deployment. The owner then
 explicitly requested production installation on November 6, 2026. Release
-`0.2.0` is being prepared from the verified implementation. See
-`PROJECT-MEMORY.md` for the final verified production state.
+[`0.2.0`](https://github.com/sungjinwoo-vps/isn-theme-plugin-by-yp/releases/tag/auto-v0.2.0)
+is now deployed at **https://infosecnexus.com/** through the native updater.
+See `PROJECT-MEMORY.md` for the verified production state and rollback checkpoint.
 
 ## Design and page coverage
 
@@ -97,6 +98,14 @@ checks, focused PHPStan passed, JS/CSS lint passed, 63 source-evidence checks an
 28 discovery SQL checks passed, and editorial persistence fixtures passed.
 All 21 visual/Axe scenarios passed with no serious/critical violations, page
 errors or document overflow. Article screenshots include the unlocked body.
+
+After installation, the actual production suite passed **62 applicable tests**;
+two preview-only form postbacks were skipped. Eleven live visual/Axe scenarios
+and 45 safe internal GET links passed. All 79 deployed PHP files passed syntax
+checks. Before/after hashes confirm unchanged published identities, bodies,
+dates, images, categories, retirement state and Toolkit configuration. Production
+retains its active Zoho Mail plugin and advertising configuration, with no
+preview mail/HTTP blockers. No test message was sent.
 
 Local review artifacts are in `.tmp/cinematic-preview/`: theme ZIP, checksum,
 browser/visual reports and screenshots. The theme ZIP contains only the theme;
