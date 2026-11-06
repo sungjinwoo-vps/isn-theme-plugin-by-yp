@@ -26,17 +26,17 @@ test('homepage uses one permanent live brief without repeating it in the latest 
 
   await page.goto(baseURL, { waitUntil: 'networkidle' });
 
-  const heroPath = new URL(await page.locator('.home-hero__lead').getAttribute('href')).pathname;
+  const heroPath = new URL(await page.locator('.cg-hero__glass a').getAttribute('href')).pathname;
   expect(heroPath).toBe('/live-cybersecurity-brief/');
-  await expect(page.locator('.home-hero__updated time')).toContainText('Updated');
-  await expect(page.locator('.home-hero__updated time')).toHaveAttribute('datetime', /^\d{4}-\d{2}-\d{2}T/);
+  await expect(page.locator('.cg-hero__glass time')).toContainText('Updated');
+  await expect(page.locator('.cg-hero__glass time')).toHaveAttribute('datetime', /^\d{4}-\d{2}-\d{2}T/);
 
-  const latestPaths = await page.locator('.latest-grid .intel-card__link').evaluateAll((links) => links.map((link) => new URL(link.href).pathname));
+  const latestPaths = await page.locator('.cg-latest__item > a').evaluateAll((links) => links.map((link) => new URL(link.href).pathname));
   expect(latestPaths).not.toContain('/live-cybersecurity-brief/');
   expect(latestPaths.some((path) => /\/\d{4}-\d{2}-\d{2}-live-cybersecurity-brief\/$/.test(path))).toBeFalsy();
   expect(latestPaths.some((path) => /\/\d{4}-\d{2}-\d{2}-(?:daily-cve-watch|cyber-security-brief|linux-security-brief|devops-security-brief|ai-security-brief|tutorial-run-daily-vulnerability-standup|cloud-security-brief|windows-security-brief|network-security-brief|web-security-brief)/.test(path))).toBeFalsy();
 
-  const breakingPaths = await page.locator('.home-hero__side .side-story__link').evaluateAll((links) => links.map((link) => new URL(link.href).pathname));
+  const breakingPaths = await page.locator('.cg-desk__alerts a').evaluateAll((links) => links.map((link) => new URL(link.href).pathname));
   expect(breakingPaths.length).toBeGreaterThanOrEqual(2);
   expect(new Set(breakingPaths).size).toBe(breakingPaths.length);
 
@@ -79,10 +79,10 @@ test('newsroom posts expose an editorial author and focused tags without a tag s
   expect(await sitemapResponse.text()).not.toContain('wp-sitemap-taxonomies-post_tag');
 });
 
-test('homepage post artwork is responsive, descriptive, and visually distinct', async ({ page }) => {
+test('homepage topic artwork is responsive, accessible, and visually distinct', async ({ page }) => {
   await page.goto(baseURL, { waitUntil: 'networkidle' });
 
-  const artwork = page.locator('.latest-grid .intel-card img');
+  const artwork = page.locator('.cg-highlights .cg-highlight img');
   const count = await artwork.count();
   expect(count).toBeGreaterThanOrEqual(2);
 
@@ -91,10 +91,11 @@ test('homepage post artwork is responsive, descriptive, and visually distinct', 
     height: Number(image.getAttribute('height')),
     source: image.currentSrc || image.src,
     srcset: image.srcset,
-    width: Number(image.getAttribute('width'))
+    width: Number(image.getAttribute('width')),
+    linkedHeading: image.closest('a')?.querySelector('h3')?.textContent.trim()
   })));
   placements.forEach((image) => {
-    expect(image.alt).not.toBe('');
+    expect(image.alt !== '' || Boolean(image.linkedHeading)).toBeTruthy();
     expect(image.width).toBeGreaterThan(0);
     expect(image.height).toBeGreaterThan(0);
     expect(image.srcset).not.toBe('');
@@ -134,7 +135,8 @@ test('archive cards are whole-link, responsive, and keyboard accessible', async 
     const after = await firstCard.evaluate((card) => getComputedStyle(card).transform);
     expect(after).not.toBe(before);
 
-    const firstRowHeights = await cards.evaluateAll((items) => items.slice(0, 3).map((item) => Math.round(item.getBoundingClientRect().height)));
+    const firstRowHeights = await cards.evaluateAll((items) => items.filter((item) => item.offsetTop === items[0].offsetTop).map((item) => Math.round(item.getBoundingClientRect().height)));
+    expect(firstRowHeights.length).toBeGreaterThan(1);
     expect(new Set(firstRowHeights).size).toBe(1);
   }
 
@@ -297,12 +299,12 @@ test('reduced motion keeps the static hero and disables decorative movement', as
   const page = await context.newPage();
   await page.goto(baseURL, { waitUntil: 'networkidle' });
 
-  const hero = page.locator('[data-animated-hero]').first();
+  const hero = page.locator('.cg-hero__art').first();
   await expect(hero.locator('img')).toBeVisible();
-  await expect(hero.locator('video')).not.toHaveAttribute('src', /\S+/);
-  await expect(hero.locator('.anime-hero-media__toggle')).toBeHidden();
+  await expect(page.locator('.cg-hero video')).toHaveCount(0);
+  expect(await hero.locator('img').evaluate((image) => getComputedStyle(image).animationName)).toBe('none');
 
-  const card = page.locator('.intel-card').first();
+  const card = page.locator('.cg-highlight').first();
   const transitionDuration = await card.evaluate((item) => getComputedStyle(item).transitionDuration);
   const durations = transitionDuration.split(',').map((value) => {
     const duration = value.trim();
@@ -388,7 +390,7 @@ test('public forms use secure same-site handlers and anti-spam fields', async ({
 });
 
 test('SEO, agent discovery, and deferred ads are present', async ({ page, request }) => {
-  await page.goto(baseURL, { waitUntil: 'networkidle' });
+  const response = await page.goto(baseURL, { waitUntil: 'networkidle' });
 
   await expect(page).toHaveTitle(/Cybersecurity News & Critical CVE Analysis/i);
   await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', /cybersecurity/i);
@@ -398,7 +400,9 @@ test('SEO, agent discovery, and deferred ads are present', async ({ page, reques
   await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /^https?:\/\//);
   await expect(page.locator('meta[property="og:image:width"]')).toHaveAttribute('content', /^\d+$/);
   await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute('content', 'summary_large_image');
-  await expect(page.locator('#infosecnexus-adsense-config')).toHaveCount(1);
+  // The isolated preview explicitly blocks advertising and outbound services.
+  const isolatedPreview = response.headers()['x-infosecnexus-preview'] === 'isolated-sqlite';
+  await expect(page.locator('#infosecnexus-adsense-config')).toHaveCount(isolatedPreview ? 0 : 1);
   await expect(page.locator('script[data-infosecnexus-adsense]')).toHaveCount(0);
 
   const llms = await request.get(`${baseURL}/llms.txt`);

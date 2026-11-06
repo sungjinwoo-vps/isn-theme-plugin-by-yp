@@ -4,7 +4,7 @@
 > project. Then run the startup checklist in the next section. This is the
 > authoritative continuity handoff for the current project state.
 
-Last updated: 2026-11-04 (Asia/Kolkata)
+Last updated: 2026-11-06 (Asia/Kolkata)
 
 ## 1. Current Snapshot
 
@@ -31,6 +31,52 @@ Last updated: 2026-11-04 (Asia/Kolkata)
   linting passed, and 63 source-evidence regression checks plus editorial
   persistence fixtures passed. Lighthouse and Core Web Vitals remain targets,
   not permanent guarantees.
+
+### Local Cinematic Redesign Preview - November 6, 2026
+
+- The initial request required a local/staging implementation with no automatic
+  deployment. After reviewing the completed preview, the owner explicitly asked
+  to deploy production on November 6. Production was verified at `0.1.64` and a
+  database/theme rollback backup was verified before preparing release `0.2.0`.
+- Work is on local branch `design/cinematic-glass-preview`, theme version
+  `0.2.0-preview.1`. The cinematic glass hero and raised 3D editorial layout are
+  implemented across the homepage and every shared public page template, with
+  real content, accessible controls, dark/light modes and reduced-motion/no-JS
+  fallbacks. Existing branding, URLs, SEO, article content and forms are retained.
+- Preview: `http://localhost:8890/`. Use `tools/preview-start.ps1` to resume and
+  `tools/preview-sync.ps1` after theme edits. Its PHP server binds only loopback;
+  an SSH tunnel exposes the preview locally. It uses an isolated temporary
+  WordPress/SQLite instance with its database outside the document root, never
+  the live database. Keep the ignored connection file and SSH key in secure
+  records, never in Git or this memory.
+- The public-only snapshot has 247 published posts, six public pages and 247
+  attachment records; 83 stories are active, 159 remain retired and five remain
+  superseded. No private mail settings, subscribers or contact messages were
+  copied. Production cron/content changes after this snapshot do not appear
+  until an explicit `preview-start.ps1 -RefreshContent`.
+- Preview mail, server-side external requests, cron/generation, automatic
+  updates and ads are blocked. Newsletter remains connected to the existing
+  handler and honestly returns `503 mail-delayed` in preview. Actual staging
+  mail delivery requires the existing SMTP integration and a deliberate removal
+  of the preview mail blocker. Production mail settings were not changed.
+- Repeat form tests can reach the normal spam limits. Run
+  `tools/preview-start.ps1 -ResetChecks` before a fresh suite; its helper refuses
+  to run outside the exact isolated preview SQLite database and clears only
+  preview rate counters. It does not disable rate limiting.
+- Original optimized WebP artwork, responsive helpers and full prompt provenance
+  are documented in `docs/cinematic-assets.md`. The implementation, complete file
+  map, preview operation and remaining configuration are in
+  `docs/cinematic-preview.md`. Review artifacts stay ignored under
+  `.tmp/cinematic-preview/`; `new_design/` remains untouched.
+- Final local validation: all 64 desktop/mobile Playwright checks passed; 79
+  theme PHP syntax checks, focused PHPStan, JS/CSS lint, 63 source-evidence
+  checks, 28 actual SQLite priority-query checks and editorial persistence
+  fixtures passed. The source checks retain the Atlasum-inspired evidence,
+  affected/fixed versions, practical checks, patch/mitigation separation,
+  exploitation status, source citations and history behavior from `0.1.64`.
+  Final screenshot/Axe review passed all 21 desktop/tablet/mobile dark/light
+  scenarios with no serious/critical violations, page errors or document
+  overflow. The article screenshots show the complete unlocked content.
 
 ### Startup Checklist For Every New Session
 

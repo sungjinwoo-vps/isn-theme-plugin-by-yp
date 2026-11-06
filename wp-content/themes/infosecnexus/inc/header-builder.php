@@ -25,6 +25,8 @@ function render(): void {
 	if ( function_exists( 'infosecnexus_toolkit_render_location' ) && infosecnexus_toolkit_render_location( 'header' ) ) {
 		return;
 	}
+	$brief_url = trim( (string) get_value( 'header_button_url' ) );
+	$brief_url = '' !== $brief_url ? $brief_url : home_url( '/#daily-cyber-brief' );
 	?>
 	<header class="site-header" data-site-header>
 		<div class="site-header__main">
@@ -32,7 +34,6 @@ function render(): void {
 				<?php render_logo(); ?>
 				<?php render_primary_nav( 'desktop' ); ?>
 				<div class="site-header__actions">
-					<a class="button header-brief-button" href="<?php echo esc_url( (string) get_value( 'header_button_url' ) ); ?>"><span class="button-label-full"><?php echo esc_html( (string) get_value( 'header_button_label' ) ); ?></span><span class="button-label-short"><?php esc_html_e( 'Daily Brief', 'infosecnexus' ); ?></span></a>
 					<button class="icon-button color-mode-toggle" type="button" data-color-mode-toggle aria-label="<?php esc_attr_e( 'Switch to dark mode', 'infosecnexus' ); ?>">
 						<span class="color-mode-toggle__icon color-mode-toggle__icon--moon"><?php icon( 'moon' ); ?></span>
 						<span class="color-mode-toggle__icon color-mode-toggle__icon--sun"><?php icon( 'sun' ); ?></span>
@@ -40,6 +41,7 @@ function render(): void {
 					<a class="icon-button header-search-toggle" href="<?php echo esc_url( add_query_arg( 's', '', home_url( '/' ) ) ); ?>" data-search-toggle aria-controls="infosecnexus-search-modal" aria-expanded="false" aria-label="<?php esc_attr_e( 'Open search', 'infosecnexus' ); ?>">
 						<?php icon( 'search' ); ?>
 					</a>
+					<a class="button header-brief-button" href="<?php echo esc_url( $brief_url ); ?>" aria-label="<?php esc_attr_e( 'Daily Brief', 'infosecnexus' ); ?>"><span class="header-brief-full"><?php esc_html_e( 'Daily Brief', 'infosecnexus' ); ?></span><span class="header-brief-compact" aria-hidden="true"><?php esc_html_e( 'Brief', 'infosecnexus' ); ?></span><span class="button-arrow" aria-hidden="true"><?php icon( 'arrow-right' ); ?></span></a>
 					<button class="icon-button mobile-menu-toggle" type="button" data-mobile-menu-toggle aria-controls="infosecnexus-mobile-panel" aria-expanded="false" aria-label="<?php esc_attr_e( 'Open menu', 'infosecnexus' ); ?>">
 						<?php icon( 'menu' ); ?>
 					</button>
@@ -67,7 +69,7 @@ function render_logo(): void {
 			<?php endif; ?>
 		</span>
 		<span class="site-brand__text">
-			<span class="site-title"><?php bloginfo( 'name' ); ?></span>
+			<span class="site-title"><?php if ( 'InfoSecNexus' === get_bloginfo( 'name' ) ) : ?>InfoSec<span class="site-title__accent">Nexus</span><?php else : ?><?php bloginfo( 'name' ); ?><?php endif; ?></span>
 			<span class="site-description"><?php bloginfo( 'description' ); ?></span>
 		</span>
 	</a>
@@ -119,7 +121,8 @@ function render_primary_nav( string $variant = 'desktop' ): void {
 	);
 	$items = array(
 		array( 'label' => __( 'Home', 'infosecnexus' ), 'url' => home_url( '/' ), 'active' => is_front_page() ),
-		array( 'label' => __( 'Blogs', 'infosecnexus' ), 'url' => page_url( 'blog' ), 'active' => is_page( 'blog' ) || is_category( $topic_slugs ), 'children' => $topics ),
+		array( 'label' => __( 'Intelligence', 'infosecnexus' ), 'url' => page_url( 'blog' ), 'active' => is_page( 'blog' ) || is_category( $topic_slugs ), 'children' => $topics ),
+		array( 'label' => __( 'Critical CVEs', 'infosecnexus' ), 'url' => category_url( 'critical-cves' ), 'active' => is_category( 'critical-cves' ) ),
 		array( 'label' => __( 'About', 'infosecnexus' ), 'url' => page_url( 'about' ), 'active' => is_page( 'about' ) ),
 		array( 'label' => __( 'Contact', 'infosecnexus' ), 'url' => page_url( 'contact' ), 'active' => is_page( 'contact' ) ),
 	);
@@ -129,14 +132,14 @@ function render_primary_nav( string $variant = 'desktop' ): void {
 			<?php foreach ( $items as $item ) : ?>
 				<?php $children = isset( $item['children'] ) && is_array( $item['children'] ) ? $item['children'] : array(); ?>
 				<li class="<?php echo $children ? 'has-submenu' : ''; ?>">
-					<a class="<?php echo $item['active'] ? 'is-active' : ''; ?>" href="<?php echo esc_url( $item['url'] ); ?>"<?php echo $children ? ' aria-haspopup="true"' : ''; ?>>
+					<a class="<?php echo $item['active'] ? 'is-active' : ''; ?>" href="<?php echo esc_url( $item['url'] ); ?>"<?php echo $children ? ' aria-haspopup="true"' : ''; ?><?php echo $item['active'] && ( ! $children || is_page( 'blog' ) ) ? ' aria-current="page"' : ''; ?>>
 						<?php echo esc_html( $item['label'] ); ?>
 					</a>
 					<?php if ( $children ) : ?>
 						<ul class="sub-menu">
 							<?php foreach ( $children as $child ) : ?>
 								<li>
-									<a class="<?php echo $child['active'] ? 'is-active' : ''; ?>" href="<?php echo esc_url( $child['url'] ); ?>">
+									<a class="<?php echo $child['active'] ? 'is-active' : ''; ?>" href="<?php echo esc_url( $child['url'] ); ?>"<?php echo $child['active'] ? ' aria-current="page"' : ''; ?>>
 										<?php echo esc_html( $child['label'] ); ?>
 									</a>
 								</li>
@@ -308,6 +311,12 @@ function icon( string $name ): void {
 			break;
 		case 'arrow-right':
 			echo '<svg ' . $common . ' viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+			break;
+		case 'layers':
+			echo '<svg ' . $common . ' viewBox="0 0 24 24"><path d="m12 3 10 5-10 5L2 8l10-5zM2 12l10 5 10-5M2 16l10 5 10-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+			break;
+		case 'book':
+			echo '<svg ' . $common . ' viewBox="0 0 24 24"><path d="M12 5c-3-2-6-2-10-1v15c4-1 7-1 10 1 3-2 6-2 10-1V4c-4-1-7-1-10 1zm0 0v15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 			break;
 	}
 }

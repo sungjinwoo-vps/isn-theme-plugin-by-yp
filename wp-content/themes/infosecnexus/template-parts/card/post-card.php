@@ -25,7 +25,7 @@ $excerpt    = has_excerpt( $card_post_id ) ? get_the_excerpt( $card_post ) : wp_
 $critical   = \InfoSecNexus\Theme\Anime_Design\is_critical_post( $card_post_id );
 $classes    = get_post_class( 'post-card post-card--' . $variant . ( $critical ? ' post-card--critical' : '' ), $card_post_id );
 ?>
-<article id="post-<?php echo esc_attr( (string) $card_post_id ); ?>" class="<?php echo esc_attr( implode( ' ', $classes ) ); ?>">
+<article id="post-<?php echo esc_attr( (string) $card_post_id ); ?>" class="<?php echo esc_attr( implode( ' ', $classes ) ); ?>" data-reveal>
 	<a class="post-card__link" href="<?php echo esc_url( get_permalink( $card_post_id ) ); ?>">
 		<div class="post-card__media">
 			<?php
@@ -45,7 +45,7 @@ $classes    = get_post_class( 'post-card post-card--' . $variant . ( $critical ?
 			<?php if ( ! empty( $categories ) ) : ?>
 				<div class="post-card__topics" aria-label="<?php esc_attr_e( 'Topics', 'infosecnexus' ); ?>">
 					<?php foreach ( array_slice( $categories, 0, 2 ) as $category ) : ?>
-						<span class="severity-chip<?php echo 'critical-cves' === $category->slug ? ' severity-chip--critical' : ''; ?>"><?php echo esc_html( $category->name ); ?></span>
+						<span class="severity-chip"><?php echo esc_html( $category->name ); ?></span>
 					<?php endforeach; ?>
 				</div>
 			<?php endif; ?>

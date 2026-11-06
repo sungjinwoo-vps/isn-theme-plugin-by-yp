@@ -1,399 +1,65 @@
 <?php
 /**
- * Front page template.
- *
+ * Cinematic, source-backed newsroom homepage.
  * @package InfoSecNexus
  */
-
 declare(strict_types=1);
-
+use InfoSecNexus\Theme\Cinematic_Design as Content;
+use InfoSecNexus\Theme\Cinematic_Media as Media;
+use InfoSecNexus\Theme\Header_Builder as Header;
+use InfoSecNexus\Theme\Template_Tags as Tags;
 get_header();
-
-$asset_image = static function ( string $key, array $attrs = array() ): void {
-	echo \InfoSecNexus\Theme\Anime_Design\asset_image( $key, $attrs ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-};
-
-$post_url = static function ( string $slug, string $fallback ): string {
-	$post = get_page_by_path( $slug, 'OBJECT', 'post' );
-	return $post && 'staged' !== (string) get_post_meta( $post->ID, '_infosecnexus_retirement_state', true ) ? get_permalink( $post ) : $fallback;
-};
-
-$critical_url = \InfoSecNexus\Theme\Header_Builder\category_url( 'critical-cves' );
-$cyber_url    = \InfoSecNexus\Theme\Header_Builder\category_url( 'cybersecurity' );
-$linux_url    = \InfoSecNexus\Theme\Header_Builder\category_url( 'linux-administration' );
-$ai_url       = \InfoSecNexus\Theme\Header_Builder\category_url( 'artificial-intelligence' );
-$cloud_url    = \InfoSecNexus\Theme\Header_Builder\category_url( 'cloud-security' );
-
-$post_card_data = static function ( \WP_Post $post, string $severity = '', string $fallback_image = 'hero' ): array {
-	$categories  = get_the_category( $post->ID );
-	$category    = ! empty( $categories ) ? $categories[0]->name : __( 'Cyber Security', 'infosecnexus' );
-	$full_title  = get_the_title( $post );
-	$raw_excerpt = has_excerpt( $post->ID ) ? get_the_excerpt( $post ) : wp_strip_all_tags( (string) $post->post_content );
-	$date        = \InfoSecNexus\Theme\Template_Tags\post_date_data( (int) $post->ID );
-
-	return array(
-		'post_id'    => (int) $post->ID,
-		'title'      => wp_trim_words( $full_title, 10, '...' ),
-		'full_title' => $full_title,
-		'excerpt'    => wp_trim_words( $raw_excerpt, 18, '...' ),
-		'category'   => $category,
-		'image'      => $fallback_image,
-		'url'        => get_permalink( $post ),
-		'date'       => $date['label'],
-		'read'       => sprintf(
-			/* translators: %d: reading time in minutes. */
-			_n( '%d min read', '%d min read', \InfoSecNexus\Theme\Template_Tags\reading_time( (int) $post->ID ), 'infosecnexus' ),
-			\InfoSecNexus\Theme\Template_Tags\reading_time( (int) $post->ID )
-		),
-		'severity'   => $severity,
-	);
-};
-
-$normalize_severity = static function ( string $severity ): string {
-	return match ( strtoupper( trim( $severity ) ) ) {
-		'KNOWN EXPLOITED', 'CRITICAL' => 'Critical',
-		'HIGH'                         => 'High',
-		'MEDIUM', 'MODERATE'           => 'Medium',
-		'LOW'                          => 'Low',
-		default                        => 'High',
-	};
-};
-
-$hero_url = (string) \InfoSecNexus\Theme\Customizer\get_value( 'home_hero_button_url' );
-if ( '' === $hero_url ) {
-	$hero_url = $critical_url;
+$blog_url = Header\page_url( 'blog' );
+$topics = Content\topics();
+$rolling = Tags\rolling_brief_post();
+$brief_url = $rolling ? get_permalink( $rolling ) : $blog_url;
+$brief_date = $rolling ? Tags\post_date_data( (int) $rolling->ID ) : null;
+$excluded = $rolling ? array( (int) $rolling->ID ) : array();
+$highlights = array();
+foreach ( $topics as $topic ) {
+	$posts = get_posts( array( 'post_type' => 'post', 'post_status' => 'publish', 'posts_per_page' => 8, 'category_name' => $topic['slug'], 'post__not_in' => $excluded, 'ignore_sticky_posts' => true ) );
+	$selected = Content\unique_posts( $posts, 1, $excluded );
+	$post = $selected[0] ?? null;
+	$highlights[] = array( 'topic' => $topic, 'post' => $post );
+	if ( $post ) { $excluded[] = (int) $post->ID; }
 }
-$hero_badge        = (string) \InfoSecNexus\Theme\Customizer\get_value( 'home_hero_badge' );
-$hero_title        = (string) \InfoSecNexus\Theme\Customizer\get_value( 'home_hero_title' );
-$hero_excerpt      = (string) \InfoSecNexus\Theme\Customizer\get_value( 'home_hero_excerpt' );
-$hero_button_label = (string) \InfoSecNexus\Theme\Customizer\get_value( 'home_hero_button_label' );
-$hero_post_id      = 0;
-$hero_updated_iso  = '';
-$hero_updated_text = '';
-
-$rolling_posts = get_posts(
-	array(
-		'post_type'           => 'post',
-		'post_status'         => 'publish',
-		'posts_per_page'      => 1,
-		'name'                => 'live-cybersecurity-brief',
-		'ignore_sticky_posts' => true,
-		'meta_query'          => array(
-			array(
-				'key'   => '_infosecnexus_newsroom_kind',
-				'value' => 'rolling',
-			),
-		),
-	)
-);
-if ( ! empty( $rolling_posts ) && $rolling_posts[0] instanceof \WP_Post ) {
-	$hero_post         = $rolling_posts[0];
-	$hero_post_id      = (int) $hero_post->ID;
-	$hero_url          = get_permalink( $hero_post );
-	$hero_badge        = __( 'Live Brief', 'infosecnexus' );
-	$hero_title        = get_the_title( $hero_post );
-	$hero_excerpt      = wp_trim_words( has_excerpt( $hero_post_id ) ? get_the_excerpt( $hero_post ) : wp_strip_all_tags( (string) $hero_post->post_content ), 28, '...' );
-	$hero_button_label = __( 'Read Live Brief', 'infosecnexus' );
-	$hero_updated_iso  = get_the_modified_date( DATE_W3C, $hero_post );
-	$hero_updated_text = sprintf(
-		/* translators: %s: post modification date. */
-		__( 'Updated %s', 'infosecnexus' ),
-		get_the_modified_date( get_option( 'date_format' ), $hero_post )
-	);
-}
-
-$latest_cards = array(
-	array(
-		'title'    => __( 'Cybersecurity Operations and Threat Intelligence', 'infosecnexus' ),
-		'excerpt'  => __( 'Follow confirmed threats, active exploitation, defensive guidance, and response priorities.', 'infosecnexus' ),
-		'category' => __( 'Cyber Security', 'infosecnexus' ),
-		'image'    => 'hero',
-		'url'      => $cyber_url,
-		'date'     => __( 'Live desk', 'infosecnexus' ),
-		'read'     => __( 'Updated daily', 'infosecnexus' ),
-	),
-	array(
-		'title'    => __( 'Cloud, Network, and Infrastructure Security', 'infosecnexus' ),
-		'excerpt'  => __( 'Review vendor advisories, exposed services, platform changes, and practical hardening steps.', 'infosecnexus' ),
-		'category' => __( 'Cloud Security', 'infosecnexus' ),
-		'image'    => 'cloud',
-		'url'      => $cloud_url,
-		'date'     => __( 'Live desk', 'infosecnexus' ),
-		'read'     => __( 'Updated daily', 'infosecnexus' ),
-	),
-	array(
-		'title'    => __( 'AI, Application, and Software Supply Chain Risk', 'infosecnexus' ),
-		'excerpt'  => __( 'Track model, agent, application, dependency, and build-pipeline security developments.', 'infosecnexus' ),
-		'category' => __( 'AI Security', 'infosecnexus' ),
-		'image'    => 'ai',
-		'url'      => $ai_url,
-		'date'     => __( 'Live desk', 'infosecnexus' ),
-		'read'     => __( 'Updated daily', 'infosecnexus' ),
-	),
-);
-
-$side_stories = array(
-	array(
-		'title'    => __( 'CVE Triage Checklist for High-Risk Vulnerabilities', 'infosecnexus' ),
-		'excerpt'  => __( 'Rank exploited vulnerabilities by exposure, blast radius, and patch urgency.', 'infosecnexus' ),
-		'image'    => 'critical',
-		'url'      => $post_url( 'cve-triage-checklist-high-risk-vulnerabilities', $critical_url ),
-		'date'     => __( 'July 21, 2026', 'infosecnexus' ),
-		'severity' => 'Critical',
-	),
-	array(
-		'title'    => __( 'Linux Kernel Patch Runbook for Production Servers', 'infosecnexus' ),
-		'excerpt'  => __( 'Plan reboot windows, module checks, validation, and visible exceptions.', 'infosecnexus' ),
-		'image'    => 'linux',
-		'url'      => $post_url( 'linux-kernel-patch-runbook-production-servers', $linux_url ),
-		'date'     => __( 'July 21, 2026', 'infosecnexus' ),
-		'severity' => 'High',
-	),
-);
-
-$cves = array(
-	array(
-		'id'       => 'CVE Triage',
-		'name'     => __( 'High-risk vulnerability review workflow', 'infosecnexus' ),
-		'severity' => 'Critical',
-		'score'    => '9.8',
-	),
-	array(
-		'id'       => 'Zero-Day',
-		'name'     => __( 'First 24 hours response checklist', 'infosecnexus' ),
-		'severity' => 'High',
-		'score'    => '8.6',
-	),
-	array(
-		'id'       => 'Exploit Signals',
-		'name'     => __( 'Early indicators before patch windows', 'infosecnexus' ),
-		'severity' => 'High',
-		'score'    => '8.1',
-	),
-	array(
-		'id'       => 'Patch Ops',
-		'name'     => __( 'Owner, deadline, and verification tracking', 'infosecnexus' ),
-		'severity' => 'Medium',
-		'score'    => '6.9',
-	),
-	array(
-		'id'       => 'Exceptions',
-		'name'     => __( 'Temporary mitigation review cadence', 'infosecnexus' ),
-		'severity' => 'Low',
-		'score'    => '4.2',
-	),
-);
-
-$critical_posts = get_posts(
-	array(
-		'post_type'           => 'post',
-		'post_status'         => 'publish',
-		'posts_per_page'      => 10,
-		'ignore_sticky_posts' => true,
-		'orderby'             => array(
-			'date' => 'DESC',
-			'ID'   => 'DESC',
-		),
-		'meta_query'          => array(
-			array(
-				'key'   => '_infosecnexus_newsroom_kind',
-				'value' => 'breaking',
-			),
-		),
-	)
-);
-
-$unique_critical_posts = array();
-$critical_story_keys   = array();
-foreach ( $critical_posts as $critical_post ) {
-	$title_key = strtolower( trim( wp_strip_all_tags( get_the_title( $critical_post ) ) ) );
-	if ( preg_match( '/\bCVE-\d{4}-\d{4,}\b/i', $title_key, $cve_match ) ) {
-		$story_key = 'cve:' . strtolower( $cve_match[0] );
-	} else {
-		$story_key = sanitize_text_field( (string) get_post_meta( $critical_post->ID, '_infosecnexus_story_key', true ) );
-	}
-	if ( '' === $story_key ) {
-		$story_key = '' !== $title_key
-			? 'title:' . md5( preg_replace( '/\s+/', ' ', $title_key ) )
-			: 'post:' . (int) $critical_post->ID;
-	}
-	if ( isset( $critical_story_keys[ $story_key ] ) ) {
-		continue;
-	}
-	$critical_story_keys[ $story_key ] = true;
-	$unique_critical_posts[]           = $critical_post;
-	if ( count( $unique_critical_posts ) >= 5 ) {
-		break;
-	}
-}
-$critical_posts = $unique_critical_posts;
-
-if ( ! empty( $critical_posts ) ) {
-	$cves = array();
-	foreach ( $critical_posts as $critical_post ) {
-		$critical_title = get_the_title( $critical_post );
-		$match          = array();
-		$label          = preg_match( '/CVE-\d{4}-\d+/i', $critical_title, $match ) ? strtoupper( $match[0] ) : wp_trim_words( $critical_title, 3, '' );
-		$severity       = $normalize_severity( sanitize_text_field( (string) get_post_meta( $critical_post->ID, '_infosecnexus_live_severity', true ) ) );
-		$score          = get_post_meta( $critical_post->ID, '_infosecnexus_live_score', true );
-		$cves[]         = array(
-			'id'       => $label,
-			'name'     => wp_trim_words( $critical_title, 8, '' ),
-			'severity' => $severity,
-			'score'    => is_numeric( $score ) ? number_format_i18n( (float) $score, 1 ) : '--',
-			'url'      => get_permalink( $critical_post ),
-		);
-	}
-
-	$priority_severity = $normalize_severity( sanitize_text_field( (string) get_post_meta( $critical_posts[0]->ID, '_infosecnexus_live_severity', true ) ) );
-	$side_stories[0]   = $post_card_data( $critical_posts[0], $priority_severity, 'critical' );
-}
-
-if ( count( $critical_posts ) > 1 ) {
-	$secondary_severity = $normalize_severity( sanitize_text_field( (string) get_post_meta( $critical_posts[1]->ID, '_infosecnexus_live_severity', true ) ) );
-	$side_stories[1]    = $post_card_data( $critical_posts[1], $secondary_severity, 'network' );
-}
-
-$featured_post_ids = array_values(
-	array_unique(
-		array_filter(
-			array_merge(
-				array( $hero_post_id ),
-				array_map( static fn( \WP_Post $post ): int => (int) $post->ID, array_slice( $critical_posts, 0, 2 ) )
-			)
-		)
-	)
-);
-$latest_posts      = get_posts(
-	array(
-		'post_type'           => 'post',
-		'post_status'         => 'publish',
-		'posts_per_page'      => 3,
-		'post__not_in'        => $featured_post_ids,
-		'ignore_sticky_posts' => true,
-		'meta_query'          => array(
-			'relation' => 'OR',
-			array(
-				'key'     => '_infosecnexus_newsroom_kind',
-				'compare' => 'NOT EXISTS',
-			),
-			array(
-				'key'     => '_infosecnexus_newsroom_kind',
-				'value'   => 'rolling',
-				'compare' => '!=',
-			),
-		),
-	)
-);
-
-if ( ! empty( $latest_posts ) ) {
-	$latest_cards = array_slice( array_merge( array_map( $post_card_data, $latest_posts ), $latest_cards ), 0, 3 );
-}
+$recent = get_posts( array( 'post_type' => 'post', 'post_status' => 'publish', 'posts_per_page' => 30, 'post__not_in' => $excluded, 'ignore_sticky_posts' => true ) );
+$latest = Content\unique_posts( $recent, 4, $excluded );
+$critical = get_posts( array( 'post_type' => 'post', 'post_status' => 'publish', 'posts_per_page' => 16, 'category_name' => 'critical-cves', 'ignore_sticky_posts' => true ) );
+$critical = Content\unique_posts( $critical, 3, $rolling ? array( (int) $rolling->ID ) : array() );
+$arrow = static function (): void { Header\icon( 'arrow-right' ); };
 ?>
-<main id="primary" class="site-main">
-	<section class="home-hero layout-wide-shell" aria-label="<?php esc_attr_e( 'Featured cybersecurity briefings', 'infosecnexus' ); ?>">
-		<article class="home-hero__feature">
-			<?php \InfoSecNexus\Theme\Anime_Design\hero_media( $hero_post_id ); ?>
-			<span class="home-hero__shade" aria-hidden="true"></span>
-			<div class="home-hero__content">
-				<span class="severity-pill severity-pill--critical"><?php echo esc_html( $hero_badge ); ?></span>
-				<h1 class="home-hero__title"><?php echo esc_html( $hero_title ); ?></h1>
-				<p class="home-hero__excerpt"><?php echo esc_html( $hero_excerpt ); ?></p>
-				<?php if ( '' !== $hero_updated_iso && '' !== $hero_updated_text ) : ?>
-					<p class="home-hero__updated"><time datetime="<?php echo esc_attr( $hero_updated_iso ); ?>"><?php echo esc_html( $hero_updated_text ); ?></time></p>
-				<?php endif; ?>
-				<a class="button button--hero home-hero__lead" href="<?php echo esc_url( $hero_url ); ?>"><?php echo esc_html( $hero_button_label ); ?><?php \InfoSecNexus\Theme\Header_Builder\icon( 'arrow-right' ); ?></a>
-			</div>
-		</article>
-
-		<div class="home-hero__side">
-			<?php foreach ( $side_stories as $story ) : ?>
-				<article class="side-story<?php echo 'Critical' === $story['severity'] ? ' side-story--critical' : ''; ?>">
-					<a class="side-story__link" href="<?php echo esc_url( $story['url'] ); ?>">
-					<div class="side-story__copy">
-						<h2><?php echo esc_html( $story['title'] ); ?></h2>
-						<p><?php echo esc_html( $story['excerpt'] ); ?></p>
-						<div class="story-meta"><?php echo esc_html( $story['date'] ); ?> <span class="severity-tag severity-tag--<?php echo esc_attr( strtolower( $story['severity'] ) ); ?>"><?php echo esc_html( $story['severity'] ); ?></span></div>
-					</div>
-					<?php if ( ! empty( $story['post_id'] ) ) : ?>
-						<?php echo \InfoSecNexus\Theme\Anime_Design\post_image( (int) $story['post_id'], array( 'sizes' => '(max-width: 760px) calc(100vw - 32px), (max-width: 1180px) 38vw, 320px' ), 'medium_large' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-					<?php else : ?>
-						<?php $asset_image( $story['image'], array( 'sizes' => '(max-width: 760px) calc(100vw - 32px), (max-width: 1180px) 38vw, 320px' ) ); ?>
-					<?php endif; ?>
-					</a>
-				</article>
-			<?php endforeach; ?>
+<main id="primary" class="site-main cinematic-home">
+	<section class="cg-hero cg-shell" aria-labelledby="cg-hero-title" data-cg-hero>
+		<div class="cg-hero__art" aria-hidden="true" data-cg-parallax="0.8"><?php echo Media\image( 'hero', array( 'alt' => '', 'class' => 'cg-hero__image', 'loading' => 'eager', 'fetchpriority' => 'high', 'sizes' => '(max-width: 700px) 100vw, 1280px' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div>
+		<div class="cg-hero__flow" aria-hidden="true"><svg viewBox="0 0 1280 560" preserveAspectRatio="xMidYMid slice" focusable="false"><defs><linearGradient id="cg-flow"><stop stop-color="#2788ff" stop-opacity="0"/><stop offset=".55" stop-color="#43dff6" stop-opacity=".8"/><stop offset="1" stop-color="#2788ff" stop-opacity="0"/></linearGradient></defs><path d="M380 540C650 520 690 160 1000 190S1360 80 1420 20"/><path d="M440 580C730 560 710 240 1010 260S1360 110 1460 100"/><path d="M510 620C780 530 810 300 1120 320S1390 230 1480 150"/></svg><?php for ( $i = 0; $i < 12; ++$i ) : ?><i style="--particle:<?php echo esc_attr( (string) $i ); ?>"></i><?php endfor; ?></div>
+		<div class="cg-hero__copy">
+			<p class="cg-eyebrow cg-hero-enter"><span class="cg-status-dot" aria-hidden="true"></span><?php esc_html_e( 'Cybersecurity intelligence', 'infosecnexus' ); ?></p>
+			<h1 id="cg-hero-title" class="cg-hero-enter">Intelligence<br><span>Beyond the Noise.</span></h1>
+			<p class="cg-hero__subtitle cg-hero-enter"><?php esc_html_e( 'Critical vulnerabilities. Emerging threats. Practical defence. A clearer perspective on what matters next.', 'infosecnexus' ); ?></p>
+			<div class="cg-actions cg-hero-enter"><a class="button cg-button" href="<?php echo esc_url( $blog_url ); ?>"><?php esc_html_e( 'Explore intelligence', 'infosecnexus' ); ?><?php $arrow(); ?></a><a class="cg-text-link" href="<?php echo esc_url( $brief_url ); ?>"><?php esc_html_e( 'Read the live brief', 'infosecnexus' ); ?><span class="cg-circle-arrow" aria-hidden="true"><?php $arrow(); ?></span></a></div>
+			<div class="cg-hero__principles cg-hero-enter" aria-label="<?php esc_attr_e( 'Explore our coverage', 'infosecnexus' ); ?>"><a href="<?php echo esc_url( Header\category_url( 'cybersecurity' ) ); ?>"><?php Header\icon( 'shield' ); ?><?php esc_html_e( 'Threat intelligence', 'infosecnexus' ); ?></a><a href="<?php echo esc_url( Header\category_url( 'critical-cves' ) ); ?>"><?php Header\icon( 'layers' ); ?><?php esc_html_e( 'CVE analysis', 'infosecnexus' ); ?></a><a href="<?php echo esc_url( Header\category_url( 'tutorials' ) ); ?>"><?php Header\icon( 'book' ); ?><?php esc_html_e( 'Practical guides', 'infosecnexus' ); ?></a></div>
 		</div>
+		<?php if ( $rolling ) : ?><aside class="cg-hero__glass" data-cg-parallax="0.3" aria-label="<?php esc_attr_e( 'Current security briefing', 'infosecnexus' ); ?>"><span class="cg-hero__glass-icon" aria-hidden="true"><?php Header\icon( 'shield' ); ?></span><p class="cg-eyebrow"><?php esc_html_e( 'Your next briefing', 'infosecnexus' ); ?></p><h2><?php esc_html_e( 'One clear view.', 'infosecnexus' ); ?><br><?php esc_html_e( 'Better next steps.', 'infosecnexus' ); ?></h2><time datetime="<?php echo esc_attr( $brief_date['datetime'] ); ?>"><?php echo esc_html( $brief_date['label'] ); ?></time><a href="<?php echo esc_url( $brief_url ); ?>"><?php esc_html_e( 'Open the live brief', 'infosecnexus' ); ?><?php $arrow(); ?></a></aside><?php endif; ?>
 	</section>
-
-	<section class="home-news layout-wide-shell">
-		<div class="news-panel news-panel--latest">
-			<header class="section-header">
-				<h2><?php echo esc_html( (string) \InfoSecNexus\Theme\Customizer\get_value( 'home_latest_title' ) ); ?></h2>
-				<a href="<?php echo esc_url( $cyber_url ); ?>"><?php esc_html_e( 'View All', 'infosecnexus' ); ?><?php \InfoSecNexus\Theme\Header_Builder\icon( 'arrow-right' ); ?></a>
-			</header>
-			<div class="latest-grid">
-				<?php foreach ( $latest_cards as $card ) : ?>
-					<article class="intel-card">
-						<a class="intel-card__link" href="<?php echo esc_url( $card['url'] ); ?>">
-						<?php if ( ! empty( $card['post_id'] ) ) : ?>
-							<?php echo \InfoSecNexus\Theme\Anime_Design\post_image( (int) $card['post_id'], array( 'sizes' => '(max-width: 760px) calc(100vw - 32px), (max-width: 1180px) 29vw, 320px' ), 'medium_large' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-						<?php else : ?>
-							<?php $asset_image( $card['image'], array( 'sizes' => '(max-width: 760px) calc(100vw - 32px), (max-width: 1180px) 29vw, 320px' ) ); ?>
-						<?php endif; ?>
-						<div class="intel-card__body">
-							<span class="category-chip"><?php echo esc_html( $card['category'] ); ?></span>
-							<h3><?php echo esc_html( $card['title'] ); ?></h3>
-							<p><?php echo esc_html( $card['excerpt'] ); ?></p>
-							<div class="story-meta"><?php echo esc_html( $card['date'] ); ?> <span aria-hidden="true">-</span> <?php echo esc_html( $card['read'] ); ?></div>
-							<span class="intel-card__readmore"><?php esc_html_e( 'Read briefing', 'infosecnexus' ); ?> <span aria-hidden="true">&rarr;</span></span>
-						</div>
-						</a>
-					</article>
-				<?php endforeach; ?>
-			</div>
-		</div>
-
-		<div class="news-panel news-panel--cves">
-			<header class="section-header">
-				<h2><?php echo esc_html( (string) \InfoSecNexus\Theme\Customizer\get_value( 'home_cve_title' ) ); ?></h2>
-				<a href="<?php echo esc_url( $critical_url ); ?>"><?php esc_html_e( 'View All', 'infosecnexus' ); ?><?php \InfoSecNexus\Theme\Header_Builder\icon( 'arrow-right' ); ?></a>
-			</header>
-			<div class="cve-list">
-				<?php foreach ( $cves as $cve ) : ?>
-					<a class="cve-row" href="<?php echo esc_url( $cve['url'] ?? $critical_url ); ?>">
-						<span>
-							<strong><?php echo esc_html( $cve['id'] ); ?></strong>
-							<small><?php echo esc_html( $cve['name'] ); ?></small>
-						</span>
-						<span class="severity-tag severity-tag--<?php echo esc_attr( strtolower( $cve['severity'] ) ); ?>"><?php echo esc_html( $cve['severity'] ); ?></span>
-						<b><?php echo esc_html( $cve['score'] ); ?></b>
-					</a>
-				<?php endforeach; ?>
-			</div>
-		</div>
+	<form class="cg-discovery cg-shell" action="<?php echo esc_url( home_url( '/' ) ); ?>" method="get" role="search" aria-label="<?php esc_attr_e( 'Filter security intelligence', 'infosecnexus' ); ?>">
+		<label class="cg-discovery__field"><span><?php Header\icon( 'layers' ); ?><?php esc_html_e( 'Topic', 'infosecnexus' ); ?></span><select name="category_name"><option value=""><?php esc_html_e( 'All intelligence', 'infosecnexus' ); ?></option><?php foreach ( $topics as $topic ) : ?><option value="<?php echo esc_attr( $topic['slug'] ); ?>"><?php echo esc_html( $topic['label'] ); ?></option><?php endforeach; ?></select></label>
+		<label class="cg-discovery__field"><span><?php Header\icon( 'shield' ); ?><?php esc_html_e( 'Priority', 'infosecnexus' ); ?></span><select name="isn_severity"><option value=""><?php esc_html_e( 'All levels', 'infosecnexus' ); ?></option><option value="critical">Critical</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option><option value="none">None (0.0)</option><option value="known-exploited">Known exploited</option></select></label>
+		<label class="cg-discovery__field cg-discovery__query"><span><?php Header\icon( 'search' ); ?><?php esc_html_e( 'Search intelligence', 'infosecnexus' ); ?></span><input name="s" type="search" placeholder="<?php esc_attr_e( 'CVE, product, or topic…', 'infosecnexus' ); ?>" aria-label="<?php esc_attr_e( 'Search published articles', 'infosecnexus' ); ?>"></label><button class="button cg-button" type="submit"><?php Header\icon( 'search' ); ?><?php esc_html_e( 'Search', 'infosecnexus' ); ?></button>
+	</form>
+	<section class="cg-panel cg-highlights cg-shell" aria-labelledby="cg-highlights-title" data-reveal>
+		<header class="cg-section-heading"><div><p class="cg-eyebrow"><?php esc_html_e( 'Security highlights', 'infosecnexus' ); ?></p><h2 id="cg-highlights-title"><?php esc_html_e( 'What needs your attention?', 'infosecnexus' ); ?></h2></div><a class="cg-pill-link" href="<?php echo esc_url( $blog_url ); ?>"><?php esc_html_e( 'View all intelligence', 'infosecnexus' ); ?><?php $arrow(); ?></a></header>
+		<div class="cg-highlights__grid"><?php foreach ( $highlights as $highlight ) : $topic = $highlight['topic']; $post = $highlight['post']; ?><article class="cg-highlight" data-reveal><a class="cg-highlight__link" href="<?php echo esc_url( $post ? get_permalink( $post ) : Header\category_url( $topic['slug'] ) ); ?>"><div class="cg-highlight__media"><?php echo Media\image( $topic['key'], array( 'alt' => '', 'sizes' => '(max-width: 600px) 42vw, 220px' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div><div class="cg-highlight__copy"><p class="cg-eyebrow"><?php echo esc_html( $topic['label'] ); ?></p><h3><?php echo esc_html( $post ? wp_trim_words( get_the_title( $post ), 13, '…' ) : 'Explore ' . $topic['label'] ); ?></h3><span class="cg-circle-arrow" aria-hidden="true"><?php $arrow(); ?></span></div></a></article><?php endforeach; ?></div>
 	</section>
-
-	<section class="newsletter-section layout-wide-shell" id="daily-cyber-brief">
-		<div class="newsletter-section__icon" aria-hidden="true">
-			<svg viewBox="0 0 24 24" focusable="false"><path d="M4 6h16v12H4z" fill="none" stroke="currentColor" stroke-width="2"/><path d="m4 7 8 6 8-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
-		</div>
-		<div>
-			<h2><?php echo esc_html( (string) \InfoSecNexus\Theme\Customizer\get_value( 'newsletter_title' ) ); ?></h2>
-			<p><?php echo esc_html( (string) \InfoSecNexus\Theme\Customizer\get_value( 'newsletter_intro' ) ); ?></p>
-		</div>
-		<?php if ( function_exists( 'infosecnexus_toolkit_newsletter_form' ) ) : ?>
-			<?php infosecnexus_toolkit_newsletter_form(); ?>
-		<?php else : ?>
-			<form class="newsletter-card">
-				<label>
-					<span class="screen-reader-text"><?php esc_html_e( 'Email address', 'infosecnexus' ); ?></span>
-					<input type="email" placeholder="<?php esc_attr_e( 'Enter your email address', 'infosecnexus' ); ?>">
-				</label>
-				<button type="submit"><?php esc_html_e( 'Subscribe Now', 'infosecnexus' ); ?><?php \InfoSecNexus\Theme\Header_Builder\icon( 'arrow-right' ); ?></button>
-			</form>
-		<?php endif; ?>
-	</section>
+	<section class="cg-panel cg-topics cg-shell" aria-labelledby="cg-topics-title" data-reveal><header class="cg-section-heading"><div><p class="cg-eyebrow"><?php esc_html_e( 'Explore by topic', 'infosecnexus' ); ?></p><h2 id="cg-topics-title"><?php esc_html_e( 'Find your security focus.', 'infosecnexus' ); ?></h2></div><p><?php esc_html_e( 'In-depth context, practical guidance, and a path to the topics that matter to you.', 'infosecnexus' ); ?></p></header><div class="cg-topics__grid"><?php foreach ( $topics as $topic ) : ?><a class="cg-topic" href="<?php echo esc_url( Header\category_url( $topic['slug'] ) ); ?>"><?php echo Media\image( $topic['key'], array( 'alt' => '', 'class' => 'cg-topic__icon', 'sizes' => '80px' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><h3><?php echo esc_html( $topic['label'] ); ?></h3><p><?php echo esc_html( $topic['description'] ); ?></p><span class="cg-circle-arrow" aria-hidden="true"><?php $arrow(); ?></span></a><?php endforeach; ?></div></section>
+	<div class="cg-editorial-row cg-shell">
+		<section class="cg-panel cg-featured" aria-labelledby="cg-featured-title" data-reveal><p class="cg-eyebrow"><?php esc_html_e( 'Featured briefing', 'infosecnexus' ); ?></p><div class="cg-featured__inner"><div class="cg-featured__media"><?php echo Media\image( 'shield', array( 'alt' => '', 'sizes' => '(max-width: 600px) 70vw, 280px' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div><div><h2 id="cg-featured-title"><?php echo esc_html( $rolling ? wp_trim_words( get_the_title( $rolling ), 13, '…' ) : 'A clearer view of cybersecurity.' ); ?></h2><p><?php echo esc_html( $rolling ? Content\excerpt( $rolling, 31 ) : 'Explore published intelligence and practical guidance from the InfoSecNexus security desks.' ); ?></p><?php if ( $brief_date ) : ?><time datetime="<?php echo esc_attr( $brief_date['datetime'] ); ?>"><?php echo esc_html( $brief_date['label'] ); ?></time><?php endif; ?><a class="button cg-button" href="<?php echo esc_url( $brief_url ); ?>"><?php esc_html_e( 'Read the briefing', 'infosecnexus' ); ?><?php $arrow(); ?></a></div></div></section>
+		<section class="cg-panel cg-desk" aria-labelledby="cg-desk-title" data-reveal><p class="cg-eyebrow"><?php esc_html_e( 'Your daily security desk', 'infosecnexus' ); ?></p><h2 id="cg-desk-title"><?php esc_html_e( 'Stay ahead of the next decision.', 'infosecnexus' ); ?></h2><ul class="cg-desk__principles"><li><?php Header\icon( 'shield' ); ?><?php esc_html_e( 'Source-backed intelligence', 'infosecnexus' ); ?></li><li><?php Header\icon( 'layers' ); ?><?php esc_html_e( 'Context before conclusions', 'infosecnexus' ); ?></li><li><?php Header\icon( 'book' ); ?><?php esc_html_e( 'Practical next steps', 'infosecnexus' ); ?></li></ul><?php if ( $critical ) : ?><div class="cg-desk__alerts"><h3><?php esc_html_e( 'On the vulnerability desk', 'infosecnexus' ); ?></h3><?php foreach ( $critical as $post ) : $priority = Content\priority( (int) $post->ID ); preg_match( '/\bCVE-\d{4}-\d{4,}\b/i', get_the_title( $post ), $cve ); ?><a href="<?php echo esc_url( get_permalink( $post ) ); ?>"><span><?php echo esc_html( $cve[0] ?? wp_trim_words( get_the_title( $post ), 5, '…' ) ); ?></span><span class="cg-priority<?php echo $priority['critical'] ? ' cg-priority--critical' : ''; ?>"><?php echo esc_html( $priority['label'] . ( '' !== $priority['score'] ? ' · ' . $priority['score'] : '' ) ); ?></span></a><?php endforeach; ?></div><?php endif; ?></section>
+	</div>
+	<div class="cg-latest-row cg-shell">
+		<section class="cg-panel cg-latest" aria-labelledby="cg-latest-title" data-reveal><header class="cg-section-heading"><div><p class="cg-eyebrow"><?php esc_html_e( 'Latest intelligence', 'infosecnexus' ); ?></p><h2 id="cg-latest-title"><?php esc_html_e( 'The latest in cybersecurity.', 'infosecnexus' ); ?></h2></div><a class="cg-pill-link" href="<?php echo esc_url( $blog_url ); ?>"><?php esc_html_e( 'All articles', 'infosecnexus' ); ?><?php $arrow(); ?></a></header><div class="cg-latest__list"><?php foreach ( $latest as $post ) : $date = Tags\post_date_data( (int) $post->ID ); $key = \InfoSecNexus\Theme\Anime_Design\post_asset_key( (int) $post->ID ); ?><article class="cg-latest__item"><a href="<?php echo esc_url( get_permalink( $post ) ); ?>"><?php echo Media\image( $key, array( 'alt' => '', 'sizes' => '96px' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><div><h3><?php echo esc_html( wp_trim_words( get_the_title( $post ), 13, '…' ) ); ?></h3><p><?php echo esc_html( Content\excerpt( $post, 17 ) ); ?></p><time datetime="<?php echo esc_attr( $date['datetime'] ); ?>"><?php echo esc_html( $date['label'] ); ?></time></div><span class="cg-circle-arrow" aria-hidden="true"><?php $arrow(); ?></span></a></article><?php endforeach; ?><?php if ( ! $latest ) : ?><p><?php esc_html_e( 'Explore our security desks for published briefings.', 'infosecnexus' ); ?></p><?php endif; ?></div></section>
+		<section class="cg-panel cg-newsletter" id="daily-cyber-brief" aria-labelledby="cg-newsletter-title" data-reveal><?php echo Media\image( 'newsletter', array( 'alt' => '', 'class' => 'cg-newsletter__art', 'sizes' => '180px' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><p class="cg-eyebrow"><?php esc_html_e( 'Stay informed', 'infosecnexus' ); ?></p><h2 id="cg-newsletter-title"><?php esc_html_e( 'Clarity. Delivered.', 'infosecnexus' ); ?></h2><p><?php esc_html_e( 'Get the InfoSecNexus Daily Cyber Brief: security intelligence and practical guidance, straight to your inbox.', 'infosecnexus' ); ?></p><?php if ( class_exists( '\\InfoSecNexus\\Theme\\Toolkit\\Newsletter' ) && \InfoSecNexus\Theme\Toolkit\module_enabled( 'newsletter' ) ) : ?><?php \InfoSecNexus\Theme\Toolkit\Newsletter::render_form( false ); ?><?php else : ?><p class="cg-newsletter__unavailable"><?php esc_html_e( 'Subscriptions are currently unavailable. Please check back later or contact the editorial team.', 'infosecnexus' ); ?></p><?php endif; ?><p class="cg-newsletter__privacy"><?php Header\icon( 'shield' ); ?><span><?php esc_html_e( 'Confirm by email. Unsubscribe any time.', 'infosecnexus' ); ?> <a href="<?php echo esc_url( Header\page_url( 'privacy-policy' ) ); ?>"><?php esc_html_e( 'Privacy policy', 'infosecnexus' ); ?></a></span></p></section>
+	</div>
+	<section class="cg-panel cg-final-cta cg-shell" aria-labelledby="cg-final-title" data-reveal><div><p class="cg-eyebrow"><?php esc_html_e( 'Take action with context', 'infosecnexus' ); ?></p><h2 id="cg-final-title"><?php esc_html_e( 'Make your next move informed.', 'infosecnexus' ); ?></h2><p><?php esc_html_e( 'Analysis, guidance, and practical defence for what comes next.', 'infosecnexus' ); ?></p><a class="button cg-button" href="<?php echo esc_url( $blog_url ); ?>"><?php esc_html_e( 'Explore intelligence', 'infosecnexus' ); ?><?php $arrow(); ?></a></div><?php echo Media\image( 'shield', array( 'alt' => '', 'class' => 'cg-final-cta__art', 'sizes' => '(max-width: 600px) 140px, 240px' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></section>
 </main>
-<?php
-get_footer();
+<?php get_footer(); ?>

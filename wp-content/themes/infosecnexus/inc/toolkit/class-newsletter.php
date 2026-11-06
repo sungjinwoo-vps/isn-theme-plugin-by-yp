@@ -301,7 +301,7 @@ final class Newsletter {
 	/**
 	 * Render subscription form.
 	 */
-	public static function render_form(): void {
+	public static function render_form( bool $show_intro = true ): void {
 		if ( ! module_enabled( 'newsletter' ) ) {
 			return;
 		}
@@ -313,8 +313,10 @@ final class Newsletter {
 		$notice = self::status_message( $status );
 		?>
 		<form class="newsletter-card" action="<?php echo esc_url( public_form_action_url() ); ?>" method="post" accept-charset="UTF-8" autocomplete="on" data-isnx-newsletter>
+			<?php if ( $show_intro ) : ?>
 			<h2><?php echo esc_html( (string) option( 'newsletter_heading', __( 'Get the daily security briefing', 'infosecnexus' ) ) ); ?></h2>
 			<p><?php echo esc_html( (string) option( 'newsletter_intro', '' ) ); ?></p>
+			<?php endif; ?>
 			<input type="hidden" name="action" value="<?php echo esc_attr( self::SUBSCRIBE_ACTION ); ?>">
 			<input type="hidden" name="isnx_issued" value="<?php echo esc_attr( (string) $token['issued'] ); ?>">
 			<input type="hidden" name="isnx_token" value="<?php echo esc_attr( $token['token'] ); ?>">

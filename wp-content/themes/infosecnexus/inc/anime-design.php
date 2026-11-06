@@ -69,6 +69,9 @@ function normalize_key( string $key ): string {
  * @return string Asset URL.
  */
 function asset_url( string $key, int $width = 1280 ): string {
+	if ( function_exists( '\\InfoSecNexus\\Theme\\Cinematic_Media\\card_url' ) ) {
+		return \InfoSecNexus\Theme\Cinematic_Media\card_url( $key, $width );
+	}
 	$key        = normalize_key( $key );
 	$definition = assets()[ $key ];
 	$width      = 640 === $width ? 640 : 1280;
@@ -83,6 +86,9 @@ function asset_url( string $key, int $width = 1280 ): string {
  * @return string Localized alt text.
  */
 function asset_alt( string $key ): string {
+	if ( function_exists( '\\InfoSecNexus\\Theme\\Cinematic_Media\\alt_text' ) ) {
+		return \InfoSecNexus\Theme\Cinematic_Media\alt_text( $key );
+	}
 	$key = normalize_key( $key );
 	return assets()[ $key ]['alt'];
 }
@@ -185,6 +191,9 @@ function html_attributes( array $attrs ): string {
  * @param array<string,mixed> $attrs Image attributes.
  */
 function asset_image( string $key, array $attrs = array() ): string {
+	if ( function_exists( '\\InfoSecNexus\\Theme\\Cinematic_Media\\card_image' ) ) {
+		return \InfoSecNexus\Theme\Cinematic_Media\card_image( $key, $attrs );
+	}
 	$key   = normalize_key( $key );
 	$attrs = array_merge(
 		array(
@@ -341,6 +350,9 @@ function term_asset_key( string $slug ): string {
  * @return bool Whether the post is critical.
  */
 function is_critical_post( int $post_id ): bool {
+	if ( function_exists( '\\InfoSecNexus\\Theme\\Cinematic_Design\\priority' ) ) {
+		return (bool) \InfoSecNexus\Theme\Cinematic_Design\priority( $post_id )['critical'];
+	}
 	$severity = strtoupper( (string) get_post_meta( $post_id, '_infosecnexus_live_severity', true ) );
 	return in_array( $severity, array( 'CRITICAL', 'KNOWN EXPLOITED' ), true ) || has_category( 'critical-cves', $post_id );
 }

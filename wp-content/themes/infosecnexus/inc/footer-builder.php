@@ -29,9 +29,53 @@ function render(): void {
 	}
 	?>
 	<footer class="site-footer">
-		<?php render_row( 'top', (string) get_value( 'footer_top_elements' ) ); ?>
-		<?php render_row( 'main', (string) get_value( 'footer_main_elements' ) ); ?>
-		<?php render_row( 'bottom', (string) get_value( 'footer_bottom_elements' ) ); ?>
+		<div class="cinematic-footer__main">
+			<div class="cinematic-footer__identity">
+				<?php render_logo(); ?>
+				<p><?php esc_html_e( 'A clearer view of cybersecurity. Source-backed analysis and practical guidance for your next informed decision.', 'infosecnexus' ); ?></p>
+				<?php render_social_links(); ?>
+			</div>
+			<nav class="cinematic-footer__links" aria-label="<?php esc_attr_e( 'Security topics', 'infosecnexus' ); ?>">
+				<h2><?php esc_html_e( 'Explore intelligence', 'infosecnexus' ); ?></h2>
+				<?php
+				$topics = array(
+					'critical-cves'           => __( 'Critical CVEs', 'infosecnexus' ),
+					'cloud-security'          => __( 'Cloud Security', 'infosecnexus' ),
+					'linux-administration'    => __( 'Linux & DevOps', 'infosecnexus' ),
+					'artificial-intelligence' => __( 'AI Security', 'infosecnexus' ),
+					'network-security'        => __( 'Network Security', 'infosecnexus' ),
+				);
+				foreach ( $topics as $slug => $label ) :
+					?>
+					<a href="<?php echo esc_url( \InfoSecNexus\Theme\Header_Builder\category_url( $slug ) ); ?>"><?php echo esc_html( $label ); ?></a>
+				<?php endforeach; ?>
+			</nav>
+			<div class="cinematic-footer__links">
+				<h2><?php esc_html_e( 'InfoSecNexus', 'infosecnexus' ); ?></h2>
+				<?php if ( has_nav_menu( 'footer' ) ) : ?>
+					<?php render_menu( 'footer' ); ?>
+				<?php else : ?>
+					<nav aria-label="<?php esc_attr_e( 'About InfoSecNexus', 'infosecnexus' ); ?>">
+						<a href="<?php echo esc_url( \InfoSecNexus\Theme\Header_Builder\page_url( 'blog' ) ); ?>"><?php esc_html_e( 'All intelligence', 'infosecnexus' ); ?></a>
+						<a href="<?php echo esc_url( \InfoSecNexus\Theme\Header_Builder\page_url( 'about' ) ); ?>"><?php esc_html_e( 'About', 'infosecnexus' ); ?></a>
+						<a href="<?php echo esc_url( \InfoSecNexus\Theme\Header_Builder\page_url( 'contact' ) ); ?>"><?php esc_html_e( 'Contact', 'infosecnexus' ); ?></a>
+					</nav>
+				<?php endif; ?>
+				<a class="cinematic-footer__brief" href="<?php echo esc_url( home_url( '/#daily-cyber-brief' ) ); ?>"><?php esc_html_e( 'Get the Daily Brief', 'infosecnexus' ); ?><span aria-hidden="true"> &rarr;</span></a>
+			</div>
+		</div>
+		<div class="cinematic-footer__bottom">
+			<?php render_element( 'copyright' ); ?>
+			<?php if ( has_nav_menu( 'legal' ) ) : ?>
+				<?php render_menu( 'legal' ); ?>
+			<?php else : ?>
+				<nav class="footer-nav footer-nav--legal" aria-label="<?php esc_attr_e( 'Legal information', 'infosecnexus' ); ?>">
+					<?php foreach ( array( 'privacy-policy' => __( 'Privacy Policy', 'infosecnexus' ), 'terms-and-conditions' => __( 'Terms', 'infosecnexus' ), 'disclaimer' => __( 'Disclaimer', 'infosecnexus' ) ) as $slug => $label ) : ?>
+						<a href="<?php echo esc_url( \InfoSecNexus\Theme\Header_Builder\page_url( $slug ) ); ?>"><?php echo esc_html( $label ); ?></a>
+					<?php endforeach; ?>
+				</nav>
+			<?php endif; ?>
+		</div>
 	</footer>
 	<?php
 }
@@ -128,6 +172,7 @@ function render_menu( string $location ): void {
 			'theme_location'  => $location,
 			'container'       => 'nav',
 			'container_class' => 'footer-nav footer-nav--' . sanitize_html_class( $location ),
+			'container_aria_label' => 'legal' === $location ? __( 'Legal information', 'infosecnexus' ) : __( 'Footer navigation', 'infosecnexus' ),
 			'fallback_cb'     => false,
 			'depth'           => 1,
 		)

@@ -73,7 +73,7 @@ $latest = new WP_Query(
 					<li>
 						<a href="<?php echo esc_url( get_category_link( $term ) ); ?>">
 							<span><?php echo esc_html( $label ); ?></span>
-							<span class="blog-topic-nav__count" aria-label="<?php echo esc_attr( sprintf( _n( '%d published briefing', '%d published briefings', (int) $term->count, 'infosecnexus' ), (int) $term->count ) ); ?>"><?php echo esc_html( number_format_i18n( (int) $term->count ) ); ?></span>
+							<span class="blog-topic-nav__arrow" aria-hidden="true">&nearr;</span>
 						</a>
 					</li>
 				<?php endforeach; ?>

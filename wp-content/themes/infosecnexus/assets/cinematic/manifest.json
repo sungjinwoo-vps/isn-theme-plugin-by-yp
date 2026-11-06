@@ -1,0 +1,244 @@
+{
+  "generated": "2026-11-06",
+  "provider": "Built-in image generation",
+  "assets": [
+    {
+      "file": "hero-640.webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 17256,
+      "alpha": false
+    },
+    {
+      "file": "hero-800.webp",
+      "width": 800,
+      "height": 450,
+      "bytes": 24282,
+      "alpha": false
+    },
+    {
+      "file": "hero-1280.webp",
+      "width": 1280,
+      "height": 720,
+      "bytes": 49782,
+      "alpha": false
+    },
+    {
+      "file": "hero-1600.webp",
+      "width": 1600,
+      "height": 900,
+      "bytes": 69594,
+      "alpha": false
+    },
+    {
+      "file": "shield-256.webp",
+      "width": 256,
+      "height": 272,
+      "bytes": 15274,
+      "alpha": true
+    },
+    {
+      "file": "shield-512.webp",
+      "width": 512,
+      "height": 544,
+      "bytes": 36330,
+      "alpha": true
+    },
+    {
+      "file": "shield-960.webp",
+      "width": 960,
+      "height": 1020,
+      "bytes": 89306,
+      "alpha": true
+    },
+    {
+      "file": "shield-card-640.webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 12016,
+      "alpha": false
+    },
+    {
+      "file": "shield-card-1280.webp",
+      "width": 1280,
+      "height": 720,
+      "bytes": 29780,
+      "alpha": false
+    },
+    {
+      "file": "cloud-256.webp",
+      "width": 256,
+      "height": 256,
+      "bytes": 13056,
+      "alpha": true
+    },
+    {
+      "file": "cloud-512.webp",
+      "width": 512,
+      "height": 512,
+      "bytes": 32108,
+      "alpha": true
+    },
+    {
+      "file": "cloud-960.webp",
+      "width": 960,
+      "height": 960,
+      "bytes": 82466,
+      "alpha": true
+    },
+    {
+      "file": "cloud-card-640.webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 10152,
+      "alpha": false
+    },
+    {
+      "file": "cloud-card-1280.webp",
+      "width": 1280,
+      "height": 720,
+      "bytes": 24702,
+      "alpha": false
+    },
+    {
+      "file": "linux-256.webp",
+      "width": 256,
+      "height": 256,
+      "bytes": 14554,
+      "alpha": true
+    },
+    {
+      "file": "linux-512.webp",
+      "width": 512,
+      "height": 512,
+      "bytes": 36368,
+      "alpha": true
+    },
+    {
+      "file": "linux-960.webp",
+      "width": 960,
+      "height": 960,
+      "bytes": 92116,
+      "alpha": true
+    },
+    {
+      "file": "linux-card-640.webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 11346,
+      "alpha": false
+    },
+    {
+      "file": "linux-card-1280.webp",
+      "width": 1280,
+      "height": 720,
+      "bytes": 29608,
+      "alpha": false
+    },
+    {
+      "file": "ai-256.webp",
+      "width": 256,
+      "height": 256,
+      "bytes": 17438,
+      "alpha": true
+    },
+    {
+      "file": "ai-512.webp",
+      "width": 512,
+      "height": 512,
+      "bytes": 44172,
+      "alpha": true
+    },
+    {
+      "file": "ai-960.webp",
+      "width": 960,
+      "height": 960,
+      "bytes": 108438,
+      "alpha": true
+    },
+    {
+      "file": "ai-card-640.webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 14486,
+      "alpha": false
+    },
+    {
+      "file": "ai-card-1280.webp",
+      "width": 1280,
+      "height": 720,
+      "bytes": 35020,
+      "alpha": false
+    },
+    {
+      "file": "network-256.webp",
+      "width": 256,
+      "height": 256,
+      "bytes": 20720,
+      "alpha": true
+    },
+    {
+      "file": "network-512.webp",
+      "width": 512,
+      "height": 512,
+      "bytes": 51826,
+      "alpha": true
+    },
+    {
+      "file": "network-960.webp",
+      "width": 960,
+      "height": 960,
+      "bytes": 137304,
+      "alpha": true
+    },
+    {
+      "file": "network-card-640.webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 13258,
+      "alpha": false
+    },
+    {
+      "file": "network-card-1280.webp",
+      "width": 1280,
+      "height": 720,
+      "bytes": 31938,
+      "alpha": false
+    },
+    {
+      "file": "newsletter-256.webp",
+      "width": 256,
+      "height": 256,
+      "bytes": 11174,
+      "alpha": true
+    },
+    {
+      "file": "newsletter-512.webp",
+      "width": 512,
+      "height": 512,
+      "bytes": 26418,
+      "alpha": true
+    },
+    {
+      "file": "newsletter-960.webp",
+      "width": 960,
+      "height": 960,
+      "bytes": 66386,
+      "alpha": true
+    },
+    {
+      "file": "newsletter-card-640.webp",
+      "width": 640,
+      "height": 360,
+      "bytes": 8224,
+      "alpha": false
+    },
+    {
+      "file": "newsletter-card-1280.webp",
+      "width": 1280,
+      "height": 720,
+      "bytes": 20338,
+      "alpha": false
+    }
+  ]
+}

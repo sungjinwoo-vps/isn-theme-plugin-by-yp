@@ -3,7 +3,7 @@ Contributors: infosecnexus
 Requires at least: 6.5
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.1.64
+Stable tag: 0.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,6 +25,10 @@ InfoSecNexus WordPress Theme, Copyright 2026 InfoSecNexus.
 InfoSecNexus is distributed under the terms of the GNU GPL.
 
 == Changelog ==
+
+= 0.2.0 =
+* Cinematic glass redesign with rounded editorial sections, original blue 3D artwork, source-backed homepage content, real topic/priority search, and a shared design across every page type.
+* Adds restrained motion, reduced-motion fallbacks, responsive controls, and isolated WordPress preview tools.
 
 = 0.1.64 =
 * Keeps repeated evidence refreshes stable and preserves readable focused article-guide links in dark mode.

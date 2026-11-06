@@ -64,6 +64,14 @@ function New-CleanZip {
 
     $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("infosecnexus-zip-" + [System.Guid]::NewGuid().ToString("N"))
     $stage = Join-Path $tempRoot $TopLevel
+    $resolvedTempRoot = [System.IO.Path]::GetFullPath($tempRoot)
+    $resolvedStage = [System.IO.Path]::GetFullPath($stage)
+    $expectedTempParent = [System.IO.Path]::GetFullPath([System.IO.Path]::GetTempPath()).TrimEnd([System.IO.Path]::DirectorySeparatorChar) + [System.IO.Path]::DirectorySeparatorChar
+    if (-not $resolvedTempRoot.StartsWith($expectedTempParent, [System.StringComparison]::OrdinalIgnoreCase) -or
+        -not ([System.IO.Path]::GetFileName($resolvedTempRoot)).StartsWith('infosecnexus-zip-') -or
+        -not $resolvedStage.StartsWith($resolvedTempRoot + [System.IO.Path]::DirectorySeparatorChar, [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw 'Refusing to package outside the dedicated temporary staging directory.'
+    }
     New-Item -ItemType Directory -Path $stage -Force | Out-Null
     Get-ChildItem -LiteralPath $Source -Force | Copy-Item -Destination $stage -Recurse -Force
     Get-ChildItem -LiteralPath $stage -Recurse -Force |
@@ -73,6 +81,13 @@ function New-CleanZip {
             $_.Extension -in @(".log", ".tmp", ".bak")
         } |
         Sort-Object FullName -Descending |
+        ForEach-Object {
+            $resolvedEntry = [System.IO.Path]::GetFullPath($_.FullName)
+            if (-not $resolvedEntry.StartsWith($resolvedStage + [System.IO.Path]::DirectorySeparatorChar, [System.StringComparison]::OrdinalIgnoreCase)) {
+                throw 'Refusing to clean a file outside the package staging directory.'
+            }
+            $_
+        } |
         Remove-Item -Recurse -Force
 
     $zipPath = Join-Path $dist $ZipName
@@ -94,7 +109,10 @@ function New-CleanZip {
         $archive.Dispose()
         $stream.Dispose()
     }
-    Remove-Item -LiteralPath $tempRoot -Recurse -Force
+    if ([System.IO.Path]::GetFullPath($tempRoot) -ne $resolvedTempRoot) {
+        throw 'The temporary package directory changed before cleanup.'
+    }
+    Remove-Item -LiteralPath $resolvedTempRoot -Recurse -Force
     return $zipPath
 }
 

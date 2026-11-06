@@ -49,6 +49,13 @@ function enqueue(): void {
 	if ( is_singular() && comments_open() && get_option( 'thread_comments' ) ) {
 		wp_enqueue_script( 'comment-reply' );
 	}
+	$cinematic_dependencies = array( 'infosecnexus-neumorphic-editorial' );
+	if ( is_singular( 'post' ) ) {
+		$cinematic_dependencies[] = 'infosecnexus-article-content';
+	}
+	wp_enqueue_style( 'infosecnexus-cinematic-glass', get_template_directory_uri() . '/assets/css/cinematic-glass.css', $cinematic_dependencies, (string) filemtime( get_template_directory() . '/assets/css/cinematic-glass.css' ) );
+	wp_enqueue_style( 'infosecnexus-cinematic-pages', get_template_directory_uri() . '/assets/css/cinematic-pages.css', array( 'infosecnexus-cinematic-glass' ), (string) filemtime( get_template_directory() . '/assets/css/cinematic-pages.css' ) );
+	wp_enqueue_script( 'infosecnexus-cinematic-glass', get_template_directory_uri() . '/assets/js/cinematic-glass.js', array( 'infosecnexus-theme' ), (string) filemtime( get_template_directory() . '/assets/js/cinematic-glass.js' ), array( 'in_footer' => true, 'strategy' => 'defer' ) );
 	wp_localize_script(
 		'infosecnexus-theme',
 		'infosecnexusTheme',
@@ -87,16 +94,13 @@ function preload_critical_image(): void {
 	$sizes  = '';
 
 	if ( is_front_page() ) {
-		$rolling = get_page_by_path( 'live-cybersecurity-brief', OBJECT, 'post' );
-		$data    = $rolling instanceof \WP_Post && \InfoSecNexus\Theme\Anime_Design\manual_featured_image_id( (int) $rolling->ID ) > 0
-			? \InfoSecNexus\Theme\Anime_Design\post_image_data( (int) $rolling->ID )
-			: array(
-				'url'    => \InfoSecNexus\Theme\Anime_Design\asset_url( 'hero' ),
-				'srcset' => \InfoSecNexus\Theme\Anime_Design\asset_url( 'hero', 640 ) . ' 640w, ' . \InfoSecNexus\Theme\Anime_Design\asset_url( 'hero' ) . ' 1280w',
-			);
+		$data = array(
+			'url' => \InfoSecNexus\Theme\Cinematic_Media\asset_url( 'hero', 1600 ),
+			'srcset' => \InfoSecNexus\Theme\Cinematic_Media\asset_url( 'hero', 640 ) . ' 640w, ' . \InfoSecNexus\Theme\Cinematic_Media\asset_url( 'hero', 800 ) . ' 800w, ' . \InfoSecNexus\Theme\Cinematic_Media\asset_url( 'hero', 1280 ) . ' 1280w, ' . \InfoSecNexus\Theme\Cinematic_Media\asset_url( 'hero', 1600 ) . ' 1600w',
+		);
 		$href   = (string) $data['url'];
 		$srcset = (string) $data['srcset'];
-		$sizes  = '(max-width: 760px) calc(100vw - 32px), (max-width: 1180px) 64vw, 860px';
+		$sizes  = '(max-width: 700px) 100vw, 1280px';
 	} elseif ( is_singular( 'post' ) ) {
 		$post_id = get_queried_object_id();
 		$data    = \InfoSecNexus\Theme\Anime_Design\post_image_data( $post_id );

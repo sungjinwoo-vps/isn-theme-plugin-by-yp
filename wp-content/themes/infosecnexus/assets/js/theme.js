@@ -203,22 +203,42 @@
     }
   }
 
+  function closeWithMotion(container, finish, animate = true) {
+    const dialog = container.querySelector('[role="dialog"]') || container;
+    if (!animate || reducedMotionQuery.matches || !document.body.classList.contains('cinematic-editorial') || !dialog.animate) {
+      finish();
+      return;
+    }
+    if (container.dataset.cgClosing === 'true') {
+      return;
+    }
+    container.dataset.cgClosing = 'true';
+    const animation = dialog.animate([{ opacity: 1, transform: 'translateY(0)' }, { opacity: 0, transform: 'translateY(10px)' }], { duration: 170, easing: 'ease-in' });
+    const disableMotion = () => { if (reducedMotionQuery.matches) { animation.finish(); } };
+    reducedMotionQuery.addEventListener('change', disableMotion);
+    const done = () => {
+      delete container.dataset.cgClosing;
+      reducedMotionQuery.removeEventListener('change', disableMotion);
+      finish();
+    };
+    animation.finished.then(done, done);
+  }
+
   function closePanel(restoreFocus = true) {
     if (!panel || !menuToggle || panel.hidden) {
       return;
     }
 
-    panel.hidden = true;
-    menuToggle.setAttribute('aria-expanded', 'false');
-    document.body.classList.remove('mobile-panel-open');
-
-    updateBodyModalState();
-
-    if (restoreFocus && menuPreviousFocus) {
-      menuPreviousFocus.focus();
-    }
-
-    menuPreviousFocus = null;
+    closeWithMotion(panel, () => {
+      panel.hidden = true;
+      menuToggle.setAttribute('aria-expanded', 'false');
+      document.body.classList.remove('mobile-panel-open');
+      updateBodyModalState();
+      if (restoreFocus && menuPreviousFocus) {
+        menuPreviousFocus.focus();
+      }
+      menuPreviousFocus = null;
+    }, restoreFocus);
   }
 
   document.addEventListener('click', (event) => {
@@ -236,16 +256,16 @@
       return;
     }
 
-    searchPanel.hidden = true;
-    searchToggle.setAttribute('aria-expanded', 'false');
-    document.body.classList.remove('search-modal-open');
-    updateBodyModalState();
-
-    if (restoreFocus && searchPreviousFocus) {
-      searchPreviousFocus.focus();
-    }
-
-    searchPreviousFocus = null;
+    closeWithMotion(searchPanel, () => {
+      searchPanel.hidden = true;
+      searchToggle.setAttribute('aria-expanded', 'false');
+      document.body.classList.remove('search-modal-open');
+      updateBodyModalState();
+      if (restoreFocus && searchPreviousFocus) {
+        searchPreviousFocus.focus();
+      }
+      searchPreviousFocus = null;
+    }, restoreFocus);
   }
 
   if (searchToggle && searchPanel) {
