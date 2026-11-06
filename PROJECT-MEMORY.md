@@ -108,6 +108,10 @@ Last updated: 2026-11-06 (Asia/Kolkata)
   The production suite passed 62/62 applicable checks; its two preview-only form
   postbacks were skipped deliberately. The existing Zoho provider and all Toolkit
   settings remain unchanged. No test email or contact message was sent.
+- The existing assigned footer menu was empty on production. It was populated
+  with links to the existing published Blog, About and Contact pages; existing
+  header/legal menus were preserved. Desktop/mobile footer links, layout and
+  accessibility were checked again, and final home screenshots were refreshed.
 
 ### Startup Checklist For Every New Session
 

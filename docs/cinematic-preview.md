@@ -106,6 +106,8 @@ checks. Before/after hashes confirm unchanged published identities, bodies,
 dates, images, categories, retirement state and Toolkit configuration. Production
 retains its active Zoho Mail plugin and advertising configuration, with no
 preview mail/HTTP blockers. No test message was sent.
+The previously empty assigned production footer menu was populated with the
+existing Blog, About and Contact pages and verified on desktop and mobile.
 
 Local review artifacts are in `.tmp/cinematic-preview/`: theme ZIP, checksum,
 browser/visual reports and screenshots. The theme ZIP contains only the theme;
