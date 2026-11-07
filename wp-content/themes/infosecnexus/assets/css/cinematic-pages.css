@@ -1014,7 +1014,7 @@
 }
 
 @media (width <= 900px) {
-  :root body.cinematic-editorial .search-modal__grid {
+  :root body.cinematic-editorial .search-modal__layout {
     grid-template-columns: minmax(0, 1fr);
   }
 

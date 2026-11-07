@@ -259,6 +259,28 @@
   box-shadow: var(--iv-small-shadow);
 }
 
+/* Explicit flex centring also covers controls whose legacy grid became flex. */
+:root body.cinematic-editorial.ivory-editorial .icon-button {
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+:root body.cinematic-editorial.ivory-editorial .icon-button > svg {
+  display: block;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+:root body.cinematic-editorial.ivory-editorial :is(.search-modal__layout, .search-modal__copy) {
+  min-width: 0;
+}
+
+:root body.cinematic-editorial.ivory-editorial .search-modal__eyebrow {
+  padding-inline-end: 48px;
+}
+
 :root body.cinematic-editorial.ivory-editorial .site-header .header-brief-button {
   min-height: 46px;
   gap: 15px;
@@ -766,6 +788,7 @@
 }
 
 :root body.cinematic-editorial.ivory-editorial .cinematic-footer__links,
+:root body.cinematic-editorial.ivory-editorial .cinematic-footer__links > nav,
 :root body.cinematic-editorial.ivory-editorial .cinematic-footer__links .footer-nav ul {
   display: flex;
   flex-wrap: wrap;
