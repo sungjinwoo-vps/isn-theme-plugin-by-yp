@@ -4,7 +4,7 @@
 > project. Then run the startup checklist in the next section. This is the
 > authoritative continuity handoff for the current project state.
 
-Last updated: 2026-11-06 (Asia/Kolkata)
+Last updated: 2026-11-07 (Asia/Kolkata)
 
 ## 1. Current Snapshot
 
@@ -14,13 +14,25 @@ Last updated: 2026-11-06 (Asia/Kolkata)
 - Main release branch: `stable`
 - Repository visibility: public, which permits unauthenticated WordPress update
   downloads. Moving it to private requires an authenticated update service.
-- Current theme version: `0.3.2`
-- Current known release: `auto-v0.3.2`
-- Current known code commit: `067ae15` (`Fix mobile layout, saved appearance and reading obstructions`)
+- Current theme version: `0.3.3`
+- Current known release: `auto-v0.3.3`
+- Current known code commit: `f8b0f75` (`Fix wide hero and shared responsive control alignment`)
 - WordPress was verified running version 7.1.4 at this checkpoint.
 - The live site is theme-first. The InfoSecNexus Toolkit features are bundled
   into the theme and the separate toolkit plugin is not required on this site.
-- Latest known verification: production is running `0.3.2`. Fresh normal-motion
+- Latest known verification on November 7: production is running `0.3.3` through
+  the native updater. The wide hero, shared search/menu icons, responsive search
+  dialog and fallback footer navigation are repaired. The final production
+  suite passed 74 checks with two preview-only mail tests skipped. All 19 responsive page
+  cases, four footer widths and 20 cross-browser geometry plus 20 keyboard
+  contexts passed, including light/dark and normal motion. All 82 deployed PHP
+  files passed syntax checks; all 234 release files match source plus expected
+  workflow stamps. Complete body, identity and Toolkit-settings hashes match
+  before/after this update. Counts are now 248 published posts, six pages, 159
+  retired and five superseded posts (84 active stories); the additional post
+  existed before this deployment. Branding, appearance, mail/ads and content
+  were preserved. No production form was submitted or consent accepted.
+- Previous verification on November 6: production was running `0.3.2`. Fresh normal-motion
   audits reproduced and repaired the mobile sticky-header clipping, oversized
   soft hero, broken saved-dark hero, tiny story copy and obstructive cookie
   banner. Mobile topics now collapse accessibly and editorial fallback art uses
@@ -187,6 +199,57 @@ Last updated: 2026-11-06 (Asia/Kolkata)
   redesign. The subsequent `0.3.0` to `0.3.1` update has matching complete body,
   identity and Toolkit-settings hashes. The new branding imports are native
   attachments, not changes to editorial featured images.
+
+### Wide Desktop And Shared Alignment Repair - November 7, 2026
+
+- The owner's screenshot reproduced at 2124px: the hero capped at 1440px while
+  percentage padding kept growing with its containing viewport, shrinking copy
+  to 316px/five heading lines (54px/seven lines at 2560px). Bounded horizontal
+  padding now preserves 726px copy, two heading lines and a 480px hero across
+  all checked widths from 1366 to 2560. Copy aligns within 5px of the header.
+- Legacy flex styling overrode grid centering on search/menu controls. Explicit
+  flex alignment and zero native padding center search, hamburger and close
+  SVGs in normal/sticky states across Chromium/WebKit and light/dark modes.
+  All 764 visible control measurements had zero horizontal/vertical offset.
+- The responsive search rule targeted nonexistent `.search-modal__grid` instead
+  of actual `.search-modal__layout`, retaining an empty 260px image column on
+  small screens. The real layout now collapses to one usable column below
+  900px; copy cannot force overflow and the eyebrow reserves close-button room.
+  Focus trapping, Escape and focus restoration pass in all 20 contexts.
+- Fallback footer navigation lacked the configured menu's flex layout. Both
+  now wrap with 16px horizontal and 4px vertical gaps, verified at 320, 390,
+  768 and 2124px. The existing ivory/orange design and branding are unchanged.
+- Release `0.3.3`, code `f8b0f75`, successful Actions run `42346798306`.
+  Published theme SHA256:
+  `1f08bb520e0846ff31dabfd08bf7fbd65f1e5041b4d232df2493b4a57b0d93f9`.
+  All 234 packaged files match source and established CI stamps. A verified
+  database/theme rollback checkpoint `alignment-20261107T062124Z` exists in
+  the private backup directory; exact paths/checksums stay in ignored records.
+  Native WordPress updated 0.3.2 to 0.3.3 and public caches were purged.
+- Validation: preview 76/76 browser checks, JS/CSS lint, all 82 deployed PHP
+  syntax checks, 19 responsive page cases and four footer widths passed.
+  The final complete live suite passed 74 checks; two preview-only mail tests
+  were skipped. No tests were disabled to obtain that result.
+  Independent production review repeated all 19 page/four footer cases and
+  20 geometry plus 20 keyboard contexts across Chromium/WebKit, five control
+  widths, default light/saved dark and scrolled states. All 11 frontend CSS/JS
+  assets independently matched local SHA256 bytes. No production form or
+  advertising-consent submission occurred.
+- The initial live priority check assumed that one of the three changing daily
+  alerts was critical. Newly published content invalidated that fixture. It now
+  selects a genuine critical result through the actual search form and retains
+  assertions for category/severity, keyword match and exclusion by high priority.
+  Result visibility is awaited before reading counts to avoid navigation races.
+  The revised check passed on desktop/mobile in preview and production.
+- Complete before/after publication identities, bodies and Toolkit-settings
+  hashes match; thirteen preserved state fields match. Before and after counts
+  are 248 posts, six pages, 159 retired and five superseded. Default light mode,
+  original native logo/Site Icon, Zoho Mail and configured AdSense are preserved.
+  Preview blockers remain absent from production. No editorial migration ran.
+- Evidence is ignored under `.tmp/alignment-preview-wide/`,
+  `.tmp/alignment-preview-controls/`, `.tmp/alignment-production-wide/`,
+  `.tmp/alignment-production-controls/` and `.tmp/alignment-production-e2e-final.log`.
+  Implementation/validation notes: `docs/ivory-alignment-fixes.md`.
 
 ### Live Runtime Repair - November 6, 2026
 

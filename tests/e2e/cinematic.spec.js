@@ -96,29 +96,33 @@ test('hero keyword and topic controls submit a real intersection of published po
 
 test('hero priority controls distinguish recorded critical and high scores', async ({ page }) => {
   await page.goto(baseURL);
-  const alert = page.locator('.cg-desk__alerts a').filter({ has: page.locator('.cg-priority--critical') }).first();
-  expect(await alert.count()).toBeGreaterThan(0);
-  const expectedPath = pathOf(await alert.getAttribute('href'));
-  const keyword = (await alert.locator('span').first().innerText()).match(/CVE-\d{4}-\d{4,}/i)?.[0];
-  expect(keyword).toBeTruthy();
   await page.locator('.iv-discovery summary').click();
   const form = page.locator('.cg-discovery');
   await form.locator('[name=category_name]').selectOption('critical-cves');
   await form.locator('[name=isn_severity]').selectOption('critical');
+  await form.getByRole('button', { name: 'Search', exact: true }).click();
+  // The three daily alerts change; select a real recorded critical story from the full results.
+  const criticalCards = page.locator('main .content-area .post-card');
+  await expect(criticalCards.first()).toBeVisible();
+  expect(await criticalCards.count()).toBeGreaterThan(0);
+  expect(await criticalCards.evaluateAll((cards) => cards.every((card) => card.classList.contains('post-card--critical')))).toBeTruthy();
+  const candidate = criticalCards.first();
+  const expectedPath = pathOf(await candidate.locator('.post-card__link').getAttribute('href'));
+  const keyword = (await candidate.locator('.post-card__title').innerText()).match(/CVE-\d{4}-\d{4,}/i)?.[0];
+  expect(keyword).toBeTruthy();
+  await page.goto(baseURL);
+  await page.locator('.iv-discovery summary').click();
+  await form.locator('[name=category_name]').selectOption('critical-cves');
+  await form.locator('[name=isn_severity]').selectOption('critical');
   await form.locator('[name=s]').fill(keyword);
   await form.getByRole('button', { name: 'Search', exact: true }).click();
+  await expect(page.locator('main .content-area .post-card__link').first()).toBeVisible();
   const links = await page.locator('main .content-area .post-card__link').evaluateAll((items) => items.map((item) => new URL(item.href).pathname));
   expect(links).toContain(expectedPath);
   const wrongPriority = new URL(page.url());
   wrongPriority.searchParams.set('isn_severity', 'high');
   await page.goto(wrongPriority.href);
   await expect(page.locator('main .content-area .post-card__link')).toHaveCount(0);
-  wrongPriority.searchParams.set('isn_severity', 'critical');
-  wrongPriority.searchParams.set('s', '');
-  await page.goto(wrongPriority.href);
-  const criticalCards = page.locator('main .content-area .post-card');
-  expect(await criticalCards.count()).toBeGreaterThan(0);
-  expect(await criticalCards.evaluateAll((cards) => cards.every((card) => card.classList.contains('post-card--critical')))).toBeTruthy();
 });
 
 test('modal search supports keyboard dismissal, focus restoration and actual post results', async ({ page }) => {
