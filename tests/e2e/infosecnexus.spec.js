@@ -212,11 +212,7 @@ test('color mode choice persists across navigation and reload', async ({ page },
   await page.goto(baseURL, { waitUntil: 'domcontentloaded' });
 
   const initialMode = await page.locator('html').getAttribute('data-color-mode');
-  if (testInfo.project.name === 'mobile') {
-    await page.locator('[data-mobile-menu-toggle]').click();
-    await expect(page.locator('[data-mobile-panel]')).toBeVisible();
-  }
-  const toggle = page.locator('[data-color-mode-toggle]:visible').first();
+  const toggle = page.locator('.header-color-mode-toggle');
   await expect(toggle).toBeVisible();
   await toggle.click();
 
@@ -224,6 +220,16 @@ test('color mode choice persists across navigation and reload', async ({ page },
   await expect(page.locator('html')).toHaveAttribute('data-color-mode', expectedMode);
   expect(await page.evaluate(() => localStorage.getItem('infosecnexus-color-mode'))).toBe(expectedMode);
 
+  if (testInfo.project.name === 'mobile') {
+    await page.locator('[data-mobile-menu-toggle]').click();
+    await expect(page.locator('[data-mobile-panel]')).toBeVisible();
+    await expect(page.locator('.mobile-panel [data-color-mode-toggle]')).toHaveAttribute('aria-label', expectedMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+    await page.keyboard.press('Escape');
+    await expect(page.locator('[data-mobile-panel]')).toBeHidden();
+  }
+
+  await page.goto(`${baseURL}/blog/`, { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('html')).toHaveAttribute('data-color-mode', expectedMode);
   await page.reload({ waitUntil: 'domcontentloaded' });
   await expect(page.locator('html')).toHaveAttribute('data-color-mode', expectedMode);
 });

@@ -3,7 +3,7 @@ Contributors: infosecnexus
 Requires at least: 6.5
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.3.3
+Stable tag: 0.3.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,6 +25,11 @@ InfoSecNexus WordPress Theme, Copyright 2026 InfoSecNexus.
 InfoSecNexus is distributed under the terms of the GNU GPL.
 
 == Changelog ==
+
+= 0.3.4 =
+* Moves the appearance control into the visible header on every device and simplifies footer navigation without duplicate controls.
+* Refines raised paper cards, rounded orange buttons and consistent hover, focus and pressed feedback across shared pages.
+* Improves narrow mobile cards and calls to action, and gives optional dark mode coherent charcoal surfaces, forms, imagery and accessible contrast.
 
 = 0.3.3 =
 * Keeps the homepage hero aligned and its heading readable on wide desktop screens.

@@ -1,6 +1,6 @@
 <?php
 /**
- * Original footer builder.
+ * Shared editorial footer.
  *
  * @package InfoSecNexus
  */
@@ -28,58 +28,60 @@ function render(): void {
 		return;
 	}
 	?>
-	<footer class="site-footer">
-		<div class="cinematic-footer__main">
-			<div class="cinematic-footer__identity">
+	<footer class="site-footer ivory-footer">
+		<div class="cinematic-footer__main ivory-footer__main">
+			<div class="cinematic-footer__identity ivory-footer__identity">
 				<?php render_logo(); ?>
-				<p><?php esc_html_e( 'Stay informed. Stay ahead.', 'infosecnexus' ); ?></p>
-				<?php render_social_links(); ?>
+				<p class="ivory-footer__tagline"><?php esc_html_e( 'Stay informed. Stay ahead.', 'infosecnexus' ); ?></p>
 			</div>
-			<nav class="cinematic-footer__links" aria-label="<?php esc_attr_e( 'Security topics', 'infosecnexus' ); ?>">
+			<nav class="cinematic-footer__links ivory-footer__topics" aria-label="<?php esc_attr_e( 'Security topics', 'infosecnexus' ); ?>">
 				<h2><?php esc_html_e( 'Explore intelligence', 'infosecnexus' ); ?></h2>
-				<?php
-				$topics = array(
-					'critical-cves'           => __( 'Critical CVEs', 'infosecnexus' ),
-					'cloud-security'          => __( 'Cloud Security', 'infosecnexus' ),
-					'linux-administration'    => __( 'Linux & DevOps', 'infosecnexus' ),
-					'artificial-intelligence' => __( 'AI Security', 'infosecnexus' ),
-					'network-security'        => __( 'Network Security', 'infosecnexus' ),
-				);
-				foreach ( $topics as $slug => $label ) :
-					?>
-					<a href="<?php echo esc_url( \InfoSecNexus\Theme\Header_Builder\category_url( $slug ) ); ?>"><?php echo esc_html( $label ); ?></a>
-				<?php endforeach; ?>
+				<ul class="ivory-footer__menu ivory-footer__topics-list">
+					<?php
+					$topics = array(
+						'critical-cves'           => __( 'Critical CVEs', 'infosecnexus' ),
+						'cloud-security'          => __( 'Cloud Security', 'infosecnexus' ),
+						'linux-administration'    => __( 'Linux & DevOps', 'infosecnexus' ),
+						'artificial-intelligence' => __( 'AI Security', 'infosecnexus' ),
+						'network-security'        => __( 'Network Security', 'infosecnexus' ),
+					);
+					foreach ( $topics as $slug => $label ) :
+						?>
+						<li><a href="<?php echo esc_url( \InfoSecNexus\Theme\Header_Builder\category_url( $slug ) ); ?>"><?php echo esc_html( $label ); ?></a></li>
+					<?php endforeach; ?>
+				</ul>
 			</nav>
-			<div class="cinematic-footer__links">
+			<div class="cinematic-footer__links ivory-footer__site">
 				<h2><?php esc_html_e( 'InfoSecNexus', 'infosecnexus' ); ?></h2>
 				<?php if ( has_nav_menu( 'footer' ) ) : ?>
 					<?php render_menu( 'footer' ); ?>
 				<?php else : ?>
-					<nav aria-label="<?php esc_attr_e( 'About InfoSecNexus', 'infosecnexus' ); ?>">
-						<a href="<?php echo esc_url( \InfoSecNexus\Theme\Header_Builder\page_url( 'blog' ) ); ?>"><?php esc_html_e( 'All intelligence', 'infosecnexus' ); ?></a>
-						<a href="<?php echo esc_url( \InfoSecNexus\Theme\Header_Builder\page_url( 'about' ) ); ?>"><?php esc_html_e( 'About', 'infosecnexus' ); ?></a>
-						<a href="<?php echo esc_url( \InfoSecNexus\Theme\Header_Builder\page_url( 'contact' ) ); ?>"><?php esc_html_e( 'Contact', 'infosecnexus' ); ?></a>
+					<nav class="footer-nav footer-nav--footer ivory-footer__navigation" aria-label="<?php esc_attr_e( 'About InfoSecNexus', 'infosecnexus' ); ?>">
+						<ul class="footer-nav__list ivory-footer__menu">
+							<li><a href="<?php echo esc_url( \InfoSecNexus\Theme\Header_Builder\page_url( 'blog' ) ); ?>"><?php esc_html_e( 'All intelligence', 'infosecnexus' ); ?></a></li>
+							<li><a href="<?php echo esc_url( \InfoSecNexus\Theme\Header_Builder\page_url( 'about' ) ); ?>"><?php esc_html_e( 'About', 'infosecnexus' ); ?></a></li>
+							<li><a href="<?php echo esc_url( \InfoSecNexus\Theme\Header_Builder\page_url( 'contact' ) ); ?>"><?php esc_html_e( 'Contact', 'infosecnexus' ); ?></a></li>
+						</ul>
 					</nav>
 				<?php endif; ?>
-				<a class="cinematic-footer__brief" href="<?php echo esc_url( home_url( '/#daily-cyber-brief' ) ); ?>"><?php esc_html_e( 'Get the Daily Brief', 'infosecnexus' ); ?><span aria-hidden="true"> &rarr;</span></a>
 			</div>
+			<?php render_social_links( 'ivory-footer__social' ); ?>
 		</div>
-		<div class="cinematic-footer__bottom">
-			<?php render_element( 'copyright' ); ?>
-			<button class="color-mode-toggle ivory-footer-mode" type="button" data-color-mode-toggle aria-label="<?php esc_attr_e( 'Switch to dark mode', 'infosecnexus' ); ?>">
-				<span class="color-mode-toggle__icon color-mode-toggle__icon--moon"><?php \InfoSecNexus\Theme\Header_Builder\icon( 'moon' ); ?></span>
-				<span class="color-mode-toggle__icon color-mode-toggle__icon--sun"><?php \InfoSecNexus\Theme\Header_Builder\icon( 'sun' ); ?></span>
-				<span data-color-mode-label><?php esc_html_e( 'Dark mode', 'infosecnexus' ); ?></span>
-			</button>
-			<?php if ( has_nav_menu( 'legal' ) ) : ?>
-				<?php render_menu( 'legal' ); ?>
-			<?php else : ?>
-				<nav class="footer-nav footer-nav--legal" aria-label="<?php esc_attr_e( 'Legal information', 'infosecnexus' ); ?>">
-					<?php foreach ( array( 'privacy-policy' => __( 'Privacy Policy', 'infosecnexus' ), 'terms-and-conditions' => __( 'Terms', 'infosecnexus' ), 'disclaimer' => __( 'Disclaimer', 'infosecnexus' ) ) as $slug => $label ) : ?>
-						<a href="<?php echo esc_url( \InfoSecNexus\Theme\Header_Builder\page_url( $slug ) ); ?>"><?php echo esc_html( $label ); ?></a>
-					<?php endforeach; ?>
-				</nav>
-			<?php endif; ?>
+		<div class="cinematic-footer__bottom ivory-footer__bottom">
+			<div class="ivory-footer__copyright"><?php render_element( 'copyright' ); ?></div>
+			<div class="ivory-footer__legal">
+				<?php if ( has_nav_menu( 'legal' ) ) : ?>
+					<?php render_menu( 'legal' ); ?>
+				<?php else : ?>
+					<nav class="footer-nav footer-nav--legal ivory-footer__navigation" aria-label="<?php esc_attr_e( 'Legal information', 'infosecnexus' ); ?>">
+						<ul class="footer-nav__list ivory-footer__menu">
+							<?php foreach ( array( 'privacy-policy' => __( 'Privacy Policy', 'infosecnexus' ), 'terms-and-conditions' => __( 'Terms', 'infosecnexus' ), 'disclaimer' => __( 'Disclaimer', 'infosecnexus' ) ) as $slug => $label ) : ?>
+								<li><a href="<?php echo esc_url( \InfoSecNexus\Theme\Header_Builder\page_url( $slug ) ); ?>"><?php echo esc_html( $label ); ?></a></li>
+							<?php endforeach; ?>
+						</ul>
+					</nav>
+				<?php endif; ?>
+			</div>
 		</div>
 	</footer>
 	<?php
@@ -176,8 +178,9 @@ function render_menu( string $location ): void {
 		array(
 			'theme_location'  => $location,
 			'container'       => 'nav',
-			'container_class' => 'footer-nav footer-nav--' . sanitize_html_class( $location ),
+			'container_class' => 'footer-nav footer-nav--' . sanitize_html_class( $location ) . ' ivory-footer__navigation',
 			'container_aria_label' => 'legal' === $location ? __( 'Legal information', 'infosecnexus' ) : __( 'Footer navigation', 'infosecnexus' ),
+			'menu_class'      => 'footer-nav__list ivory-footer__menu',
 			'fallback_cb'     => false,
 			'depth'           => 1,
 		)

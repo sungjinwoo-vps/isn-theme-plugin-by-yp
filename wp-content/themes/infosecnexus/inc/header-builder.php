@@ -34,7 +34,7 @@ function render(): void {
 				<?php render_logo(); ?>
 				<?php render_primary_nav( 'desktop' ); ?>
 				<div class="site-header__actions">
-					<button class="icon-button color-mode-toggle" type="button" data-color-mode-toggle aria-label="<?php esc_attr_e( 'Switch to dark mode', 'infosecnexus' ); ?>">
+					<button class="icon-button color-mode-toggle header-color-mode-toggle" type="button" data-color-mode-toggle aria-label="<?php esc_attr_e( 'Switch to dark mode', 'infosecnexus' ); ?>" title="<?php esc_attr_e( 'Switch to dark mode', 'infosecnexus' ); ?>">
 						<span class="color-mode-toggle__icon color-mode-toggle__icon--moon"><?php icon( 'moon' ); ?></span>
 						<span class="color-mode-toggle__icon color-mode-toggle__icon--sun"><?php icon( 'sun' ); ?></span>
 					</button>
@@ -194,9 +194,11 @@ function page_url( string $slug ): string {
 }
 
 /**
- * Render social links.
+ * Render configured social links.
+ *
+ * @param string $class_name Optional additional navigation class.
  */
-function render_social_links(): void {
+function render_social_links( string $class_name = '' ): void {
 	$links = array_filter(
 		array(
 			'X'        => (string) get_value( 'social_x' ),
@@ -210,7 +212,7 @@ function render_social_links(): void {
 		return;
 	}
 	?>
-	<nav class="social-links" aria-label="<?php esc_attr_e( 'Social profiles', 'infosecnexus' ); ?>">
+	<nav class="social-links<?php echo '' !== $class_name ? ' ' . esc_attr( sanitize_html_class( $class_name ) ) : ''; ?>" aria-label="<?php esc_attr_e( 'Social profiles', 'infosecnexus' ); ?>">
 		<?php foreach ( $links as $label => $url ) : ?>
 			<a href="<?php echo esc_url( $url ); ?>" rel="me noopener noreferrer"><?php echo esc_html( $label ); ?></a>
 		<?php endforeach; ?>
