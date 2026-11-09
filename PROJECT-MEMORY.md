@@ -4,7 +4,7 @@
 > project. Then run the startup checklist in the next section. This is the
 > authoritative continuity handoff for the current project state.
 
-Last updated: 2026-11-07 (Asia/Kolkata)
+Last updated: 2026-11-09 (Asia/Kolkata)
 
 ## 1. Current Snapshot
 
@@ -14,13 +14,28 @@ Last updated: 2026-11-07 (Asia/Kolkata)
 - Main release branch: `stable`
 - Repository visibility: public, which permits unauthenticated WordPress update
   downloads. Moving it to private requires an authenticated update service.
-- Current theme version: `0.3.3`
-- Current known release: `auto-v0.3.3`
-- Current known code commit: `f8b0f75` (`Fix wide hero and shared responsive control alignment`)
+- Current theme version: `0.3.4`
+- Current known release: `auto-v0.3.4`
+- Current known code commit: `914dc55` (`Refine reference cards, dark appearance and responsive navigation`)
 - WordPress was verified running version 7.1.4 at this checkpoint.
 - The live site is theme-first. The InfoSecNexus Toolkit features are bundled
   into the theme and the separate toolkit plugin is not required on this site.
-- Latest known verification on November 7: production is running `0.3.3` through
+- Latest known verification on November 9: production is running `0.3.4`.
+  Appearance is now directly available in the header on every device. The
+  redundant footer mode/Daily Brief controls are removed, footer navigation is
+  grouped, narrow mobile cards are readable, and shared buttons/cards use
+  consistent raised, hover, focus and pressed states. Optional dark mode has
+  coherent charcoal panels, imagery and fields. Preview passed 80 checks;
+  production passed 78 with two preview-only mail tests skipped. All 22 shared
+  responsive page cases, 48 cross-browser control contexts, ten dark/light physical-state visual cases
+  and ten reduced-motion cases passed. All 82 deployed PHP files passed lint;
+  all 234 release files and 11 live frontend assets match verified source.
+  Complete before/after body, identity and Toolkit-settings hashes match, along
+  with all thirteen preserved state fields. Counts remain 248 posts, six pages,
+  159 retired and five superseded (84 active stories). Default light, saved
+  preferences, branding, mail/ads and public routes are preserved. No production
+  form, advertising-consent action or test email was submitted.
+- Previous verification on November 7: production was running `0.3.3` through
   the native updater. The wide hero, shared search/menu icons, responsive search
   dialog and fallback footer navigation are repaired. The final production
   suite passed 74 checks with two preview-only mail tests skipped. All 19 responsive page
@@ -199,6 +214,71 @@ Last updated: 2026-11-07 (Asia/Kolkata)
   redesign. The subsequent `0.3.0` to `0.3.1` update has matching complete body,
   identity and Toolkit-settings hashes. The new branding imports are native
   attachments, not changes to editorial featured images.
+
+### Reference Controls, Mobile Cards And Dark Appearance - November 9, 2026
+
+- The owner requires the appearance control to be visible at the top, including
+  mobile. Existing header mode markup was hidden by the ivory presentation;
+  `.header-color-mode-toggle` is now visible and remains a native labeled button.
+  Existing JS synchronizes header/mobile icons, labels, titles and localStorage.
+  Newly selected modes survive reload/navigation with the correct first frame.
+- At widths <=640px the header contains logo plus three 44px mode/search/menu
+  buttons. Daily Brief remains in the mobile menu and hero, and stays in the
+  desktop/tablet header. Do not squeeze five controls into the 320px header or
+  move appearance back to a footer-only control.
+- The footer no longer duplicates Daily Brief or appearance. Semantic topic,
+  site and legal lists have dedicated `.ivory-footer__*` classes; configured
+  footer/legal menus, fallback routes and genuine social profiles remain intact.
+  No menu or private setting was changed. Mobile groups align in two columns.
+- Buttons now share orange gradient, edge and shadow tokens, with restrained
+  hover lift/arrow movement and an inset pressed state. Primary, secondary,
+  header, search, newsletter and contact controls use the shared visual system.
+  Keep `:hover:not(:active, :disabled)` and equally specific active/reduced rules:
+  earlier hover selectors defeated the pressed state, and increased specificity
+  initially defeated reduced motion. Actual mouse-down and reduced-motion
+  measurements now pass. Disabled contact buttons must retain their idle state.
+- Raised cards use softer paper depth, rounded overlapping captions and restrained
+  image movement; archive cards share the same treatment. At <=360px, category
+  highlights and topic cards become readable horizontal rows. Coverage links
+  have 44px targets; the final mobile CTA uses the short Explore label. The
+  320px hero measures 647.125px without clipping or horizontal overflow.
+- `ivory-preferences.css` owns the final dark palette/state overrides: warm
+  charcoal panels, readable muted text, quiet edges, dark fields/inset shadows,
+  coherent hero ticket/newsletter/banner and reduced bright-image contrast.
+  Small cookie actions use soft orange/dark text with verified contrast, while
+  Not now remains neutral and does not grant consent. Light design is retained.
+- Release `auto-v0.3.4`, source `914dc55`, successful Actions run `42567669298`.
+  Published ZIP SHA256:
+  `2757300c98ca238e42bfabcbce79ccf4441722f143ff1f322387d8d5a37770a4`.
+  The regular GitHub ZIP URL returned temporary 504 responses. The official
+  public asset API (`726351999`) delivered the package; its GitHub digest,
+  published SHA256SUMS and all 234 source files/expected CI stamps matched.
+  The initial WordPress update check advertised no update, so its native theme
+  installer installed that verified ZIP. Caches were purged afterward.
+- Verified rollback checkpoint `polish-20261109T052745Z` contains restricted
+  database/theme backups in the existing private backup directory. Exact paths
+  and backup checksums remain only in ignored deployment records/secure storage.
+  The complete body, identity, Toolkit-settings and thirteen-state-field audit
+  matches before/after installation. No newsroom migration or settings reset ran.
+- Validation: preview 80/80 browser checks, production 78 applicable checks
+  (two preview-only mail tests skipped), JS/CSS lint, focused three-file PHPStan
+  and all 82 deployed PHP syntax checks passed. Production Chromium/WebKit
+  passed 48 control contexts: 16 main light/dark, 16 breakpoint boundaries and
+  16 changed-mode persistence cases. All 132 visible header icon measurements
+  have zero center offset; all 11 fetched CSS/JS assets match local SHA256 bytes.
+- Independent production dark/light review passed ten responsive visual cases,
+  ten reduced-motion state cases and actual enabled contact-button states.
+  Saved-dark first paint, settled dark menu/modal, keyboard focus/escape/trapping,
+  hover/pressed feedback and contrast were verified without POST requests or
+  consent acceptance. A previously cream-looking dark control screenshot was
+  checked after transitions settled; no redundant defensive CSS was needed.
+- The complete additional production page matrix passed all 22 cases across
+  320-2560px, light/dark, home/blog/article/contact/search and shared layouts.
+  No header/card bounds issue, overflow, serious Axe issue, JS error or failed
+  asset request remained. The final contact base/hover colors use shared tokens.
+- Current evidence stays ignored under `.tmp/nov9-preview-*`,
+  `.tmp/nov9-production-*`, `.tmp/polish-release-0.3.4/` and deployment logs.
+  Details and changed files: `docs/ivory-controls-and-dark-mode.md`.
 
 ### Wide Desktop And Shared Alignment Repair - November 7, 2026
 
