@@ -21,6 +21,15 @@ function bootstrap(): void {
 	add_action( 'enqueue_block_editor_assets', __NAMESPACE__ . '\\enqueue_editor' );
 	add_action( 'wp_head', __NAMESPACE__ . '\\preload_critical_image', 1 );
 	add_action( 'wp_head', __NAMESPACE__ . '\\preload_editorial_font', 1 );
+	add_action( 'wp_head', __NAMESPACE__ . '\\prepare_article_guide', 1 );
+}
+
+/** Reserve the compact guide before paint, with a fallback if enhancement fails. */
+function prepare_article_guide(): void {
+	if ( ! is_singular( 'post' ) ) {
+		return;
+	}
+	echo "<script>(function(){if(window.matchMedia('(max-width: 1100px)').matches){document.documentElement.classList.add('isn-guide-pending');document.addEventListener('DOMContentLoaded',function(){document.documentElement.classList.remove('isn-guide-pending');},{once:true});}})();</script>\n";
 }
 
 /** Start the small self-hosted variable font before CSS discovery. */
@@ -47,10 +56,12 @@ function enqueue(): void {
 			'infosecnexus-article-content',
 			'infosecnexusArticle',
 			array(
-				'copy'       => __( 'Copy code', 'infosecnexus' ),
-				'copied'     => __( 'Copied', 'infosecnexus' ),
-				'copyFailed' => __( 'Select the code and copy it manually.', 'infosecnexus' ),
-				'table'      => __( 'Article table: scroll horizontally to see all columns', 'infosecnexus' ),
+				'copy'          => __( 'Copy code', 'infosecnexus' ),
+				'copied'        => __( 'Copied', 'infosecnexus' ),
+				'copyFailed'    => __( 'Select the code and copy it manually.', 'infosecnexus' ),
+				'table'         => __( 'Article table: scroll horizontally to see all columns', 'infosecnexus' ),
+				'expandGuide'   => __( 'Expand article guide', 'infosecnexus' ),
+				'collapseGuide' => __( 'Collapse article guide', 'infosecnexus' ),
 			)
 		);
 	}
@@ -66,6 +77,9 @@ function enqueue(): void {
 	wp_enqueue_style( 'infosecnexus-ivory-home', get_template_directory_uri() . '/assets/css/ivory-home.css', array( 'infosecnexus-cinematic-pages' ), (string) filemtime( get_template_directory() . '/assets/css/ivory-home.css' ) );
 	wp_enqueue_style( 'infosecnexus-ivory-pages', get_template_directory_uri() . '/assets/css/ivory-pages.css', array( 'infosecnexus-ivory-home' ), (string) filemtime( get_template_directory() . '/assets/css/ivory-pages.css' ) );
 	wp_enqueue_style( 'infosecnexus-ivory-preferences', get_template_directory_uri() . '/assets/css/ivory-preferences.css', array( 'infosecnexus-ivory-pages' ), INFOSECNEXUS_VERSION );
+	if ( is_singular( 'post' ) ) {
+		wp_enqueue_style( 'infosecnexus-ivory-article', get_template_directory_uri() . '/assets/css/ivory-article.css', array( 'infosecnexus-ivory-preferences' ), (string) filemtime( get_template_directory() . '/assets/css/ivory-article.css' ) );
+	}
 	wp_enqueue_script( 'infosecnexus-cinematic-glass', get_template_directory_uri() . '/assets/js/cinematic-glass.js', array( 'infosecnexus-theme' ), (string) filemtime( get_template_directory() . '/assets/js/cinematic-glass.js' ), array( 'in_footer' => true, 'strategy' => 'defer' ) );
 	wp_localize_script(
 		'infosecnexus-theme',

@@ -3,7 +3,7 @@ Contributors: infosecnexus
 Requires at least: 6.5
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.3.4
+Stable tag: 0.3.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,6 +25,12 @@ InfoSecNexus WordPress Theme, Copyright 2026 InfoSecNexus.
 InfoSecNexus is distributed under the terms of the GNU GPL.
 
 == Changelog ==
+
+= 0.3.5 =
+* Aligns the article hero and reader, widens the desktop guide and keeps its share controls within the viewport.
+* Fixes conflicting tablet grids and adds a compact accessible article guide on smaller screens, retaining no-JavaScript access.
+* Uses one measured header offset for guide links and deep links, preserving article content, sources and gated reading behavior.
+* Avoids late font swaps moving the reader on slow first visits while retaining the self-hosted typeface when available promptly.
 
 = 0.3.4 =
 * Moves the appearance control into the visible header on every device and simplifies footer navigation without duplicate controls.

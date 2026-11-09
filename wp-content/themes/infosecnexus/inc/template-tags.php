@@ -343,7 +343,10 @@ function table_of_contents( string $content = '' ): void {
 		return;
 	}
 
-	echo '<nav class="toc" data-article-guide aria-label="' . esc_attr__( 'Table of contents', 'infosecnexus' ) . '"><span class="toc__eyebrow">' . esc_html__( 'Article guide', 'infosecnexus' ) . '</span><h2>' . esc_html__( 'On this page', 'infosecnexus' ) . '</h2><ol>';
+	$guide_id = wp_unique_id( 'infosecnexus-guide-' );
+	echo '<nav class="toc" data-article-guide aria-label="' . esc_attr__( 'Table of contents', 'infosecnexus' ) . '"><span class="toc__eyebrow">' . esc_html__( 'Article guide', 'infosecnexus' ) . '</span><div class="toc__heading"><h2>' . esc_html__( 'On this page', 'infosecnexus' ) . '</h2><button class="icon-button toc__toggle" type="button" data-guide-toggle aria-expanded="true" aria-controls="' . esc_attr( $guide_id ) . '" aria-label="' . esc_attr__( 'Collapse article guide', 'infosecnexus' ) . '" hidden>';
+	\InfoSecNexus\Theme\Header_Builder\icon( 'chevron-down' );
+	echo '</button></div><ol id="' . esc_attr( $guide_id ) . '" data-guide-list>';
 	$has_parent = false;
 	$in_sublist = false;
 	foreach ( $outline as $heading ) {
@@ -352,7 +355,7 @@ function table_of_contents( string $content = '' ): void {
 				echo '<ol>';
 				$in_sublist = true;
 			}
-			echo '<li><a href="#' . esc_attr( $heading['id'] ) . '">' . esc_html( $heading['label'] ) . '</a></li>';
+			echo '<li><a href="#' . esc_attr( $heading['id'] ) . '" title="' . esc_attr( $heading['label'] ) . '"><span class="toc__label">' . esc_html( $heading['label'] ) . '</span></a></li>';
 			continue;
 		}
 		if ( $in_sublist ) {
@@ -362,7 +365,7 @@ function table_of_contents( string $content = '' ): void {
 		if ( $has_parent ) {
 			echo '</li>';
 		}
-		echo '<li><a href="#' . esc_attr( $heading['id'] ) . '">' . esc_html( $heading['label'] ) . '</a>';
+		echo '<li><a href="#' . esc_attr( $heading['id'] ) . '" title="' . esc_attr( $heading['label'] ) . '"><span class="toc__label">' . esc_html( $heading['label'] ) . '</span></a>';
 		$has_parent = true;
 	}
 	if ( $in_sublist ) {

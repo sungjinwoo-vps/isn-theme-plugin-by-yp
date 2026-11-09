@@ -11,7 +11,9 @@
     copy: 'Copy code',
     copied: 'Copied',
     copyFailed: 'Select the code and copy it manually.',
-    table: 'Article table: scroll horizontally to see all columns'
+    table: 'Article table: scroll horizontally to see all columns',
+    expandGuide: 'Expand article guide',
+    collapseGuide: 'Collapse article guide'
   }, window.infosecnexusArticle || {});
 
   article.querySelectorAll('.entry-content pre').forEach((pre) => {
@@ -72,6 +74,55 @@
   }
 
   const guideLinks = Array.from(guide.querySelectorAll('a[href^="#"]'));
+  const guideToggle = guide.querySelector('[data-guide-toggle]');
+  const guideList = guide.querySelector('[data-guide-list]');
+  const compactGuide = window.matchMedia('(max-width: 1100px)');
+  const header = document.querySelector('[data-site-header]');
+  let expandedOnSmallScreens = false;
+  let observer = null;
+  const headerOffset = () => Math.ceil(Math.max(0, header ? header.getBoundingClientRect().bottom : 0) + 18);
+  const syncReaderOffset = () => document.documentElement.style.setProperty('--iv-reader-offset', `${headerOffset()}px`);
+  const renderGuide = () => {
+    if (!guideToggle || !guideList) {
+      return;
+    }
+    const expanded = !compactGuide.matches || expandedOnSmallScreens;
+    const listHadFocus = guideList.contains(document.activeElement);
+    const toggleHadFocus = document.activeElement === guideToggle;
+    guideToggle.hidden = !compactGuide.matches;
+    guideList.hidden = !expanded;
+    guideToggle.setAttribute('aria-expanded', String(expanded));
+    guideToggle.setAttribute('aria-label', expanded ? labels.collapseGuide : labels.expandGuide);
+    if (!expanded && listHadFocus) {
+      guideToggle.focus({ preventScroll: true });
+    } else if (guideToggle.hidden && toggleHadFocus) {
+      const link = guideLinks.find((item) => item.hasAttribute('aria-current')) || guideLinks[0];
+      if (link) {
+        link.focus({ preventScroll: true });
+        const linkRect = link.getBoundingClientRect();
+        const listRect = guideList.getBoundingClientRect();
+        if (linkRect.top < listRect.top) {
+          guideList.scrollTop += linkRect.top - listRect.top - 4;
+        } else if (linkRect.bottom > listRect.bottom) {
+          guideList.scrollTop += linkRect.bottom - listRect.bottom + 4;
+        }
+      }
+    }
+  };
+
+  if (guideToggle && guideList) {
+    guideToggle.addEventListener('click', () => {
+      expandedOnSmallScreens = !expandedOnSmallScreens;
+      renderGuide();
+    });
+    compactGuide.addEventListener('change', () => {
+      expandedOnSmallScreens = false;
+      renderGuide();
+    });
+    renderGuide();
+    document.documentElement.classList.remove('isn-guide-pending');
+  }
+  syncReaderOffset();
   const targetFor = (link) => {
     try {
       return document.getElementById(decodeURIComponent(link.hash.slice(1)));
@@ -105,6 +156,16 @@
     }
   };
 
+  const scrollToTarget = (target, behavior) => {
+    if (compactGuide.matches) {
+      expandedOnSmallScreens = false;
+      renderGuide();
+    }
+    syncReaderOffset();
+    const top = target.getBoundingClientRect().top + window.scrollY - headerOffset();
+    window.scrollTo({ top: Math.max(0, top), behavior });
+  };
+
   guideLinks.forEach((link) => {
     link.addEventListener('click', (event) => {
       const target = targetFor(link);
@@ -114,29 +175,40 @@
       event.preventDefault();
       revealTarget(target);
       markCurrent(link);
-      window.history.replaceState(null, '', link.hash);
+      if (window.location.hash !== link.hash) {
+        window.history.pushState(null, '', link.hash);
+      }
       target.tabIndex = -1;
       target.focus({ preventScroll: true });
-      target.scrollIntoView({
-        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
-        block: 'start'
-      });
+      scrollToTarget(target, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth');
     });
   });
 
-  const initialLink = guideLinks.find((link) => link.hash === window.location.hash);
-  if (initialLink) {
-    const target = targetFor(initialLink);
+  const navigateToHash = () => {
+    const link = guideLinks.find((item) => item.hash === window.location.hash);
+    const target = link && targetFor(link);
     if (target) {
       revealTarget(target);
-      markCurrent(initialLink);
-      window.requestAnimationFrame(() => target.scrollIntoView({ block: 'start' }));
+      markCurrent(link);
+      scrollToTarget(target, 'auto');
     }
+  };
+  if (window.location.hash) {
+    Promise.resolve(document.fonts && document.fonts.ready).then(() => {
+      window.requestAnimationFrame(navigateToHash);
+    });
   }
+  window.addEventListener('hashchange', navigateToHash);
 
-  if ('IntersectionObserver' in window) {
+  const observeTargets = () => {
+    if (!('IntersectionObserver' in window)) {
+      return;
+    }
+    if (observer) {
+      observer.disconnect();
+    }
     const visible = new Set();
-    const observer = new window.IntersectionObserver((entries) => {
+    observer = new window.IntersectionObserver((entries) => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
           visible.add(entry.target);
@@ -144,16 +216,28 @@
           visible.delete(entry.target);
         }
       });
-      const current = guideLinks.find((link) => visible.has(targetFor(link)));
+      const focused = guideLinks.find((link) => targetFor(link) === document.activeElement && visible.has(targetFor(link)));
+      const current = focused || guideLinks.find((link) => visible.has(targetFor(link)));
       if (current) {
         markCurrent(current);
       }
-    }, { rootMargin: '-100px 0px -55% 0px', threshold: 0 });
+    }, { rootMargin: `-${headerOffset()}px 0px -55% 0px`, threshold: 0 });
     guideLinks.forEach((link) => {
       const target = targetFor(link);
       if (target) {
         observer.observe(target);
       }
     });
+  };
+  observeTargets();
+  window.addEventListener('resize', () => {
+    syncReaderOffset();
+    observeTargets();
+  });
+  if (header && 'ResizeObserver' in window) {
+    new window.ResizeObserver(() => {
+      syncReaderOffset();
+      observeTargets();
+    }).observe(header);
   }
 }());
