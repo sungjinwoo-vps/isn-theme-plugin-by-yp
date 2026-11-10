@@ -14,13 +14,25 @@ Last updated: 2026-11-10 (Asia/Kolkata)
 - Main release branch: `stable`
 - Repository visibility: public, which permits unauthenticated WordPress update
   downloads. Moving it to private requires an authenticated update service.
-- Current theme version: `0.3.5`
-- Current known release: `auto-v0.3.5`
-- Current known code commit: `2e90d4a` (`Fix responsive article reader alignment and guide navigation`)
+- Current theme version: `0.3.6`
+- Current known release: `auto-v0.3.6`
+- Current known code commit: `19049c2` (`Remove legal page article guides and center responsive footer`)
 - WordPress was verified running version 7.1.4 at this checkpoint.
 - The live site is theme-first. The InfoSecNexus Toolkit features are bundled
   into the theme and the separate toolkit plugin is not required on this site.
-- Latest known verification on November 10: production is running `0.3.5`
+- Latest known verification on November 10: production is running `0.3.6`
+  through the native WordPress updater. Static legal pages no longer render an
+  article guide; their content is centered without an empty sidebar. Footer
+  legal links and copyright are centered, with categories left and site pages
+  right up to 1100px. Article guides remain functional. All 80 responsive cases
+  passed in preview and production across Chromium/WebKit and light/dark modes.
+  Production passed 86 browser checks; two preview-only mail tests were skipped.
+  Preview passed 84 checks plus the four form checks after clearing its isolated
+  anti-spam test counters. All 235 release files and 14 served CSS/JS assets match
+  source; all 82 PHP files passed syntax checks. Thirteen preserved state fields
+  match before/after deployment: 251 posts, six pages, 159 retired and five
+  superseded (87 active stories). The additional post existed before this update.
+- Previous verification earlier on November 10: production was running `0.3.5`
   through the native WordPress updater. The shared article reader has aligned
   hero/content shells, a wider viewport-safe desktop guide, a compact accessible
   tablet/mobile guide, consistent click/deep-link offsets and stable responsive
@@ -293,6 +305,46 @@ Last updated: 2026-11-10 (Asia/Kolkata)
 - Current evidence stays ignored under `.tmp/nov9-preview-*`,
   `.tmp/nov9-production-*`, `.tmp/polish-release-0.3.4/` and deployment logs.
   Details and changed files: `docs/ivory-controls-and-dark-mode.md`.
+
+### Static Legal Pages And Footer Alignment - November 10, 2026
+
+- Removed the legal-only article-guide rail in `template-parts/content-page.php`.
+  About/Contact already used a normal content wrapper. Legal pages retain their
+  text pipeline, heading IDs, numbered sections, padding, hero and metadata;
+  their reading column is centered with a 900px maximum width. Actual blog
+  articles retain the shared responsive guide from 0.3.5.
+- `inc/footer-builder.php` now renders legal navigation above copyright, matching
+  reading and keyboard order. Both rows are centered at every width. The legal
+  list fills its flex navigation wrapper so configured and fallback menus both
+  center correctly; centering only the shrink-to-fit list was insufficient.
+- Footer navigation changes to two columns at 1100px and below. The brand spans
+  the first row, category links align left and site-page links align right, with
+  vertical lists and 44px targets. Legal links remain a centered wrapping row.
+- Existing browser tests now verify static guide absence, retained legal heading
+  anchors, centered legal/copyright text and opposite group edges at 320/1024px.
+  Additional screenshot/geometry review covered 80 cases each in preview and
+  production: Chromium at 320/390/768/1024/1366px, WebKit at 390/768/1366px,
+  light/dark modes and legal/shared/article pages. All passed without overflow
+  or footer-link collision. Article guide regression checks also passed.
+- Preview: 84 suite checks passed; four form checks initially reached the normal
+  contact-challenge HTTP429 limit after repeated page audits. Clearing only the
+  isolated preview counters and rerunning those four passed. Production: 86
+  passed, two preview-only mail tests skipped. Production form submissions and
+  consent acceptance were not run. JS/CSS lint, focused PHPStan and all 82 PHP
+  syntax checks passed.
+- Release 0.3.6 code commit `19049c2`, GitHub Actions run `42752030494`, published
+  archive SHA256 `cdd5866cf06584068b09e6be5401b3745770c8cc782f05e8e63052626b27baf8`.
+  All 235 packaged files match source plus expected CI stamps; all 14 fetched
+  frontend CSS/JS assets match source. Native WordPress update succeeded and
+  public caches were purged. The fresh private database/theme backup and exact
+  paths remain in ignored `.tmp/footer-production-backup-result.txt`.
+- Complete body/identity/settings hashes and all thirteen preserved state fields
+  match before and after deployment. Counts are 251 posts, six pages, 159 retired
+  and five superseded. No content rewrite, editorial migration, menu reset or
+  appearance/mail/ads configuration change was run.
+- Details: `docs/ivory-legal-footer.md`. Evidence is ignored under
+  `.tmp/legal-footer-preview-final/`, `.tmp/legal-footer-production/`,
+  `.tmp/footer-release-0.3.6/` and corresponding audit/deployment logs.
 
 ### Shared Article Reader Alignment - November 10, 2026
 
@@ -628,13 +680,14 @@ code, current theme `readme.txt`, and the latest release as the current truth.
 
 - About and Contact are first-class header pages, not footer-only links.
 - Privacy Policy, Terms and Conditions, and Disclaimer are compact legal pages
-  with rewritten site-specific copy.
+  with rewritten site-specific copy and no blog article guide.
 - Category/archive sidebars are restrained. The obsolete Archives widget is not
   part of the intended layout.
 - The 404 page uses the InfoSecNexus security visual language and offers useful
   routes back to current briefings.
-- The footer has a centered brand row, a standard copyright line, and legal
-  links aligned cleanly on larger screens and stacked on mobile.
+- The footer centers legal links above the copyright line on every device.
+  Up to 1100px, the brand spans the first row and navigation has categories
+  aligned left and site pages aligned right in two separate columns.
 
 ### Global Interaction And Styling
 

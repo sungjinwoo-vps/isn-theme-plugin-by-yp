@@ -23,3 +23,12 @@ Validate desktop, tablet and mobile in both appearance modes, including narrow
 320px screens. Retain the article guide tests to catch unintended post changes.
 Production updates use a fresh database/theme backup and the verified release
 archive; do not run content migrations or reset settings for this visual change.
+
+Verified November 10, 2026: 80 responsive cases each passed in preview and
+production using Chromium and WebKit, both appearance modes, and widths from
+320px to 1366px. Production passed 86 browser checks with two preview-only mail
+checks skipped. Preview passed 84 checks plus four form checks after its normal
+anti-spam counters were reset in isolation. JS/CSS lint, focused PHPStan, and
+all 82 deployed PHP syntax checks passed. The 235-file release and all 14 fetched
+frontend CSS/JS assets match source. All thirteen preserved state fields match
+before and after the native WordPress update to 0.3.6.
