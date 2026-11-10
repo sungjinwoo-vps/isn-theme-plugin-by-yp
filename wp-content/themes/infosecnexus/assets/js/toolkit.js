@@ -177,6 +177,12 @@
   });
 
   const cookie = document.querySelector('[data-isnx-cookie]');
+  const updateCookieClearance = () => {
+    const bounds = cookie && !cookie.hidden ? cookie.getBoundingClientRect() : null;
+    const clearance = bounds ? Math.ceil(bounds.height + Math.max(0, window.innerHeight - bounds.bottom)) : 0;
+    document.documentElement.style.setProperty('--isnx-cookie-clearance', `${clearance}px`);
+    document.dispatchEvent(new CustomEvent('infosecnexus:cookie-layout'));
+  };
   const cookieAccepted = () => {
     try {
       return localStorage.getItem('infosecnexus-cookie-ok') === '1';
@@ -194,6 +200,13 @@
   if (cookie && !cookieAccepted() && !cookieDismissed()) {
     cookie.hidden = false;
   }
+  if (cookie) {
+    updateCookieClearance();
+    window.addEventListener('resize', updateCookieClearance);
+    if ('ResizeObserver' in window) {
+      new ResizeObserver(updateCookieClearance).observe(cookie);
+    }
+  }
   document.addEventListener('click', (event) => {
     if (event.target.closest('[data-isnx-cookie-dismiss]')) {
       try {
@@ -203,6 +216,7 @@
       }
       if (cookie) {
         cookie.hidden = true;
+        updateCookieClearance();
       }
     }
     if (event.target.closest('[data-isnx-cookie-accept]')) {
@@ -213,6 +227,7 @@
       }
       if (cookie) {
         cookie.hidden = true;
+        updateCookieClearance();
       }
       document.dispatchEvent(new CustomEvent('infosecnexus:ads-consent'));
     }

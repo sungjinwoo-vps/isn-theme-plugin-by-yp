@@ -3,7 +3,7 @@ Contributors: infosecnexus
 Requires at least: 6.5
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.3.6
+Stable tag: 0.3.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,6 +25,12 @@ InfoSecNexus WordPress Theme, Copyright 2026 InfoSecNexus.
 InfoSecNexus is distributed under the terms of the GNU GPL.
 
 == Changelog ==
+
+= 0.3.7 =
+* Shows cookie preferences in the first viewport on every device, with safe-area spacing and accessible actions.
+* Reserves footer space and keeps back-to-top clear of consent and the sticky header, including short landscape screens.
+* Keeps keyboard focus inside search and navigation dialogs in Safari as well as Chromium.
+* Preserves consent choices, site content, menus, appearance and mail settings.
 
 = 0.3.6 =
 * Removes the article guide from static legal pages and centers their readable content column while preserving existing heading links.

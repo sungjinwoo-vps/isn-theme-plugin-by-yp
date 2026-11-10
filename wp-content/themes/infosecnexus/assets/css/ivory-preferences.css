@@ -1,6 +1,7 @@
-/* Preferences stay in the page flow so they never obscure reading or controls. */
+/* Keep preferences visible and reserve space for reading and floating controls. */
 :root {
   background: #f5f0e9;
+  scroll-padding-bottom: calc(var(--isnx-cookie-clearance, 0px) + 16px);
 }
 
 :root[data-color-mode="dark"] {
@@ -204,19 +205,33 @@
   }
 }
 
+:root body.cinematic-editorial.ivory-editorial {
+  padding-bottom: var(--isnx-cookie-clearance, 0);
+}
+
+:root body.cinematic-editorial.ivory-editorial .scroll-top {
+  bottom: min(calc(max(16px, env(safe-area-inset-bottom)) + max(var(--isn-scroll-footer-offset, 0px), var(--isnx-cookie-clearance, 0px))), var(--isn-scroll-max-bottom, calc(100dvh - 96px)));
+}
+
 :root body.cinematic-editorial.ivory-editorial .isnx-cookie {
-  position: relative;
+  position: fixed;
   inset: auto;
-  z-index: auto;
+  bottom: max(14px, env(safe-area-inset-bottom));
+  left: 50%;
+  z-index: 95;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 20px;
   align-items: center;
-  width: min(calc(100% - 48px), 1200px);
-  max-width: 1200px;
-  margin: 16px auto 24px;
+  width: min(calc(100% - 28px), 900px);
+  max-height: calc(100vh - 28px);
+  max-height: calc(100dvh - 28px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  margin: 0;
   padding: 16px 20px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   border-radius: 18px;
+  transform: translateX(-50%);
 }
 
 :root body.cinematic-editorial.ivory-editorial .isnx-cookie[hidden] {

@@ -132,6 +132,10 @@ test('modal search supports keyboard dismissal, focus restoration and actual pos
   const panel = page.locator('[data-search-modal]');
   await expect(panel).toBeVisible();
   await expect(panel.locator('input[name=s]')).toBeFocused();
+  for (const key of ['Tab', 'Tab', 'Tab', 'Tab', 'Tab', 'Tab', 'Tab', 'Shift+Tab', 'Shift+Tab']) {
+    await page.keyboard.press(key);
+    expect(await panel.evaluate((element) => element.contains(document.activeElement))).toBeTruthy();
+  }
   await page.keyboard.press('Escape');
   await expect(panel).toBeHidden();
   await expect(toggle).toBeFocused();

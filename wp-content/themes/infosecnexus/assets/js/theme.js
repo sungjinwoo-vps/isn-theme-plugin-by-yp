@@ -154,7 +154,7 @@
     }
 
     return Array.from(container.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'))
-      .filter((element) => !element.hidden && element.getAttribute('aria-hidden') !== 'true' && element.getClientRects().length > 0 && window.getComputedStyle(element).visibility !== 'hidden');
+      .filter((element) => element.tabIndex >= 0 && !element.closest('[inert]') && !element.hidden && element.getAttribute('aria-hidden') !== 'true' && element.getClientRects().length > 0 && window.getComputedStyle(element).visibility !== 'hidden');
   }
 
   // Keep the parent archive link usable and progressively disclose its topics.
@@ -212,15 +212,12 @@
       return;
     }
 
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
-    }
+    event.preventDefault();
+    const current = focusable.indexOf(document.activeElement);
+    const next = event.shiftKey
+      ? (current <= 0 ? focusable.length - 1 : current - 1)
+      : (current + 1) % focusable.length;
+    focusable[next].focus();
   }
 
   function updateBodyModalState() {
@@ -235,7 +232,7 @@
     }
 
     closeSearch(false);
-    menuPreviousFocus = document.activeElement;
+    menuPreviousFocus = menuToggle;
     panel.hidden = false;
     menuToggle.setAttribute('aria-expanded', 'true');
     document.body.classList.add('mobile-panel-open');
@@ -317,7 +314,7 @@
       event.preventDefault();
       const nextOpen = searchPanel.hidden;
       if (nextOpen) {
-        searchPreviousFocus = document.activeElement;
+        searchPreviousFocus = searchToggle;
         closePanel(false);
       }
       searchPanel.hidden = !nextOpen;
@@ -526,17 +523,26 @@
       const total = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
       const ratio = total > 0 ? Math.min(Math.max(window.scrollY / total, 0), 1) : 0;
       const threshold = Math.max(900, window.innerHeight * 1.25);
+      const buttonHeight = Number.parseFloat(getComputedStyle(scrollTop).height) || 52;
+      const minimumTop = Math.max(24, (siteHeader?.getBoundingClientRect().bottom || 0) + 12);
+      const maximumBottom = Math.max(16, window.innerHeight - minimumTop - buttonHeight);
+      const cookieNotice = document.querySelector('[data-isnx-cookie]:not([hidden])');
+      const availableEnd = Math.min(
+        siteFooter?.getBoundingClientRect().top ?? window.innerHeight,
+        cookieNotice?.getBoundingClientRect().top ?? window.innerHeight
+      ) - 12;
       let footerOffset = 0;
 
       if (siteFooter) {
         const footerOverlap = Math.max(0, window.innerHeight - siteFooter.getBoundingClientRect().top);
-        const maximumOffset = Math.max(0, window.innerHeight - scrollTop.offsetHeight - 24);
+        const maximumOffset = Math.max(0, maximumBottom - 16);
         footerOffset = Math.min(footerOverlap, maximumOffset);
       }
 
       scrollTop.style.setProperty('--isn-scroll-progress', `${Math.round(ratio * 1000) / 10}%`);
       scrollTop.style.setProperty('--isn-scroll-footer-offset', `${Math.ceil(footerOffset)}px`);
-      scrollTop.hidden = total <= 0 || window.scrollY < threshold;
+      scrollTop.style.setProperty('--isn-scroll-max-bottom', `${maximumBottom}px`);
+      scrollTop.hidden = total <= 0 || window.scrollY < threshold || availableEnd < minimumTop + buttonHeight;
     };
 
     const requestUpdate = () => {
@@ -551,6 +557,10 @@
     update();
     window.addEventListener('scroll', requestUpdate, { passive: true });
     window.addEventListener('resize', requestUpdate);
+    document.addEventListener('infosecnexus:cookie-layout', requestUpdate);
+    if (siteHeader && 'ResizeObserver' in window) {
+      new ResizeObserver(requestUpdate).observe(siteHeader);
+    }
     window.addEventListener('load', requestUpdate, { once: true });
     if (document.fonts && document.fonts.ready) {
       document.fonts.ready.then(requestUpdate);
