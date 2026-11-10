@@ -23,6 +23,19 @@
   updateHeader();
   window.addEventListener('scroll', updateHeader, { passive: true });
 
+  document.querySelectorAll('[data-blog-topics]').forEach((details) => {
+    const compact = window.matchMedia('(max-width: 1100px)');
+    const summary = details.querySelector('summary');
+    const updateTopics = () => {
+      if (compact.matches && details.contains(document.activeElement) && !summary.contains(document.activeElement)) {
+        summary.focus({ preventScroll: true });
+      }
+      details.open = !compact.matches;
+    };
+    updateTopics();
+    compact.addEventListener('change', updateTopics);
+  });
+
   // Everything starts visible. Only offscreen content opts into the reveal.
   let observer;
   const revealAll = () => {

@@ -15,7 +15,9 @@ namespace InfoSecNexus\Theme\SEO;
 function bootstrap(): void {
 	add_action( 'wp_head', __NAMESPACE__ . '\\render_metadata', 4 );
 	add_filter( 'wp_robots', __NAMESPACE__ . '\\noindex_tag_archives' );
+	add_filter( 'wp_robots', __NAMESPACE__ . '\\noindex_empty_category_archives' );
 	add_filter( 'wp_sitemaps_taxonomies', __NAMESPACE__ . '\\exclude_post_tags_from_sitemaps' );
+	add_filter( 'wp_sitemaps_taxonomies_query_args', __NAMESPACE__ . '\\category_sitemap_query', 10, 2 );
 	add_filter( 'pre_get_document_title', __NAMESPACE__ . '\\document_title' );
 	add_filter( 'get_canonical_url', __NAMESPACE__ . '\\singular_canonical_url', 10, 2 );
 	add_filter( 'pre_option_elementor_meta_generator_tag', __NAMESPACE__ . '\\disable_elementor_generator_tag' );
@@ -51,6 +53,118 @@ function noindex_tag_archives( array $robots ): array {
 	}
 
 	return $robots;
+}
+
+/**
+ * Category IDs whose archives contain useful standalone public articles.
+ *
+ * WordPress term counts include staged and superseded posts that intentionally
+ * remain published. Query active content instead, and include ancestors because
+ * category archives also display their descendants' posts. The rolling hub is
+ * pinned separately and does not make an otherwise empty topic useful.
+ *
+ * @return int[]
+ */
+function active_category_ids(): array {
+	static $cached_ids = null;
+	static $cached_generation = '';
+
+	$generation = implode(
+		':',
+		array_map(
+			'did_action',
+			array( 'clean_post_cache', 'clean_term_cache', 'set_object_terms', 'added_post_meta', 'updated_post_meta', 'deleted_post_meta' )
+		)
+	);
+	if ( is_array( $cached_ids ) && $cached_generation === $generation ) {
+		return $cached_ids;
+	}
+
+	$args = array(
+		'post_type'              => 'post',
+		'post_status'            => 'publish',
+		'posts_per_page'         => -1,
+		'fields'                 => 'ids',
+		'has_password'           => false,
+		'no_found_rows'           => true,
+		'ignore_sticky_posts'    => true,
+		'update_post_meta_cache'  => false,
+		'update_post_term_cache'  => false,
+	);
+	$rolling = \InfoSecNexus\Theme\Template_Tags\rolling_brief_post();
+	if ( $rolling instanceof \WP_Post ) {
+		$args['post__not_in'] = array( (int) $rolling->ID );
+	}
+	// Apply the same retirement policy in web, admin and WP-CLI requests.
+	$args = \InfoSecNexus\Theme\Toolkit\Content_Retirement::filter_sitemap_query( $args, 'post' );
+	$query = new \WP_Query( $args );
+	$post_ids = array_map( 'absint', $query->posts );
+	$term_ids = empty( $post_ids ) ? array() : wp_get_object_terms( $post_ids, 'category', array( 'fields' => 'ids' ) );
+	$ids = is_wp_error( $term_ids ) ? array() : array_map( 'absint', $term_ids );
+	foreach ( $ids as $term_id ) {
+		$ids = array_merge( $ids, array_map( 'absint', get_ancestors( $term_id, 'category', 'taxonomy' ) ) );
+	}
+	$ids = array_values( array_unique( $ids ) );
+	sort( $ids, SORT_NUMERIC );
+	$cached_ids = $ids;
+	$cached_generation = $generation;
+	return $ids;
+}
+
+/**
+ * Whether a category has active public articles, including child categories.
+ */
+function category_has_active_posts( int $term_id ): bool {
+	return $term_id > 0 && in_array( $term_id, active_category_ids(), true );
+}
+
+/**
+ * Leave empty archive URLs available while withholding them from indexing.
+ *
+ * Dedicated SEO plugins retain responsibility for their own indexing policy.
+ * Existing nofollow instructions are preserved instead of overwritten.
+ *
+ * @param array<string,mixed> $robots Existing robots directives.
+ * @return array<string,mixed>
+ */
+function noindex_empty_category_archives( array $robots ): array {
+	if ( seo_plugin_active() || ! is_category() || category_has_active_posts( (int) get_queried_object_id() ) ) {
+		return $robots;
+	}
+
+	$robots['noindex'] = true;
+	unset( $robots['index'] );
+	if ( empty( $robots['nofollow'] ) ) {
+		$robots['follow'] = true;
+	}
+	return $robots;
+}
+
+/**
+ * Keep category sitemap entries aligned with actual active archive content.
+ *
+ * Filtering the term query also keeps sitemap counts and pagination correct.
+ *
+ * @param array<string,mixed> $args Core taxonomy sitemap query.
+ * @param string              $taxonomy Taxonomy name.
+ * @return array<string,mixed>
+ */
+function category_sitemap_query( array $args, string $taxonomy ): array {
+	if ( 'category' !== $taxonomy || seo_plugin_active() ) {
+		return $args;
+	}
+
+	$ids = active_category_ids();
+	if ( ! empty( $args['include'] ) ) {
+		$ids = array_values( array_intersect( $ids, wp_parse_id_list( $args['include'] ) ) );
+	}
+	if ( ! empty( $args['exclude'] ) ) {
+		$ids = array_values( array_diff( $ids, wp_parse_id_list( $args['exclude'] ) ) );
+	}
+	// An empty include is interpreted as unrestricted by WP_Term_Query.
+	$args['include'] = empty( $ids ) ? array( 0 ) : $ids;
+	$args['hide_empty'] = false;
+	return $args;
 }
 
 /**
@@ -198,6 +312,9 @@ function render_metadata(): void {
 		),
 	);
 
+	if ( $author instanceof \WP_User ) {
+		$schema['author']['@id'] = get_author_posts_url( (int) $author->ID ) . '#person';
+	}
 	if ( ! empty( $keywords ) ) {
 		$schema['keywords'] = $keywords;
 	}
@@ -281,6 +398,27 @@ function current_description( int $post_id = 0 ): string {
 					__( 'Latest %s cybersecurity briefings, practical analysis, risk context, and defensive actions from InfoSecNexus.', 'infosecnexus' ),
 					$term->name
 				)
+			);
+		}
+	}
+
+	if ( is_author() ) {
+		$author = get_queried_object();
+		if ( $author instanceof \WP_User ) {
+			$bio = trim( wp_strip_all_tags( (string) get_the_author_meta( 'description', (int) $author->ID ), true ) );
+			return concise_text(
+				'' !== $bio
+					? sprintf(
+						/* translators: 1: real author name, 2: public author biography. */
+						__( 'Articles by %1$s on InfoSecNexus. %2$s', 'infosecnexus' ),
+						$author->display_name,
+						$bio
+					)
+					: sprintf(
+						/* translators: %s: real author name. */
+						__( 'Articles by %s on InfoSecNexus, with linked sources and a way to send corrections.', 'infosecnexus' ),
+						$author->display_name
+					)
 			);
 		}
 	}

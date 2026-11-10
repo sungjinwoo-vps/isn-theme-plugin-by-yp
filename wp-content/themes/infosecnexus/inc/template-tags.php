@@ -96,7 +96,11 @@ function post_meta( bool $article_dates = false ): void {
 	} else {
 		echo '<time datetime="' . esc_attr( $date['datetime'] ) . '">' . esc_html( $date['label'] ) . '</time>';
 	}
-	echo '<span>' . esc_html( get_the_author() ) . '</span>';
+	if ( $article_dates ) {
+		echo '<a class="entry-meta__author" rel="author" href="' . esc_url( get_author_posts_url( (int) get_the_author_meta( 'ID' ) ) ) . '">' . esc_html( get_the_author() ) . '</a>';
+	} else {
+		echo '<span>' . esc_html( get_the_author() ) . '</span>';
+	}
 	/* translators: %d: estimated reading time in minutes. */
 	echo '<span>' . esc_html( sprintf( _n( '%d min read', '%d min read', reading_time(), 'infosecnexus' ), reading_time() ) ) . '</span>';
 	echo '</div>';

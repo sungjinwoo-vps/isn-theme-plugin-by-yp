@@ -61,13 +61,15 @@ $latest = new WP_Query(
 
 	<div class="layout-wide-shell blog-hub__body">
 		<nav class="blog-topic-nav" aria-labelledby="blog-topic-heading">
-			<div class="listing-header">
+			<details class="blog-topic-disclosure" data-blog-topics open>
+			<summary class="listing-header">
 				<h2 id="blog-topic-heading"><?php esc_html_e( 'Explore security topics', 'infosecnexus' ); ?></h2>
-			</div>
+				<span class="blog-topic-disclosure__icon" aria-hidden="true"><?php \InfoSecNexus\Theme\Header_Builder\icon( 'chevron-down' ); ?></span>
+			</summary>
 			<ul>
 				<?php foreach ( $topics as $slug => $label ) : ?>
 					<?php $term = get_category_by_slug( $slug ); ?>
-					<?php if ( ! $term instanceof WP_Term ) : ?>
+					<?php if ( ! $term instanceof WP_Term || ! \InfoSecNexus\Theme\SEO\category_has_active_posts( (int) $term->term_id ) ) : ?>
 						<?php continue; ?>
 					<?php endif; ?>
 					<li>
@@ -78,16 +80,8 @@ $latest = new WP_Query(
 					</li>
 				<?php endforeach; ?>
 			</ul>
+			</details>
 		</nav>
-
-		<?php if ( 1 === $paged && $rolling instanceof WP_Post ) : ?>
-			<section class="blog-hub__featured" aria-labelledby="live-brief-heading">
-				<header class="listing-header">
-					<h2 id="live-brief-heading"><?php esc_html_e( 'Continuously updated live brief', 'infosecnexus' ); ?></h2>
-				</header>
-				<?php \InfoSecNexus\Theme\Template_Tags\post_card( 'list', 'h3', $rolling->ID ); ?>
-			</section>
-		<?php endif; ?>
 
 		<section class="blog-hub__latest" aria-labelledby="latest-briefings-heading">
 			<header class="listing-header">
@@ -119,6 +113,14 @@ $latest = new WP_Query(
 				<?php get_template_part( 'template-parts/content', 'none' ); ?>
 			<?php endif; ?>
 		</section>
+		<?php if ( 1 === $paged && $rolling instanceof WP_Post ) : ?>
+			<section class="blog-hub__featured" aria-labelledby="live-brief-heading">
+				<header class="listing-header">
+					<h2 id="live-brief-heading"><?php esc_html_e( 'Continuously updated live brief', 'infosecnexus' ); ?></h2>
+				</header>
+				<?php \InfoSecNexus\Theme\Template_Tags\post_card( 'list', 'h3', $rolling->ID ); ?>
+			</section>
+		<?php endif; ?>
 	</div>
 </main>
 <?php

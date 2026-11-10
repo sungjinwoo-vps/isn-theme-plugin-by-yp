@@ -38,16 +38,9 @@ function render(): void {
 				<h2><?php esc_html_e( 'Explore intelligence', 'infosecnexus' ); ?></h2>
 				<ul class="ivory-footer__menu ivory-footer__topics-list">
 					<?php
-					$topics = array(
-						'critical-cves'           => __( 'Critical CVEs', 'infosecnexus' ),
-						'cloud-security'          => __( 'Cloud Security', 'infosecnexus' ),
-						'linux-administration'    => __( 'Linux & DevOps', 'infosecnexus' ),
-						'artificial-intelligence' => __( 'AI Security', 'infosecnexus' ),
-						'network-security'        => __( 'Network Security', 'infosecnexus' ),
-					);
-					foreach ( $topics as $slug => $label ) :
+					foreach ( \InfoSecNexus\Theme\Cinematic_Design\topics() as $topic ) :
 						?>
-						<li><a href="<?php echo esc_url( \InfoSecNexus\Theme\Header_Builder\category_url( $slug ) ); ?>"><?php echo esc_html( $label ); ?></a></li>
+						<li><a href="<?php echo esc_url( \InfoSecNexus\Theme\Header_Builder\category_url( $topic['slug'] ) ); ?>"><?php echo esc_html( $topic['label'] ); ?></a></li>
 					<?php endforeach; ?>
 				</ul>
 			</nav>

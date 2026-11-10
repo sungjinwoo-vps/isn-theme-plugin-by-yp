@@ -115,13 +115,23 @@ function excerpt( \WP_Post $post, int $words = 22 ): string {
 	return wp_trim_words( wp_strip_all_tags( strip_shortcodes( $text ) ), $words, '…' );
 }
 
-/** Static UI copy for actual public topic routes. */
+/** Promote only topic routes with published, discoverable articles. */
 function topics(): array {
-	return array(
+	$topics = array(
 		array( 'slug' => 'critical-cves', 'key' => 'critical', 'label' => 'Critical CVEs', 'description' => 'Exposure, impact, and a clear path to remediation.' ),
 		array( 'slug' => 'cloud-security', 'key' => 'cloud', 'label' => 'Cloud Security', 'description' => 'Protect identities, workloads, and the cloud boundary.' ),
 		array( 'slug' => 'linux-administration', 'key' => 'linux', 'label' => 'Linux & DevOps', 'description' => 'Stronger systems. More resilient delivery.' ),
 		array( 'slug' => 'artificial-intelligence', 'key' => 'ai', 'label' => 'AI Security', 'description' => 'Understand risk across models, agents, and tools.' ),
 		array( 'slug' => 'network-security', 'key' => 'network', 'label' => 'Network Security', 'description' => 'Practical defence for connected infrastructure.' ),
+		array( 'slug' => 'web-security', 'key' => 'hero', 'icon' => 'critical', 'label' => 'Web Security', 'description' => 'Vulnerabilities and defensive context for web platforms.' ),
+		array( 'slug' => 'windows-security', 'key' => 'ai', 'label' => 'Windows Security', 'description' => 'Microsoft platform advisories and remediation context.' ),
+		array( 'slug' => 'devops', 'key' => 'linux', 'label' => 'DevSecOps', 'description' => 'Security context for delivery pipelines and infrastructure.' ),
+		array( 'slug' => 'cybersecurity', 'key' => 'critical', 'label' => 'Cyber Security', 'description' => 'Current threats, vendor advisories, and security analysis.' ),
+		array( 'slug' => 'tutorials', 'key' => 'linux', 'label' => 'Security Tutorials', 'description' => 'Practical guides for security and infrastructure teams.' ),
 	);
+	$topics = array_filter( $topics, static function ( array $topic ): bool {
+		$category = get_category_by_slug( $topic['slug'] );
+		return $category instanceof \WP_Term && \InfoSecNexus\Theme\SEO\category_has_active_posts( (int) $category->term_id );
+	} );
+	return array_slice( array_values( $topics ), 0, 5 );
 }

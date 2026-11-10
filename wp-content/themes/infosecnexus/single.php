@@ -67,6 +67,7 @@ if ( \InfoSecNexus\Theme\Elementor\render_location( 'single' ) ) {
 					<footer class="entry-footer">
 						<?php the_tags( '<div class="tag-links">', '', '</div>' ); ?>
 					</footer>
+					<?php \InfoSecNexus\Theme\Reader_Growth\article_newsletter(); ?>
 					<?php \InfoSecNexus\Theme\Template_Tags\related_posts(); ?>
 					<?php if ( 'rolling' !== (string) get_post_meta( get_the_ID(), '_infosecnexus_newsroom_kind', true ) ) : ?>
 						<?php the_post_navigation(); ?>

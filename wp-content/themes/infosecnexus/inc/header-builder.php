@@ -111,16 +111,25 @@ function render_primary_nav( string $variant = 'desktop' ): void {
 	);
 	$topics     = array(
 		array( 'label' => __( 'All Briefings', 'infosecnexus' ), 'url' => page_url( 'blog' ), 'active' => is_page( 'blog' ) ),
-		array( 'label' => __( 'Cyber Security', 'infosecnexus' ), 'url' => category_url( 'cybersecurity' ), 'active' => is_category( 'cybersecurity' ) ),
-		array( 'label' => __( 'Critical CVEs', 'infosecnexus' ), 'url' => category_url( 'critical-cves' ), 'active' => is_category( 'critical-cves' ) ),
-		array( 'label' => __( 'Linux & DevOps', 'infosecnexus' ), 'url' => category_url( 'linux-administration' ), 'active' => is_category( array( 'linux-administration', 'devops' ) ) ),
-		array( 'label' => __( 'AI Security', 'infosecnexus' ), 'url' => category_url( 'artificial-intelligence' ), 'active' => is_category( 'artificial-intelligence' ) ),
-		array( 'label' => __( 'Tutorials', 'infosecnexus' ), 'url' => category_url( 'tutorials' ), 'active' => is_category( 'tutorials' ) ),
-		array( 'label' => __( 'Cloud Security', 'infosecnexus' ), 'url' => category_url( 'cloud-security' ), 'active' => is_category( 'cloud-security' ) ),
-		array( 'label' => __( 'Web Security', 'infosecnexus' ), 'url' => category_url( 'web-security' ), 'active' => is_category( 'web-security' ) ),
-		array( 'label' => __( 'Windows Security', 'infosecnexus' ), 'url' => category_url( 'windows-security' ), 'active' => is_category( 'windows-security' ) ),
-		array( 'label' => __( 'Network Security', 'infosecnexus' ), 'url' => category_url( 'network-security' ), 'active' => is_category( 'network-security' ) ),
 	);
+	$topic_labels = array(
+		'cybersecurity' => __( 'Cyber Security', 'infosecnexus' ),
+		'critical-cves' => __( 'Critical CVEs', 'infosecnexus' ),
+		'linux-administration' => __( 'Linux & DevOps', 'infosecnexus' ),
+		'devops' => __( 'DevSecOps', 'infosecnexus' ),
+		'artificial-intelligence' => __( 'AI Security', 'infosecnexus' ),
+		'tutorials' => __( 'Tutorials', 'infosecnexus' ),
+		'cloud-security' => __( 'Cloud Security', 'infosecnexus' ),
+		'web-security' => __( 'Web Security', 'infosecnexus' ),
+		'windows-security' => __( 'Windows Security', 'infosecnexus' ),
+		'network-security' => __( 'Network Security', 'infosecnexus' ),
+	);
+	foreach ( $topic_labels as $slug => $label ) {
+		$category = get_category_by_slug( $slug );
+		if ( $category instanceof \WP_Term && \InfoSecNexus\Theme\SEO\category_has_active_posts( (int) $category->term_id ) ) {
+			$topics[] = array( 'label' => $label, 'url' => category_url( $slug ), 'active' => is_category( $slug ) );
+		}
+	}
 	$items = array(
 		array( 'label' => __( 'Home', 'infosecnexus' ), 'url' => home_url( '/' ), 'active' => is_front_page() ),
 		array( 'label' => __( 'Intelligence', 'infosecnexus' ), 'url' => page_url( 'blog' ), 'active' => is_page( 'blog' ) || is_category( $topic_slugs ), 'children' => $topics ),
@@ -251,12 +260,11 @@ function render_mobile_panel(): void {
  * Render search modal.
  */
 function render_search_modal(): void {
-	$quick_links = array(
-		__( 'Critical CVEs', 'infosecnexus' ) => category_url( 'critical-cves' ),
-		__( 'Cyber Security', 'infosecnexus' ) => category_url( 'cybersecurity' ),
-		__( 'Linux & DevOps', 'infosecnexus' ) => category_url( 'linux-administration' ),
-		__( 'AI Security', 'infosecnexus' ) => category_url( 'artificial-intelligence' ),
-	);
+	$quick_links = array();
+	foreach ( \InfoSecNexus\Theme\Cinematic_Design\topics() as $topic ) {
+		$quick_links[ $topic['label'] ] = category_url( $topic['slug'] );
+		if ( count( $quick_links ) >= 4 ) { break; }
+	}
 	?>
 	<div class="search-modal" id="infosecnexus-search-modal" hidden data-search-modal>
 		<button class="search-modal__backdrop" type="button" data-search-close aria-label="<?php esc_attr_e( 'Close search', 'infosecnexus' ); ?>"></button>

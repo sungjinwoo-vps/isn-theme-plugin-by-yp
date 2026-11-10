@@ -34,5 +34,6 @@ if ! wp core is-installed --path="$preview_root" --quiet; then
 fi
 wp eval-file /tmp/isn-preview-public-import.php --path="$preview_root" --skip-themes --quiet
 wp theme activate infosecnexus --path="$preview_root" --quiet
+wp rewrite flush --path="$preview_root" --quiet
 echo PREVIEW_DATABASE=isolated-sqlite
 echo PREVIEW_ROOT="$preview_root"

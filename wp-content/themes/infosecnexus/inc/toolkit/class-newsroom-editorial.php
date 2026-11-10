@@ -331,7 +331,7 @@ final class Newsroom_Editorial {
 		if ( empty( $before ) ) {
 			return 'Expanded this briefing with attributed primary-source facts, affected-version details, and remediation guidance.';
 		}
-		$labels = array( 'affected_versions' => 'affected and fixed versions', 'metrics' => 'severity assessments', 'action' => 'remediation guidance', 'solutions' => 'remediation guidance', 'workarounds' => 'temporary mitigations', 'active_exploitation' => 'exploitation status', 'technical_description' => 'technical analysis' );
+		$labels = array( 'affected_versions' => 'affected and fixed versions', 'metrics' => 'severity assessments', 'action' => 'remediation guidance', 'solutions' => 'remediation guidance', 'workarounds' => 'temporary mitigations', 'active_exploitation' => 'exploitation status', 'technical_description' => 'technical analysis', 'vendor_review' => 'vendor-specific remediation guidance' );
 		$changes = array();
 		foreach ( $labels as $key => $label ) {
 			if ( wp_json_encode( array_column( $before, $key ) ) !== wp_json_encode( array_column( $after, $key ) ) ) {

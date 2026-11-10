@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 namespace InfoSecNexus\Theme\Toolkit;
 
+require_once __DIR__ . '/class-reviewed-vendor-evidence.php';
+
 /**
  * Collect structured security data from authoritative public sources.
  */
@@ -311,7 +313,7 @@ final class Live_Intelligence {
 	 * @return array<string,mixed>
 	 */
 	public static function article_for_item( array $item, string $date ): array {
-		$item = self::item( $item );
+		$item = Reviewed_Vendor_Evidence::apply( self::item( $item ) );
 		return array(
 			'content'     => '' !== self::extract_primary_cve( $item ) ? self::render_breaking_article( $date, $item ) : self::render_news_article( $item ),
 			'sources'     => self::source_pairs( array( $item ) ),
@@ -336,6 +338,7 @@ final class Live_Intelligence {
 	 * @return array<string,mixed>
 	 */
 	public static function enrich_cve_item( array $item, bool $force = false ): array {
+		$item = Reviewed_Vendor_Evidence::strip( $item );
 		$cve = self::extract_primary_cve( $item );
 		if ( '' === $cve ) {
 			return $item;
@@ -346,14 +349,14 @@ final class Live_Intelligence {
 			$record = self::fetch_json( 'https://cveawg.mitre.org/api/cve/' . rawurlencode( $cve ) );
 			if ( is_wp_error( $record ) || $cve !== (string) ( $record['cveMetadata']['cveId'] ?? '' ) || 'PUBLISHED' !== (string) ( $record['cveMetadata']['state'] ?? '' ) ) {
 				set_transient( $key, array(), 15 * MINUTE_IN_SECONDS );
-				return $item;
+				return Reviewed_Vendor_Evidence::apply( $item );
 			}
 			set_transient( $key, $record, 6 * HOUR_IN_SECONDS );
 		}
 		if ( ! is_array( $record ) || empty( $record ) ) {
-			return $item;
+			return Reviewed_Vendor_Evidence::apply( $item );
 		}
-		return self::merge_cve_evidence( $item, $record );
+		return Reviewed_Vendor_Evidence::apply( self::merge_cve_evidence( $item, $record ) );
 	}
 
 	/** Preserve the CNA's exact structured claims and their provenance. */
@@ -740,6 +743,13 @@ final class Live_Intelligence {
 		$content .= '<h2>Key facts</h2>' . self::render_key_facts( $item );
 		$content .= '<!--more--><h2>Who is affected and which versions are fixed</h2>';
 		$content .= self::render_affected_versions( $item );
+		$review = (array) ( $item['vendor_review'] ?? array() );
+		if ( ! empty( $review ) ) {
+			$content .= '<p><strong>Vendor applicability:</strong> ' . esc_html( (string) $review['applicability'] ) . ' ' . self::reviewed_vendor_link( $review ) . '</p>';
+			$content .= '<p><strong>Vendor evidence reviewed:</strong> <time datetime="' . esc_attr( (string) $review['reviewed'] ) . '">' . esc_html( wp_date( 'F j, Y', (int) strtotime( (string) $review['reviewed'] . ' 00:00:00 UTC' ) ) ) . '</time>. ' . esc_html( (string) $review['source_revision'] ) . '</p>';
+			$actions = (array) $review['actions'];
+			$checks = (array) $review['validation'];
+		}
 		$content .= '<h2>How the vulnerability works</h2>';
 		$technical = (string) ( $item['technical_description'] ?? '' );
 		if ( '' !== $technical && $technical !== (string) ( $item['description'] ?? '' ) ) {
@@ -749,6 +759,9 @@ final class Live_Intelligence {
 		$content .= '<h2>How to check your systems</h2><p>' . esc_html( $insight['verify'] ) . '</p>';
 		$content .= self::render_inventory_checks( $item );
 		$content .= '<h2>How to fix</h2><h3>Permanent remediation</h3>';
+		if ( ! empty( $review['remediation'] ) ) {
+			$content .= '<p>' . esc_html( (string) $review['remediation'] ) . ' ' . self::reviewed_vendor_link( $review ) . '</p>';
+		}
 		if ( ! empty( $item['solutions'] ) ) {
 			$content .= '<p>' . esc_html( (string) $item['solutions'] ) . ' ' . self::source_link( (string) ( $item['technical_url'] ?? $item['url'] ?? '' ), 'CNA remediation guidance' ) . '</p>';
 		}
@@ -765,23 +778,38 @@ final class Live_Intelligence {
 			$content .= esc_html( (string) ( $item['action'] ?? '' ) ) . ' ' . self::source_link( (string) ( $item['kev_url'] ?? $item['url'] ?? '' ), 'Official action' ) . '</p>';
 		}
 		$content .= '<h3>If you cannot patch yet</h3>';
+		if ( ! empty( $review['workaround'] ) ) {
+			$content .= '<p>' . esc_html( (string) $review['workaround'] ) . ' ' . self::reviewed_vendor_link( $review ) . '</p>';
+		}
 		if ( ! empty( $item['workarounds'] ) ) {
 			$content .= '<p>' . esc_html( (string) $item['workarounds'] ) . ' ' . self::source_link( (string) ( $item['technical_url'] ?? $item['url'] ?? '' ), 'Published workaround' ) . '</p>';
-		} else {
+		} elseif ( empty( $review['workaround'] ) ) {
 			$content .= '<p>No product-specific workaround is established by the source data available for this article. Ask the vendor for supported options. As an operational precaution, restrict access to the affected interface or isolate the component where service dependencies permit; this is not evidence that the underlying flaw is fixed.</p>';
 		}
 		$content .= '<p>Give any temporary control an owner and expiry, verify it covers every affected instance, and retain a rollback path. Remove it only after the permanent remediation is verified.</p>';
-		$content .= '<h2>Detection and post-fix validation</h2><ul>';
+		$content .= '<h2>Detection and post-fix validation</h2>';
+		if ( ! empty( $review ) ) {
+			$content .= '<p>Recommended post-change checks:</p>';
+		}
+		$content .= '<ul>';
 		foreach ( $checks as $check ) {
 			$content .= '<li>' . esc_html( $check ) . '</li>';
 		}
 		$content .= '</ul>';
 		$content .= '<p>A clean scan or a version match alone does not rule out earlier compromise. If telemetry suggests exploitation, preserve evidence and follow the incident-response process alongside patching.</p>';
 		$content .= '<h2>Timeline and exploitation status</h2>' . self::render_source_timeline( $item );
+		if ( ! empty( $review['exploitation_note'] ) ) {
+			$content .= '<p>' . esc_html( (string) $review['exploitation_note'] ) . '</p>';
+		}
 		$content .= '<p>' . esc_html( $exploited ? 'The linked official record reports exploitation in the wild. This does not establish that any particular deployment has been compromised.' : 'The sources available for this article do not establish exploitation in the wild. A CVSS score, public proof of concept, or technical feasibility is not the same as confirmed attacks.' ) . '</p>';
 		$content .= '<p>Public proof-of-concept availability is not independently established here. Recheck the vendor and government records as evidence changes.</p>';
 		$content .= self::render_references( self::source_pairs( array( $item ) ) );
 		return $content;
+	}
+
+	/** Vendor provenance stays independent of the CNA's technical record URL. */
+	private static function reviewed_vendor_link( array $review ): string {
+		return self::source_link( (string) ( $review['url'] ?? '' ), (string) ( $review['source'] ?? 'Reviewed vendor guidance' ) );
 	}
 
 	/** Apply the same evidence standard to official news without forcing CVE fields. */
@@ -935,6 +963,10 @@ final class Live_Intelligence {
 
 	/** Read-only inventory examples, chosen only when their platform is identified. */
 	private static function render_inventory_checks( array $item ): string {
+		$checks = (array) ( $item['vendor_review']['inventory'] ?? array() );
+		if ( ! empty( $checks ) ) {
+			return '<ul><li>' . implode( '</li><li>', array_map( 'esc_html', $checks ) ) . '</li></ul>';
+		}
 		$text = strtolower( self::item_subject_text( $item ) );
 		if ( 1 === preg_match( '/\bwordpress\b/', $text ) ) {
 			return '<pre><code>wp core version
@@ -1036,7 +1068,7 @@ cat /etc/os-release</code></pre><p>These read-only commands report the running k
 					'due_date' => (string) ( $item['due_date'] ?? '' ), 'vendor' => (string) ( $item['vendor'] ?? '' ), 'product' => (string) ( $item['product'] ?? '' ),
 					'categories' => (array) ( $item['categories'] ?? array() ), 'related_cves' => (array) ( $item['related_cves'] ?? array() ),
 					'scoped_exploitation' => (string) ( $item['scoped_exploitation'] ?? '' ), 'kev_url' => (string) ( $item['kev_url'] ?? '' ),
-					'evidence' => array_intersect_key( $item, array_flip( array( 'metrics', 'affected_versions', 'technical_description', 'technical_source', 'technical_url', 'weaknesses', 'solutions', 'workarounds', 'modified', 'cve_published', 'kev_added' ) ) ),
+					'evidence' => array_intersect_key( $item, array_flip( array( 'metrics', 'affected_versions', 'technical_description', 'technical_source', 'technical_url', 'weaknesses', 'solutions', 'workarounds', 'modified', 'cve_published', 'kev_added', 'vendor_review' ) ) ),
 				);
 			},
 			$items

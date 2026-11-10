@@ -45,6 +45,7 @@ function bootstrap(): void {
 		'inc/toolkit/class-newsletter.php',
 		'inc/toolkit/class-cookie-consent.php',
 		'inc/toolkit/class-related-posts.php',
+		'inc/toolkit/class-reviewed-vendor-evidence.php',
 		'inc/toolkit/class-live-intelligence.php',
 		'inc/toolkit/class-post-artwork.php',
 		'inc/toolkit/class-demo-content.php',

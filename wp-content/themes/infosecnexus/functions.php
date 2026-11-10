@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'INFOSECNEXUS_VERSION', '0.3.7' );
+define( 'INFOSECNEXUS_VERSION', '0.3.8' );
 define( 'INFOSECNEXUS_DIR', get_template_directory() );
 define( 'INFOSECNEXUS_URI', get_template_directory_uri() );
 
@@ -37,6 +37,7 @@ $infosecnexus_includes = array(
 	'inc/footer-builder.php',
 	'inc/breadcrumbs.php',
 	'inc/template-tags.php',
+	'inc/reader-growth.php',
 	'inc/elementor.php',
 	'inc/woocommerce.php',
 );
@@ -53,6 +54,7 @@ foreach ( $infosecnexus_includes as $infosecnexus_file ) {
 \InfoSecNexus\Theme\Security_Headers\bootstrap();
 \InfoSecNexus\Theme\Search_Controls\bootstrap();
 \InfoSecNexus\Theme\SEO\bootstrap();
+\InfoSecNexus\Theme\Reader_Growth\bootstrap();
 \InfoSecNexus\Theme\Agentic\bootstrap();
 \InfoSecNexus\Theme\Comment_Controls\bootstrap();
 \InfoSecNexus\Theme\AdSense\bootstrap();
