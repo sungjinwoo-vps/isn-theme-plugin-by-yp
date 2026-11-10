@@ -67,7 +67,7 @@ final class Reviewed_Vendor_Evidence {
 	private static function records(): array {
 		return array(
 			'CVE-2026-19868' => array(
-				'product_pattern' => '/\b(?:SonicWall|SonicOS)\b/i',
+				'product_pattern' => '/\bSonicOS\b/i',
 				'reviewed' => '2026-11-10',
 				'source' => 'SonicWall PSIRT SNWLID-2026-0014',
 				'url' => 'https://psirt.global.sonicwall.com/vuln-detail/SNWLID-2026-0014',
@@ -85,7 +85,7 @@ final class Reviewed_Vendor_Evidence {
 				'validation' => array( 'Confirm the running build on each appliance matches its fixed generation.', 'Verify approved SAML/MFA access still works after the change.', 'If using the workaround, verify the affected alternate authentication servers are disabled and record its expiry.' ),
 			),
 			'CVE-2026-86218' => array(
-				'product_pattern' => '/\b(?:N-able|N-central)\b/i',
+				'product_pattern' => '/\bN-central\b/i',
 				'reviewed' => '2026-11-10',
 				'source' => 'N-able N-central 2026.3 Hotfix 4 notice',
 				'url' => 'https://status.n-able.com/2026/09/06/n-central-2026-3-hotfix-4-cve-2026-86218/',

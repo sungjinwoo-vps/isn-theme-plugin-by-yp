@@ -3,7 +3,7 @@ Contributors: infosecnexus
 Requires at least: 6.5
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.3.8
+Stable tag: 0.3.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,6 +25,9 @@ InfoSecNexus WordPress Theme, Copyright 2026 InfoSecNexus.
 InfoSecNexus is distributed under the terms of the GNU GPL.
 
 == Changelog ==
+
+= 0.3.9 =
+* Requires the exact product family as well as the CVE before applying reviewed vendor remediation, preserving the first SEO batch and existing article content.
 
 = 0.3.8 =
 * Promotes populated security categories and keeps empty archives crawlable while excluding them from indexing and the category sitemap until useful content exists.

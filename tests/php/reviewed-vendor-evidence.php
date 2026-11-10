@@ -63,6 +63,8 @@ $mismatched = array_replace( $sonic, array( 'title' => 'CVE-2026-86218: N-able N
 check( empty( Reviewed_Vendor_Evidence::apply( $mismatched )['vendor_review'] ), 'Mismatched CVE/title/product identity must not receive reviewed facts.' );
 $wrong_product = array_replace( $sonic, array( 'title' => 'CVE-2026-19868: WordPress plugin', 'vendor' => 'WordPress', 'product' => 'Plugin' ) );
 check( empty( Reviewed_Vendor_Evidence::apply( $wrong_product )['vendor_review'] ), 'A known CVE paired with the wrong product must fail closed.' );
+$same_vendor_other_product = array_replace( $sonic, array( 'title' => 'CVE-2026-19868: SonicWall SMA1000', 'product' => 'SMA1000' ) );
+check( empty( Reviewed_Vendor_Evidence::apply( $same_vendor_other_product )['vendor_review'] ), 'A matching vendor cannot substitute for the required SonicOS product family.' );
 $stale = array_replace( $first['item'], array( 'cve' => 'CVE-2026-999999', 'title' => 'CVE-2026-999999: unrelated product', 'vendor' => 'Example', 'product' => 'Example' ) );
 $cleared = Reviewed_Vendor_Evidence::apply( $stale );
 check( empty( $cleared['vendor_review'] ) && 1 === count( $cleared['affected_versions'] ) && 1 === count( $cleared['metrics'] ), 'Changing identity must strip stale marked vendor rows while retaining unrelated source claims.' );
