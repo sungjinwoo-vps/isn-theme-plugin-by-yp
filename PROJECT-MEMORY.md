@@ -14,13 +14,31 @@ Last updated: 2026-11-10 (Asia/Kolkata)
 - Main release branch: `stable`
 - Repository visibility: public, which permits unauthenticated WordPress update
   downloads. Moving it to private requires an authenticated update service.
-- Current theme version: `0.3.7`
-- Current known release: `auto-v0.3.7`
-- Current known code commit: `7543077` (`Keep cookie consent visible and fix floating controls and Safari focus`)
+- Current theme version: `0.3.9`
+- Current known release: `auto-v0.3.9`
+- Current known code commit: `d2af20d` (`Require exact product families for reviewed vendor evidence`)
 - WordPress was verified running version 7.1.4 at this checkpoint.
 - The live site is theme-first. The InfoSecNexus Toolkit features are bundled
   into the theme and the separate toolkit plugin is not required on this site.
-- Latest known verification on November 10: production is running `0.3.7`
+- Latest known verification on November 10: production is running `0.3.9`
+  through the native WordPress updater. The first traffic/SEO batch removes
+  empty-category promotions, makes those archives noindex and excludes them
+  from the category sitemap until useful content exists, improves mobile blog
+  discovery, links real author profiles and adds the existing newsletter form
+  to current articles. Two existing CVEs have dated reviewed vendor guidance.
+  The substantive 0.3.8 release passed 102 production checks (four preview-only
+  checks skipped), a 102-URL sitemap crawl and 12 Chromium/WebKit reader cases.
+  Final 0.3.9 exact-product guards passed 93 evidence fixtures and six focused
+  browser checks. All 239 packaged files and 15 served assets match source;
+  all 85 deployed PHP files passed syntax checks. Posts remain 251, pages six,
+  retired 159, superseded five (87 active). The live sitemap has 87 posts, seven
+  page URLs, seven categories and one author. The two intended article bodies
+  changed once; other standalone bodies and private settings are preserved.
+  The regular cron refreshed rolling hub 1169 during final verification.
+  Diagnostics are cleaned and debug flags remain off. The owner confirmed only
+  Search Console is configured; GA4 is not. Authenticated GSC reports remain
+  unconnected and no traffic improvement is claimed without measurement.
+- Previous verification earlier on November 10: production was running `0.3.7`
   through the native WordPress updater. Cookie preferences appear in the first
   viewport on all devices, with reserved footer space and safe dismissal.
   Back-to-top handles short landscape screens and Safari dialogs retain/restore
@@ -317,6 +335,88 @@ Last updated: 2026-11-10 (Asia/Kolkata)
 - Current evidence stays ignored under `.tmp/nov9-preview-*`,
   `.tmp/nov9-production-*`, `.tmp/polish-release-0.3.4/` and deployment logs.
   Details and changed files: `docs/ivory-controls-and-dark-mode.md`.
+
+### First Traffic And SEO Implementation Batch - November 10, 2026
+
+- The owner explicitly resumed the earlier traffic/SEO work and confirmed that
+  Search Console is configured but GA4 is not. The saved audit and original
+  pasted request were read. No GSC/GA4 authenticated reports are connected to
+  this session; Windsor.ai remains uninstalled/unconnected and had already been
+  suggested previously. No invented analytics ID, human-visitor count, ranking
+  result or traffic-growth claim was added. No external promotional messages,
+  campaigns, newsletter deliveries or production form submissions were sent.
+- `inc/seo.php` now derives useful category membership from actual standalone
+  public posts, excluding retired, superseded, password-protected and rolling-only
+  listings, and includes category ancestors. Empty archives keep HTTP200 and
+  crawler access, but receive noindex/follow and leave the category sitemap.
+  Publishing useful content restores them automatically. Existing SEO plugins
+  retain indexing ownership; retirement/tag/canonical policy remains intact.
+- Homepage highlights/topics, header/footer categories and search shortcuts
+  promote populated destinations only. No categories or assignments were
+  deleted. Empty Cloud/AI desk placeholders were removed. Mobile/tablet blog
+  topics use a native progressive disclosure and compact masthead; latest
+  standalone stories precede the single rolling block. The live 390px first
+  latest card is now 604.67px from the top versus the prior 1845px; 768px preview
+  moved from 1254px to 526px. These are layout measurements, not traffic results.
+- Article bylines link to the existing author URL. New `author.php` uses the real
+  name/public bio if present; Yash Patel's current bio is empty, so no credentials
+  or experience were invented. Visible source context and correction routes
+  accompany the archive. ProfilePage/Person identifiers match article author
+  metadata. New `inc/reader-growth.php` reuses the real protected double-opt-in
+  newsletter on current articles and adds scoped contextual links distinguishing
+  SonicOS and SMA1000, without copying fixes between appliance families.
+- New `Reviewed_Vendor_Evidence` and the normal generator add explicitly dated,
+  attributed evidence for only CVE-2026-19868 and CVE-2026-86218. The SonicWall
+  advisory's November 9 workaround supersedes the old audit's absence statement.
+  N-central guidance covers fixed server build, deployment/upgrade/agent scope
+  and later CISA exploitation evidence. CNA claims, score-authority distinctions,
+  source links, publication dates and URLs remain intact. The global content
+  schema remains 12 to avoid unrelated migrations. Exact CVE and product-family
+  guards reject grouped, mismatched or same-vendor/other-product records.
+- Only posts 3699 and 1810 were upgraded: dry run, apply and repeated dry/apply.
+  Each body changed once and gained one truthful editorial-history entry. All
+  unrelated bodies, dates, identities, categories/images, theme mods, active
+  plugins and private Toolkit settings matched during substantive deployment.
+  Repeated apply preserved body hashes, modified dates and history counts.
+- Release 0.3.8 code `7f9a851`, Actions `42787349324`, ZIP SHA256
+  `54bf4b507e8a0720ee6b080610181f1c5a374b248a797d902630228c5d8c09c9`.
+  Final guard release 0.3.9 code `d2af20d`, Actions `42788973021`, ZIP SHA256
+  `c3492e4220214a4e7ae18e6d4ecc40b61aa66e92b4c3179923ede60d67eac4f1`.
+  Both used fresh private database/theme backups and native WordPress updates.
+  All 239 published files match source plus expected CI stamps, all 15 served
+  CSS/JS assets match source, all 85 deployed PHP files pass syntax checks.
+- During the guard rollout, the scheduled newsroom refreshed rolling hub 1169
+  from 08:45:33 to 09:15:29 UTC; its source-check timestamp is 09:15:28. This
+  legitimately changed the aggregate identity/body hashes. The current cron
+  runner was verified in `/etc/cron.d/infosecnexus-wordpress`. All standalone
+  bodies, both selected posts' modified/history state, private settings, media
+  settings and counts stayed stable. The normal rolling refresh was preserved.
+- Validation: preview 102 suite checks passed plus four news-sitemap checks
+  after refreshing isolated rewrite rules. The public-snapshot importer skips
+  themes; `tools/preview-setup.sh` now flushes only preview routes after activation
+  to retain its custom news sitemap. There is no corresponding production
+  sitemap failure. Category lifecycle fixtures passed 21 checks; final vendor
+  fixtures passed 93; PHPStan and JS/CSS lint passed. Preview/production each
+  passed 12 Chromium/WebKit author/newsletter light/dark cases without overflow,
+  contrast issues or JS errors. Full production suite passed 102 with four
+  preview-only checks skipped; six final guard-focused browser checks passed.
+- Two final live crawls each verified all 102 sitemap URLs: HTTP200,
+  self-canonical, one H1, descriptions, indexability and valid article JSON-LD.
+  Composition is 87 posts, seven page URLs, seven categories, one author. The
+  three empty archives remain200/noindex outside the category sitemap; the 159
+  retired URLs and five supersessions retain their established policy.
+- After recording results, 125 local temporary files (58.62MiB), 15 remote
+  helpers, the isolated vendor-fixture directory and test reports were removed.
+  Preview processes/tunnels were stopped. `.tmp/` retains only secure connection
+  files, backups/records, historical inventories and the previous traffic report
+  (20 files total). Backup records now include `seo-production-backup-result.txt`
+  and `seo-guard-production-backup-result.txt` under `backups/records/`. All debug
+  flags remain false. Post-cleanup live blog/author checks passed; no temporary
+  server helpers remain. Unrelated `new_design/` was untouched.
+- Details and primary evidence links: `docs/seo-foundation-2026-11-10.md`.
+  Next priority is actual Search Console Queries/Pages data for 28/90 days,
+  then measured query-to-page work and independently tested original guides.
+  GA4 needs a real property/measurement ID before tracking can be configured.
 
 ### Cookie Visibility, Floating Controls And Diagnostic Cleanup - November 10, 2026
 

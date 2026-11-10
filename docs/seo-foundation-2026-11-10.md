@@ -11,7 +11,7 @@ baseline was invented, and no unsolicited external posts or emails were sent.
 Active category membership uses current standalone public posts, excluding
 retired, superseded and password-protected content. Parent archives include
 their descendants. A separately pinned rolling brief does not make an empty
-standalone listing useful. Empty category URLs still return200 and remain
+standalone listing useful. Empty category URLs still return 200 and remain
 crawlable, with noindex/follow and no category-sitemap entry. They recover
 automatically when populated. Dedicated SEO plugins retain indexing ownership.
 
@@ -19,8 +19,8 @@ Homepage highlights, topic cards, navigation and search shortcuts now promote
 categories with actual articles. Categories and assignments were not deleted.
 The blog's topic selector collapses on mobile/tablet with a native no-JavaScript
 fallback. Latest standalone stories precede the one permanent rolling block.
-In the390px comparison, the first latest card moved from1845px to605px; at768px,
-from1254px to526px. These are layout measurements, not traffic results.
+In the 390px comparison, the first latest card moved from 1845px to 605px; at 768px,
+from 1254px to 526px. These are layout measurements, not traffic results.
 
 ## Author and subscriber paths
 
@@ -33,15 +33,15 @@ form; retired and password-protected posts do not gain the prompt.
 
 ## Reviewed article improvements
 
-Only existing posts3699 and1810 are rebuilt from dated vendor evidence. The
+Only existing posts 3699 and 1810 are rebuilt from dated vendor evidence. The
 existing CNA records, scoring authority distinctions, exploitation evidence,
 publication dates and URLs remain intact. Reviewed vendor fields participate in
 the fingerprint and editorial history, so a later normal refresh retains the
 improvement without accumulating duplicate rows or revisions. The global content
-schema remains12 to avoid unrelated editorial migrations.
+schema remains 12 to avoid unrelated editorial migrations.
 
 - SonicWall CVE-2026-19868: generation-specific fixed builds, SAML applicability,
-  the vendor's November9 workaround and recommended validation. The individual
+  the vendor's November 9 workaround and recommended validation. The individual
   CVE's vendor score is distinguished from the grouped advisory headline.
 - N-able CVE-2026-86218: fixed server build, hosted/self-hosted distinction,
   supported upgrade paths, agent-update scope and separation of the older vendor
@@ -50,7 +50,7 @@ schema remains12 to avoid unrelated editorial migrations.
   family. They do not transplant remediation between products, and appear only
   when the matching active destination exists.
 
-Primary evidence reviewed November10:
+Primary evidence reviewed November 10:
 
 - [SonicWall SNWLID-2026-0014](https://psirt.global.sonicwall.com/vuln-detail/SNWLID-2026-0014)
 - [N-central hotfix notice](https://status.n-able.com/2026/09/06/n-central-2026-3-hotfix-4-cve-2026-86218/)
@@ -76,3 +76,25 @@ requires a real property/measurement ID before tracking can be configured.
 New guides should be independently tested and useful; category counts alone do
 not justify publishing generic filler. Temporary diagnostics are removed after
 verification under the standing project cleanup policy.
+
+## Verified rollout
+
+The substantive batch shipped in 0.3.8 and the final exact-product matching
+guard in 0.3.9. Preview passed 102 suite checks plus four custom-sitemap checks
+after its isolated rewrite refresh. Production passed 102 checks with four
+preview-only checks skipped; six final focused checks passed after 0.3.9.
+Category fixtures passed 21 checks and final source-evidence fixtures passed 93.
+Author/newsletter visual and contrast checks passed in 12 Chromium/WebKit cases
+each in preview and production. PHPStan, JS/CSS lint, 85 PHP syntax checks,
+239-file release verification and all 15 fetched asset comparisons passed.
+
+The final sitemap crawl passed all 102 URLs: 87 posts, seven page URLs, seven
+categories and one author. URLs, private settings, taxonomy/media assignments
+and standalone publication dates were preserved. Only the two intended article
+bodies changed once during the substantive batch, with stable repeat applies.
+The normal scheduled refresh of rolling hub 1169 during final guard verification
+was preserved; it was not an unintended standalone-content migration.
+
+Temporary diagnostics, captures, extracted releases and test reports were
+removed after verification. Secure connections, actual backups/records and prior
+owner deliverables remain private. Post-cleanup live blog/author checks passed.
