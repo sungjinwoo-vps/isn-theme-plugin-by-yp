@@ -68,7 +68,6 @@ function render(): void {
 			<?php render_social_links( 'ivory-footer__social' ); ?>
 		</div>
 		<div class="cinematic-footer__bottom ivory-footer__bottom">
-			<div class="ivory-footer__copyright"><?php render_element( 'copyright' ); ?></div>
 			<div class="ivory-footer__legal">
 				<?php if ( has_nav_menu( 'legal' ) ) : ?>
 					<?php render_menu( 'legal' ); ?>
@@ -82,6 +81,7 @@ function render(): void {
 					</nav>
 				<?php endif; ?>
 			</div>
+			<div class="ivory-footer__copyright"><?php render_element( 'copyright' ); ?></div>
 		</div>
 	</footer>
 	<?php

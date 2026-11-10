@@ -186,6 +186,15 @@ test('contact, legal pages and the 404 use the complete shared shell without ove
     await expect(page.locator('.site-header')).toBeVisible();
     await expect(page.locator('h1')).toHaveCount(1);
     await expect(page.locator('.site-footer')).toBeVisible();
+    await expect(page.locator('main [data-article-guide], main .toc')).toHaveCount(0);
+    if (['/privacy-policy/', '/terms-and-conditions/', '/disclaimer/'].includes(path)) {
+      const legal = page.locator('.page-entry--legal > .entry-content');
+      await expect(legal).toBeVisible();
+      expect(await legal.locator('h2[id]').count()).toBeGreaterThan(1);
+      const bounds = await legal.boundingBox();
+      const shell = await page.locator('.page-entry--legal').boundingBox();
+      expect(Math.abs(bounds.x + bounds.width / 2 - shell.x - shell.width / 2)).toBeLessThan(2);
+    }
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), path).toBeTruthy();
   }
 });

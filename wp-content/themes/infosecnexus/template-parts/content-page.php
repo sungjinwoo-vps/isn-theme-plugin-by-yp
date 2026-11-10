@@ -14,7 +14,6 @@ $is_about         = 'about' === $page_slug;
 $is_contact       = 'contact' === $page_slug;
 $is_legal         = in_array( $page_slug, array( 'privacy-policy', 'terms-and-conditions', 'disclaimer' ), true );
 $is_special       = $is_about || $is_contact || $is_legal;
-$raw_content      = (string) get_post_field( 'post_content', $entry_id );
 $page_intro       = $is_special ? \InfoSecNexus\Theme\Anime_Design\page_intro( $entry_id ) : '';
 $page_hero_title  = $is_special ? \InfoSecNexus\Theme\Anime_Design\page_hero_title( $entry_id ) : '';
 $display_content  = (string) get_the_content();
@@ -70,18 +69,7 @@ $rendered_content = \InfoSecNexus\Theme\Anime_Design\add_heading_ids( $rendered_
 			<?php endif; ?>
 		</header>
 	<?php endif; ?>
-	<?php if ( $is_legal ) : ?>
-		<div class="legal-layout">
-			<aside class="legal-layout__rail" aria-label="<?php esc_attr_e( 'On this page', 'infosecnexus' ); ?>">
-				<?php \InfoSecNexus\Theme\Template_Tags\table_of_contents( $raw_content ); ?>
-			</aside>
-			<div class="entry-content legal-layout__content" data-enhance-headings>
-				<?php echo $rendered_content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-			</div>
-		</div>
-	<?php else : ?>
-		<div class="entry-content" data-enhance-headings>
-			<?php echo $rendered_content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-		</div>
-	<?php endif; ?>
+	<div class="entry-content<?php echo $is_legal ? ' legal-layout__content' : ''; ?>" data-enhance-headings>
+		<?php echo $rendered_content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+	</div>
 </article>

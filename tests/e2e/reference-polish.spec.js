@@ -3,7 +3,7 @@ const AxeBuilder = require('@axe-core/playwright').default;
 const baseURL = (process.env.WP_BASE_URL || 'http://localhost:8890').replace(/\/$/, '');
 
 test('header mode stays reachable and footer navigation has no overlapping links', async ({ page }, testInfo) => {
-  const width = testInfo.project.name === 'mobile' ? 320 : 768;
+  const width = testInfo.project.name === 'mobile' ? 320 : 1024;
   await page.setViewportSize({ width, height: 900 });
   await page.goto(baseURL);
   const toggle = page.locator('.header-color-mode-toggle');
@@ -25,6 +25,24 @@ test('header mode stays reachable and footer navigation has no overlapping links
   expect(geometry.collisions).toBe(0);
   expect(geometry.left).toBeGreaterThanOrEqual(0);
   expect(geometry.right).toBeLessThanOrEqual(width);
+  const alignment = await footer.evaluate((element) => {
+    const bounds = element.getBoundingClientRect();
+    const legal = [...element.querySelectorAll('.ivory-footer__legal li')].map((item) => item.getBoundingClientRect());
+    const copyright = document.createRange();
+    copyright.selectNodeContents(element.querySelector('.ivory-footer__copyright p'));
+    const copyBounds = copyright.getBoundingClientRect();
+    return {
+      center: bounds.x + bounds.width / 2,
+      copyrightCenter: copyBounds.x + copyBounds.width / 2,
+      legalCenter: (Math.min(...legal.map((rect) => rect.left)) + Math.max(...legal.map((rect) => rect.right))) / 2,
+      categoryEdges: [...element.querySelectorAll('.ivory-footer__topics a')].map((link) => link.getBoundingClientRect().left - bounds.left),
+      pageEdges: [...element.querySelectorAll('.ivory-footer__site a')].map((link) => bounds.right - link.getBoundingClientRect().right)
+    };
+  });
+  expect(Math.abs(alignment.copyrightCenter - alignment.center)).toBeLessThan(2);
+  expect(Math.abs(alignment.legalCenter - alignment.center)).toBeLessThan(2);
+  expect(alignment.categoryEdges.every((edge) => Math.abs(edge) < 2)).toBeTruthy();
+  expect(alignment.pageEdges.every((edge) => Math.abs(edge) < 2)).toBeTruthy();
 });
 
 test('saved dark mode keeps homepage and open search text readable', async ({ page }, testInfo) => {

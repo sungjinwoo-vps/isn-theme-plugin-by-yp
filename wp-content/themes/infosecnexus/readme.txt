@@ -3,7 +3,7 @@ Contributors: infosecnexus
 Requires at least: 6.5
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.3.5
+Stable tag: 0.3.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,6 +25,11 @@ InfoSecNexus WordPress Theme, Copyright 2026 InfoSecNexus.
 InfoSecNexus is distributed under the terms of the GNU GPL.
 
 == Changelog ==
+
+= 0.3.6 =
+* Removes the article guide from static legal pages and centers their readable content column while preserving existing heading links.
+* Centers footer legal links and copyright on every screen, with categories on the left and site pages on the right on mobile and tablet.
+* Preserves article navigation, existing content, configured menus and appearance preferences.
 
 = 0.3.5 =
 * Aligns the article hero and reader, widens the desktop guide and keeps its share controls within the viewport.
