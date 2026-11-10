@@ -28,3 +28,15 @@ tools, source assets, secure connection material, actual rollback backups and
 the owner's previous deliverables. Temporary data lives in ignored `.tmp/`;
 it must never enter the theme ZIP or public webroot. Resolve cleanup paths and
 check they remain within the intended directory before recursive deletion.
+
+Verified November 10, 2026: preview passed 90 suite checks, then 12 focused
+checks and 14 final Chromium/WebKit resize/dialog cases. Production passed 88
+checks, with four preview-only mail/acceptance checks skipped, plus all 14
+additional cross-browser cases. All 82 deployed PHP files passed syntax checks;
+the 235-file release and 14 frontend assets match source. Thirteen preserved
+state fields match before/after deployment. Production debug flags are off.
+
+Temporary local/server diagnostics and test reports were removed after recording
+these results. Backups, private connection files, historical inventories and
+the owner's previous traffic report were preserved. Preview processes were
+stopped; the standard preview-start tool can restore the development preview.

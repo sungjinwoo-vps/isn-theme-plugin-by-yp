@@ -14,13 +14,25 @@ Last updated: 2026-11-10 (Asia/Kolkata)
 - Main release branch: `stable`
 - Repository visibility: public, which permits unauthenticated WordPress update
   downloads. Moving it to private requires an authenticated update service.
-- Current theme version: `0.3.6`
-- Current known release: `auto-v0.3.6`
-- Current known code commit: `19049c2` (`Remove legal page article guides and center responsive footer`)
+- Current theme version: `0.3.7`
+- Current known release: `auto-v0.3.7`
+- Current known code commit: `7543077` (`Keep cookie consent visible and fix floating controls and Safari focus`)
 - WordPress was verified running version 7.1.4 at this checkpoint.
 - The live site is theme-first. The InfoSecNexus Toolkit features are bundled
   into the theme and the separate toolkit plugin is not required on this site.
-- Latest known verification on November 10: production is running `0.3.6`
+- Latest known verification on November 10: production is running `0.3.7`
+  through the native WordPress updater. Cookie preferences appear in the first
+  viewport on all devices, with reserved footer space and safe dismissal.
+  Back-to-top handles short landscape screens and Safari dialogs retain/restore
+  keyboard focus. Production passed 88 checks; four preview-only mail/acceptance
+  checks were skipped. Fourteen additional Chromium/WebKit resize/dialog cases
+  passed. All 235 release files and 14 frontend assets match source; all 82 PHP
+  files passed syntax checks. All thirteen preserved state fields match: 251
+  posts, six pages, 159 retired and five superseded. Debug flags are off.
+  Temporary diagnostic artifacts were cleaned after verification; only secure
+  connections, actual rollback backups/records, migration inventories and the
+  previous owner report remain in ignored `.tmp/`. See the new cleanup policy.
+- Previous verification earlier on November 10: production was running `0.3.6`
   through the native WordPress updater. Static legal pages no longer render an
   article guide; their content is centered without an empty sidebar. Footer
   legal links and copyright are centered, with categories left and site pages
@@ -306,6 +318,65 @@ Last updated: 2026-11-10 (Asia/Kolkata)
   `.tmp/nov9-production-*`, `.tmp/polish-release-0.3.4/` and deployment logs.
   Details and changed files: `docs/ivory-controls-and-dark-mode.md`.
 
+### Cookie Visibility, Floating Controls And Diagnostic Cleanup - November 10, 2026
+
+- The owner reported that cookie preferences required scrolling to the footer.
+  The cause was the page-flow override in `ivory-preferences.css`, not a mobile
+  rendering delay. It now renders a fixed compact banner within the initial
+  viewport, with safe-area margins, 44px actions and bounded overflow for short
+  landscape screens or long configured text. Toolkit JS measures its clearance
+  so the footer and scroll targets remain reachable. Dismissal only persists for
+  the session and never dispatches consent; acceptance retains existing behavior.
+- Independent checks also found two real shared control issues. Back-to-top
+  measured zero height while hidden and could leave the short viewport or cover
+  the header. It now uses its CSS height and actual header boundary, caps its
+  position, and hides when there is no clear slot above footer/consent. Safari
+  skipped links in the old boundary-only focus trap; search/menu dialogs now
+  cycle through visible focusable elements. Closing restores the actual trigger,
+  including Safari pointer openings that never focused the clicked button.
+- Preview: 90 full-suite checks passed, followed by 12 focused checks and final
+  14 Chromium/WebKit resize/dialog cases. Independent consent checks covered
+  blocked storage, long copy, initial/scrolled/footer states, portrait/landscape,
+  light/dark and 320-1366px. Additional broad checks covered 30 shared page cases
+  and all 18 internal header/footer destinations; no further reproducible issue
+  remained in that scope. JS/CSS lint passed.
+- Production: 88 checks passed; four preview-only mail/acceptance checks skipped.
+  All fourteen additional Chromium/WebKit resize/dialog cases passed, including
+  forward/reverse Tab containment and Escape focus restoration. Production form
+  submissions, consent acceptance and ad interactions were not run. All 82 PHP
+  files passed syntax checks and all 14 fetched CSS/JS assets match source.
+- Release 0.3.7 code commit `7543077`, GitHub Actions run `42756920735`, published
+  archive SHA256 `5ccaa572c4abce41dfcaeb6c9d0b022f6ecc81e7f5924345d845ce871f628646`.
+  All 235 packaged files match source plus expected CI stamps. Native WordPress
+  update succeeded, public caches were purged, and all thirteen preservation
+  fields match. No editorial migration, content rewrite or Toolkit-settings
+  reset ran. Counts remain 251 posts, six pages, 159 retired, five superseded.
+- A fresh private database/theme rollback set was verified. A mode-600 copy of
+  `wp-config.php` was added before disabling its unused `WP_DEBUG_LOG` setting;
+  `WP_DEBUG`, `WP_DEBUG_LOG`, `WP_DEBUG_DISPLAY` and `SCRIPT_DEBUG` are all false.
+  Backup paths/checksums remain only in ignored `.tmp/backups/records/` and secure
+  server backups. Theme/plugin source and the public webroot contained no
+  temporary debug instrumentation or diagnostic files.
+- Following the owner's explicit cleanup instruction, approximately 6,100 local
+  diagnostic files (about 1.75 GiB) and remote temporary `isn-*` helpers were
+  removed after verification. Temporary scripts, screenshots, logs, captures,
+  extracted releases and test report folders are gone. The cleanup helper itself
+  was removed. The verified preview server/tunnels were stopped; restart preview
+  with `tools/preview-start.ps1` when needed. The isolated development database
+  and installed quality tools remain available.
+- `.tmp/` now contains only `backups/`, `deliverables/`, the private SSH key and
+  connection JSON (18 files total). Backup records and the two historical
+  migration inventories are under `backups/records/`; the previous traffic report
+  is under `deliverables/traffic-growth-audit-2026-11-09.md`. Earlier sections'
+  ignored diagnostic artifact paths are historical and were intentionally
+  removed. Preserve their verified conclusions and permanent regression tests.
+- `.tmp/` is now explicitly ignored by the repository. Permanent tests, source
+  assets, development tools, tracked release files and unrelated `new_design/`
+  were preserved. Post-cleanup live checks returned HTTP200 and first-viewport
+  consent at 320/768/1366px; no temporary server helper files remain.
+- Details: `docs/cookie-consent-and-cleanup.md`. Cleanup after verification is now
+  mandatory for every future change under the owner's standing instruction.
+
 ### Static Legal Pages And Footer Alignment - November 10, 2026
 
 - Removed the legal-only article-guide rail in `template-parts/content-page.php`.
@@ -548,6 +619,13 @@ Last updated: 2026-11-10 (Asia/Kolkata)
    and verify as an anonymous visitor.
 8. Update this memory file after any meaningful architecture, deployment,
    credential-location, feature, or workflow change.
+9. After verification, remove temporary diagnostic scripts, screenshots, logs,
+   captures, extracted release directories and test reports locally and from the
+   server. Record verified results before deleting evidence. Preserve permanent
+   tests/tools, secure connection files, actual rollback backups/records, owner
+   deliverables and unrelated work. Validate resolved paths before recursive
+   cleanup. Stop verified preview processes before removing their files. This
+   is the owner's standing instruction for every change, not an optional step.
 
 Suggested first message on a new PC or in a new Codex chat:
 
