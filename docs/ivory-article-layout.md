@@ -59,3 +59,19 @@ clearance, desktop rail fitting both 1000px and 600px viewports, and mobile
 content starting around 755-774px. Captures and raw measurements remain ignored
 under `.tmp/article-layout-before/`, `.tmp/article-layout-preview/` and
 `.tmp/article-layout-preview-controls/`.
+
+Production `0.3.5` was installed through WordPress' native updater on November
+10, 2026 (Asia/Kolkata). Release source is `2e90d4a`; successful Actions run is
+`42675657059`. All 235 packaged files and all 14 fetched article CSS/JS assets
+match verified source; all 82 deployed PHP files pass syntax checks. Published
+identities, bodies, private Toolkit settings and all thirteen preserved state
+fields match before/after deployment. Branding, mail/ads and content were retained.
+
+Validation passed the preview 88-check suite plus final 12 focused reader
+checks, focused PHPStan and JS/CSS lint. The complete production suite passed
+86 checks with two preview-only mail tests skipped. Actual production review
+passed 18 responsive cases, five code/table cases and eight additional
+Chromium/WebKit focus/no-JS/failed-script cases. Slow-network reader font behavior
+and cached Nunito rendering were verified; the homepage stylesheet remains
+byte-identical. Production evidence is in `.tmp/article-layout-production/`,
+`.tmp/article-layout-production-controls/` and `.tmp/article-reader-production-e2e.log`.

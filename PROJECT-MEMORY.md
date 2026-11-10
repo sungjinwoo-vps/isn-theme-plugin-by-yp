@@ -4,7 +4,7 @@
 > project. Then run the startup checklist in the next section. This is the
 > authoritative continuity handoff for the current project state.
 
-Last updated: 2026-11-09 (Asia/Kolkata)
+Last updated: 2026-11-10 (Asia/Kolkata)
 
 ## 1. Current Snapshot
 
@@ -14,13 +14,27 @@ Last updated: 2026-11-09 (Asia/Kolkata)
 - Main release branch: `stable`
 - Repository visibility: public, which permits unauthenticated WordPress update
   downloads. Moving it to private requires an authenticated update service.
-- Current theme version: `0.3.4`
-- Current known release: `auto-v0.3.4`
-- Current known code commit: `914dc55` (`Refine reference cards, dark appearance and responsive navigation`)
+- Current theme version: `0.3.5`
+- Current known release: `auto-v0.3.5`
+- Current known code commit: `2e90d4a` (`Fix responsive article reader alignment and guide navigation`)
 - WordPress was verified running version 7.1.4 at this checkpoint.
 - The live site is theme-first. The InfoSecNexus Toolkit features are bundled
   into the theme and the separate toolkit plugin is not required on this site.
-- Latest known verification on November 9: production is running `0.3.4`.
+- Latest known verification on November 10: production is running `0.3.5`
+  through the native WordPress updater. The shared article reader has aligned
+  hero/content shells, a wider viewport-safe desktop guide, a compact accessible
+  tablet/mobile guide, consistent click/deep-link offsets and stable responsive
+  focus. Preview passed the 88-check suite and final 12 focused reader checks;
+  production passed 86 checks with two preview-only mail tests skipped. All 18
+  responsive reader cases, five code/table cases and eight additional Chromium/
+  WebKit focus/no-JS/failed-script cases passed. All 235 release files match
+  source plus expected CI stamps, all 14 fetched article CSS/JS assets match
+  source, and all 82 deployed PHP files pass syntax checks. Complete body,
+  identity and Toolkit-settings hashes and all thirteen preserved state fields
+  match before/after deployment. Counts are 250 posts, six pages, 159 retired
+  and five superseded (86 active stories); the two additional posts existed
+  before this UI update. No editorial rewrite or settings change was run.
+- Previous verification on November 9: production was running `0.3.4`.
   Appearance is now directly available in the header on every device. The
   redundant footer mode/Daily Brief controls are removed, footer navigation is
   grouped, narrow mobile cards are readable, and shared buttons/cards use
@@ -279,6 +293,97 @@ Last updated: 2026-11-09 (Asia/Kolkata)
 - Current evidence stays ignored under `.tmp/nov9-preview-*`,
   `.tmp/nov9-production-*`, `.tmp/polish-release-0.3.4/` and deployment logs.
   Details and changed files: `docs/ivory-controls-and-dark-mode.md`.
+
+### Shared Article Reader Alignment - November 10, 2026
+
+- The owner prioritized article placement before any traffic/content work and
+  supplied the rolling-brief screenshot. Actual live 0.3.4 reproduction found
+  a zero-width TOC track at 1024px: the outer rail stayed 210px while legacy
+  inner columns required a 240px share track. Sharing covered guide links.
+  Desktop's 235px rail left roughly 128px for nested labels and exceeded short
+  viewport height. No initial H1/header overlap was reproduced; scrolled titles
+  naturally move behind the sticky header.
+- Post-only `assets/css/ivory-article.css` now owns all reader breakpoints and
+  loads after appearance styles. Hero/reader use the same 1200px shell;
+  desktop has a 280px rail, 24px gap and flexible main column. Sharing is a
+  compact three-button row; guide height accounts for the current header and
+  viewport, fitting even a 600px desktop. At <=1100px the reader is one column
+  and its enhanced guide starts collapsed with an accessible 44px control.
+- Guide labels remain full text/title attributes, visually clamp to two lines
+  and expand on keyboard focus. No-JavaScript and failed-bundle states retain
+  all native links and full readable content. A post-only pre-paint marker
+  reserves compact geometry; DOMContentLoaded clears it if enhancement fails.
+  Do not use an absolute fallback timer: it races slow deferred scripts.
+  Responsive focus moves between the toggle/current link; its inner list is
+  scrolled to expose the focused link without moving the outer page.
+- `article-content.js` is the single guide-navigation owner. The generic theme
+  hash handler respects defaultPrevented; click/hash navigation uses measured
+  header bottom plus 18px after revealing any gated section. History updates
+  once, targets retain focus, and code/table reading tools remain functional.
+- Slow-network testing exposed font-swap layout movement. The post-only sheet
+  registers the SAME self-hosted bytes under distinct `Nunito Sans Reader`
+  optional-display family and overrides the three post font tokens/body stack.
+  Re-declaring the same global family failed to isolate the swap policy. The
+  reader uses a stable fallback when the face is late, with custom Nunito on
+  ready/cached navigation. Homepage font policy/CSS remain byte-identical to
+  0.3.4. Actual production 768px throttled lab CLS was 0; this is not a field
+  Core Web Vitals guarantee. Other page font policies were not changed.
+- Release `auto-v0.3.5`, source `2e90d4a`, successful Actions `42675657059`.
+  Official theme SHA256:
+  `05d517b2ef8497fd761679469fd96bd4f34f00cf96482b974bbaa4a6b50f3e60`.
+  All 235 packaged files match source/expected CI stamps. A verified rollback
+  checkpoint `reader-20261109T183833Z` exists in the private backup directory
+  (UTC timestamp; November 10 IST). Exact paths and backup checksums remain in
+  ignored records. The native updater installed 0.3.4 -> 0.3.5 and caches were
+  purged. All 82 deployed PHP files passed lint; focused PHPStan and JS/CSS lint
+  passed. Original branding, mail/ads, saved appearance and editorial state
+  were preserved; complete before/after identity/body/settings hashes match.
+- Validation: preview 88-check suite plus final 12 focused reader checks passed;
+  actual production passed 86 checks with two preview-only mail tests skipped.
+  Production passed 18 responsive reader cases (320-2560px, light/dark, short
+  desktop), five code/table scenarios and eight Chromium/WebKit regression
+  scenarios for focus, blocked article JS and no-JS access. All 14 fetched
+  article CSS/JS files returned 200 with source-matching SHA256 bytes. No
+  production contact/newsletter form or advertising consent was submitted.
+- Implementation notes: `docs/ivory-article-layout.md`. Evidence remains ignored
+  in `.tmp/article-layout-before/`, `.tmp/article-layout-preview/`,
+  `.tmp/article-layout-preview-controls/`, `.tmp/article-layout-production/`,
+  `.tmp/article-layout-production-controls/`, `.tmp/article-reader-production-e2e.log`
+  and `.tmp/reader-preservation-check.json`. Prior traffic audit notes/report
+  are preserved; no growth/content recommendations were applied in this fix.
+
+### Read-Only Traffic Growth Audit - November 9, 2026
+
+- The owner supplied a prior public growth analysis and requested a fresh
+  real-user/traffic assessment. This audit made no production content, theme,
+  settings, retirement, analytics or newsletter-delivery changes.
+- Fresh full crawl: 137 HTML URLs; core sitemap 102 URLs comprising 84 active
+  posts, seven page URLs (homepage plus six pages), ten categories and one
+  author. All active articles are internally reachable in one to four clicks;
+  there is no active-post orphan problem. NewsArticle JSON is parseable on all
+  84. Robots/core sitemap return 200; unused sitemap_index.xml returning 404
+  is not a fault. The 159 retired URLs retain their existing noindex policy.
+- Three prominently promoted, sitemap-listed archives are empty: Tutorials,
+  Cloud Security and AI Security. All 84 article-body containers have no
+  contextual cross-article inbound links in this crawl, although related and
+  sidebar links exist. Named author bylines are unlinked and the public author
+  description is empty. Newsletter forms were observed only on the homepage
+  among the sampled reader paths. These are prioritized acquisition/retention
+  opportunities, not measured causes of a ranking decline.
+- Current November 9 rolling content did not reproduce the pasted historical
+  SonicWall/LatePoint mismatch. Vendor-source review did find missing useful
+  fixed-build/applicability details in current SonicWall and N-able articles.
+  Recommendations must distinguish missing source enrichment from invented
+  or misattributed facts and must never fabricate test output/screenshots.
+- No GA4/GTM/Cloudflare Web Analytics signal was detected in the default public
+  HTML; this does not prove that no private analytics property exists. GSC/GA4
+  performance reports remain unconnected. Origin-log bot/request aggregates
+  are not unique people or sessions and must not be described as real users.
+  Raw logs/identifiers and aggregate traffic counts stay out of this public file.
+- Full local report and read-only evidence remain ignored under
+  `.tmp/traffic-growth-audit-2026-11-09.md`, `.tmp/traffic-audit-*` and
+  `.tmp/traffic-origin-log-summary.json`. Next query-to-page priorities require
+  current GSC Queries/Pages exports for 28/90 days and actual engagement data.
 
 ### Wide Desktop And Shared Alignment Repair - November 7, 2026
 
