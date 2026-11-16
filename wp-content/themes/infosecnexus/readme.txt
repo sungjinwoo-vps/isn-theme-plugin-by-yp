@@ -3,7 +3,7 @@ Contributors: infosecnexus
 Requires at least: 6.5
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.3.9
+Stable tag: 0.3.10
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,6 +25,11 @@ InfoSecNexus WordPress Theme, Copyright 2026 InfoSecNexus.
 InfoSecNexus is distributed under the terms of the GNU GPL.
 
 == Changelog ==
+
+= 0.3.10 =
+* Accepts the measured larger official CISA feed within a bounded 12 MiB reader, with validated HTTP/XML transport and no redirect fallback.
+* Adds NVD timeout, request pacing, provider retry pauses and scheduled backoff while preserving complete last-good data and accurate stale status.
+* Deduplicates unresolved source incidents, retries rejected notification delivery and distinguishes verified recovery from cached or failed checks.
 
 = 0.3.9 =
 * Requires the exact product family as well as the CVE before applying reviewed vendor remediation, preserving the first SEO batch and existing article content.

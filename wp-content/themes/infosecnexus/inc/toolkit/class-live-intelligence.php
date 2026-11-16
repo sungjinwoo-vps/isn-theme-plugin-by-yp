@@ -22,12 +22,15 @@ final class Live_Intelligence {
 	private const SOURCE_CACHE_PREFIX = 'infosecnexus_live_source_';
 	private const SOURCE_LAST_GOOD_PREFIX = 'infosecnexus_live_source_last_good_';
 	private const SOURCE_ALERT_PREFIX = 'infosecnexus_live_source_alert_';
+	private const NVD_RETRY_KEY = 'infosecnexus_nvd_retry_after';
+	private const CISA_MAXIMUM_BYTES = 12 * 1024 * 1024;
 	private const CACHE_TTL = 15 * MINUTE_IN_SECONDS;
 	private const CRITICAL_SOURCE_TTL = 15 * MINUTE_IN_SECONDS;
 	private const GENERAL_SOURCE_TTL = 30 * MINUTE_IN_SECONDS;
 	private const LOOKBACK_DAYS = 7;
 	private const MAX_ITEMS = 220;
 	private const CONTENT_SCHEMA_VERSION = '12';
+	private static float $nvd_last_request = 0.0;
 
 	/**
 	 * Hide retired generator notes immediately while the database migration runs.
@@ -74,7 +77,7 @@ final class Live_Intelligence {
 			$items            = array_merge( $items, $collected['items'] );
 			$statuses[ $key ] = $collected['status'];
 			$health[ $key ]   = $collected['health'];
-			$all_fresh        = $all_fresh && empty( $collected['status']['stale'] );
+			$all_fresh        = $all_fresh && ! empty( $collected['status']['ok'] ) && empty( $collected['status']['stale'] );
 		}
 
 		update_option( self::SOURCE_HEALTH_OPTION, $health, false );
@@ -218,7 +221,11 @@ final class Live_Intelligence {
 		$label     = (string) ( $source['label'] ?? $key );
 		$now       = gmdate( 'Y-m-d H:i:s' );
 
-		if ( ! $force && is_array( $cached ) ) {
+		if ( ! $force && (int) ( $previous['next_retry'] ?? 0 ) > time() ) {
+			return self::failed_source_result( $key, $label, $previous, true );
+		}
+
+		if ( ! $force && is_array( $cached ) && empty( $previous['failure_count'] ) ) {
 			$items = is_array( $cached['items'] ?? null ) ? $cached['items'] : array();
 			return array(
 				'items'  => $items,
@@ -236,6 +243,15 @@ final class Live_Intelligence {
 		$elapsed = (int) round( ( microtime( true ) - $started ) * 1000 );
 		if ( ! is_wp_error( $result ) ) {
 			$items  = is_array( $result ) ? $result : array();
+			// Only a successful, previously notified incident receives one recovery mail.
+			if ( ! empty( $previous['failure_count'] ) && 'sent' === ( $previous['incident_notification'] ?? '' ) ) {
+				wp_mail(
+					Mailer::recipient_email(),
+					'InfoSecNexus source recovered: ' . $label,
+					sprintf( "%s is responding successfully again. The current check returned %d recent entries.\n\nPrevious failure: %s", $label, count( $items ), (string) ( $previous['last_error'] ?? '' ) )
+				);
+			}
+			delete_transient( self::SOURCE_ALERT_PREFIX . md5( $key ) );
 			$health = array(
 				'label' => $label, 'last_checked' => $now, 'last_success' => $now, 'duration_ms' => $elapsed,
 				'count' => count( $items ), 'failure_count' => 0, 'last_error' => '',
@@ -253,36 +269,57 @@ final class Live_Intelligence {
 
 		$failures  = (int) ( $previous['failure_count'] ?? 0 ) + 1;
 		$message   = self::clean_text( $result->get_error_message(), 28 );
-		$last_good = get_option( self::SOURCE_LAST_GOOD_PREFIX . $key, array() );
-		$fallback  = is_array( $last_good ) && is_array( $last_good['items'] ?? null ) ? $last_good['items'] : array();
+		$error_data = $result->get_error_data();
+		$retry_after = is_array( $error_data ) ? max( 0, (int) ( $error_data['retry_after'] ?? 0 ) ) : 0;
+		$retry_delay = min( HOUR_IN_SECONDS, max( MINUTE_IN_SECONDS, (int) ( $source['ttl'] ?? self::GENERAL_SOURCE_TTL ) ) * ( 2 ** min( 3, $failures - 1 ) ) );
 		$health    = array_merge(
 			$previous,
 			array(
 				'label' => $label, 'last_checked' => $now, 'duration_ms' => $elapsed, 'count' => count( $fallback ),
 				'failure_count' => $failures, 'last_error' => $message,
+				'next_retry' => time() + max( $retry_delay, $retry_after ),
+				'incident_started_at' => (string) ( $previous['incident_started_at'] ?? $now ),
+				// Recognize old 12-hour notices once; their transport result was not recorded.
+				'incident_notification' => (string) ( $previous['incident_notification'] ?? ( '1' === get_transient( self::SOURCE_ALERT_PREFIX . md5( $key ) ) ? 'legacy' : 'pending' ) ),
 			)
 		);
-		if ( ! empty( $source['critical'] ) && $failures >= 3 ) {
-			self::maybe_alert_source_failure( $key, $label, $message, $failures );
+		delete_transient( $cache_key );
+		if ( ! empty( $source['critical'] ) && $failures >= 3 && 'pending' === $health['incident_notification'] ) {
+			if ( self::maybe_alert_source_failure( $key, $label, $message, $failures ) ) {
+				$health['incident_notification'] = 'sent';
+				$health['incident_notified_at'] = $now;
+			}
 		}
 
+		return self::failed_source_result( $key, $label, $health );
+	}
+
+	/**
+	 * Preserve last-good entries and their actual check time during an outage.
+	 *
+	 * @param array<string,mixed> $health Source health.
+	 * @return array{items:array<int,array<string,mixed>>,status:array<string,mixed>,health:array<string,mixed>}
+	 */
+	private static function failed_source_result( string $key, string $label, array $health, bool $retry_pending = false ): array {
+		$last_good = get_option( self::SOURCE_LAST_GOOD_PREFIX . $key, array() );
+		$fallback = is_array( $last_good ) && is_array( $last_good['items'] ?? null ) ? $last_good['items'] : array();
 		return array(
 			'items' => $fallback,
-			'status' => array_merge( $health, array( 'ok' => false, 'message' => $message, 'checked_at' => $now, 'cached' => false, 'stale' => ! empty( $fallback ) ) ),
+			'status' => array_merge( $health, array( 'label' => $label, 'ok' => false, 'message' => (string) ( $health['last_error'] ?? '' ), 'checked_at' => (string) ( $health['last_checked'] ?? '' ), 'cached' => false, 'stale' => true, 'retry_pending' => $retry_pending ) ),
 			'health' => $health,
 		);
 	}
 
 	/**
-	 * Send a rate-limited alert after repeated critical-source failures.
+	 * Notify once per incident; a rejected mail transport can retry after an hour.
 	 */
-	private static function maybe_alert_source_failure( string $key, string $label, string $message, int $failures ): void {
+	private static function maybe_alert_source_failure( string $key, string $label, string $message, int $failures ): bool {
 		$alert_key = self::SOURCE_ALERT_PREFIX . md5( $key );
 		if ( get_transient( $alert_key ) ) {
-			return;
+			return false;
 		}
-		set_transient( $alert_key, '1', 12 * HOUR_IN_SECONDS );
-		wp_mail(
+		set_transient( $alert_key, 'attempt', HOUR_IN_SECONDS );
+		return wp_mail(
 			Mailer::recipient_email(),
 			'InfoSecNexus source warning: ' . $label,
 			sprintf( "%s has failed %d consecutive checks. The last-good copy remains in use when available.\n\n%s", $label, $failures, $message )
@@ -1241,7 +1278,6 @@ cat /etc/os-release</code></pre><p>These read-only commands report the running k
 	 */
 	private static function collect_nvd() {
 		$items  = array();
-		$errors = array();
 
 		foreach ( array( 'CRITICAL', 'HIGH' ) as $severity ) {
 			$start = gmdate( 'Y-m-d\TH:i:s.000', time() - ( self::LOOKBACK_DAYS * DAY_IN_SECONDS ) );
@@ -1262,11 +1298,14 @@ cat /etc/os-release</code></pre><p>These read-only commands report the running k
 				)
 			);
 			if ( is_wp_error( $data ) ) {
-				$errors[] = $data->get_error_message();
-				continue;
+				// A missing severity partition is an incomplete check, not a fresh source.
+				return new \WP_Error( 'infosecnexus_nvd_unavailable', $data->get_error_message(), $data->get_error_data() );
 			}
 
-			$records = is_array( $data['vulnerabilities'] ?? null ) ? $data['vulnerabilities'] : array();
+			if ( ! isset( $data['vulnerabilities'] ) || ! is_array( $data['vulnerabilities'] ) ) {
+				return new \WP_Error( 'infosecnexus_nvd_payload', 'NVD returned no valid vulnerabilities collection.' );
+			}
+			$records = $data['vulnerabilities'];
 			foreach ( $records as $record ) {
 				$cve = is_array( $record['cve'] ?? null ) ? $record['cve'] : array();
 				$id  = sanitize_text_field( (string) ( $cve['id'] ?? '' ) );
@@ -1309,10 +1348,6 @@ cat /etc/os-release</code></pre><p>These read-only commands report the running k
 					)
 				);
 			}
-		}
-
-		if ( empty( $items ) && ! empty( $errors ) ) {
-			return new \WP_Error( 'infosecnexus_nvd_unavailable', implode( ' ', array_unique( $errors ) ) );
 		}
 
 		return $items;
@@ -1509,15 +1544,18 @@ cat /etc/os-release</code></pre><p>These read-only commands report the running k
 	 * @return \SimplePie\SimplePie|\WP_Error
 	 */
 	private static function fetch_cisa_feed_fallback( string $url ) {
-		$host = strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) );
-		if ( 'www.cisa.gov' !== $host ) {
-			return new \WP_Error( 'invalid_cisa_feed', 'The CISA feed fallback only accepts www.cisa.gov.' );
+		$parts = wp_parse_url( $url );
+		if ( ! is_array( $parts ) || 'https' !== strtolower( (string) ( $parts['scheme'] ?? '' ) ) || 'www.cisa.gov' !== strtolower( (string) ( $parts['host'] ?? '' ) ) || '/cybersecurity-advisories/all.xml' !== ( $parts['path'] ?? '' ) || isset( $parts['user'] ) || isset( $parts['pass'] ) || ( isset( $parts['port'] ) && 443 !== $parts['port'] ) ) {
+			return new \WP_Error( 'invalid_cisa_feed', 'The CISA feed fallback only accepts the official HTTPS advisory feed.' );
 		}
 
 		$context = stream_context_create(
 			array(
 				'http' => array(
 					'timeout'    => 20,
+					'follow_location' => 0,
+					'max_redirects' => 0,
+					'ignore_errors' => true,
 					'user_agent' => 'WordPress/' . get_bloginfo( 'version' ) . '; ' . home_url( '/' ),
 					'header'     => "Accept: application/rss+xml, application/xml;q=0.9, */*;q=0.8\r\n",
 				),
@@ -1529,13 +1567,13 @@ cat /etc/os-release</code></pre><p>These read-only commands report the running k
 		);
 
 		// The fixed, allowlisted CISA URL is parsed locally and never written to disk.
-		$maximum_bytes = 5 * MB_IN_BYTES;
-		$body          = @file_get_contents( $url, false, $context, 0, $maximum_bytes + 1 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-		if ( false === $body || '' === $body ) {
+		$body = @file_get_contents( $url, false, $context, 0, self::CISA_MAXIMUM_BYTES + 1 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+		if ( false === $body ) {
 			return new \WP_Error( 'cisa_feed_unavailable', 'CISA returned no readable RSS content.' );
 		}
-		if ( strlen( $body ) > $maximum_bytes ) {
-			return new \WP_Error( 'cisa_feed_too_large', 'CISA returned an unexpectedly large RSS response.' );
+		$validated = self::validate_cisa_feed_response( $body, $http_response_header ?? array() );
+		if ( is_wp_error( $validated ) ) {
+			return $validated;
 		}
 
 		require_once ABSPATH . WPINC . '/class-simplepie.php';
@@ -1547,6 +1585,38 @@ cat /etc/os-release</code></pre><p>These read-only commands report the running k
 		}
 
 		return $feed;
+	}
+
+	/**
+	 * Validate the bounded response before handing it to the XML parser.
+	 *
+	 * @param array<int,string> $headers PHP HTTP response headers.
+	 * @return true|\WP_Error
+	 */
+	private static function validate_cisa_feed_response( string $body, array $headers ) {
+		$status = 0;
+		$content_type = '';
+		foreach ( $headers as $header ) {
+			if ( 1 === preg_match( '~^HTTP/\S+\s+(\d{3})\b~i', $header, $matches ) ) {
+				$status = (int) $matches[1];
+			}
+			if ( 0 === stripos( $header, 'Content-Type:' ) ) {
+				$content_type = strtolower( trim( explode( ';', substr( $header, 13 ) )[0] ) );
+			}
+		}
+		if ( 200 !== $status ) {
+			return new \WP_Error( 'cisa_feed_http', sprintf( 'CISA returned HTTP %d instead of a successful RSS response.', $status ) );
+		}
+		if ( '' !== $content_type && ! in_array( $content_type, array( 'application/rss+xml', 'application/atom+xml', 'application/xml', 'text/xml' ), true ) ) {
+			return new \WP_Error( 'cisa_feed_content_type', 'CISA returned a non-XML response instead of its advisory feed.' );
+		}
+		if ( '' === $body ) {
+			return new \WP_Error( 'cisa_feed_unavailable', 'CISA returned no readable RSS content.' );
+		}
+		if ( strlen( $body ) > self::CISA_MAXIMUM_BYTES ) {
+			return new \WP_Error( 'cisa_feed_too_large', 'CISA returned an RSS response exceeding the 12 MiB safety limit.' );
+		}
+		return true;
 	}
 
 	/**
@@ -1569,24 +1639,47 @@ cat /etc/os-release</code></pre><p>These read-only commands report the running k
 	 * @return array<mixed>|\WP_Error
 	 */
 	private static function fetch_json( string $url, array $headers = array() ) {
-		$response = wp_remote_get(
-			$url,
-			array(
-				'timeout'     => 14,
-				'redirection' => 3,
-				'headers'     => $headers,
-				'user-agent'  => 'InfoSecNexus/' . INFOSECNEXUS_VERSION . '; ' . home_url( '/' ),
-			)
+		$nvd = str_starts_with( $url, 'https://services.nvd.nist.gov/rest/json/cves/2.0/' );
+		if ( $nvd ) {
+			$retry_after = max( 0, (int) get_transient( self::NVD_RETRY_KEY ) - time() );
+			if ( $retry_after > 0 ) {
+				return new \WP_Error( 'infosecnexus_nvd_retry_after', 'NVD requested a pause before the next API request.', array( 'retry_after' => $retry_after ) );
+			}
+			// Pace anonymous NVD calls instead of querying severity partitions in a burst.
+			$wait = min( 6.0, 6.0 - ( microtime( true ) - self::$nvd_last_request ) );
+			if ( $wait > 0 ) {
+				usleep( (int) ceil( $wait * 1000000 ) );
+			}
+			self::$nvd_last_request = microtime( true );
+		}
+		$args = array(
+			'timeout'     => $nvd ? 30 : 14,
+			'redirection' => 3,
+			'headers'     => $headers,
+			'user-agent'  => 'InfoSecNexus/' . INFOSECNEXUS_VERSION . '; ' . home_url( '/' ),
 		);
+		if ( $nvd ) {
+			$args['limit_response_size'] = 12 * MB_IN_BYTES;
+		}
+		$response = wp_remote_get( $url, $args );
 		if ( is_wp_error( $response ) ) {
 			return $response;
 		}
 
 		$status = (int) wp_remote_retrieve_response_code( $response );
 		if ( $status < 200 || $status >= 300 ) {
+			$retry_after = 0;
+			if ( $nvd && in_array( $status, array( 429, 503 ), true ) ) {
+				$header = wp_remote_retrieve_header( $response, 'retry-after' );
+				$retry_after = self::source_retry_after( is_string( $header ) ? $header : '' );
+				if ( $retry_after > 0 ) {
+					set_transient( self::NVD_RETRY_KEY, time() + $retry_after, $retry_after );
+				}
+			}
 			return new \WP_Error(
 				'infosecnexus_live_source_http',
-				sprintf( 'Source returned HTTP %d.', $status )
+				sprintf( 'Source returned HTTP %d.', $status ),
+				array( 'retry_after' => $retry_after, 'http_status' => $status )
 			);
 		}
 
@@ -1596,6 +1689,24 @@ cat /etc/os-release</code></pre><p>These read-only commands report the running k
 		}
 
 		return $data;
+	}
+
+	/**
+	 * Accept Retry-After seconds or HTTP dates, bounded to one day of holdoff.
+	 */
+	private static function source_retry_after( string $header ): int {
+		$header = trim( $header );
+		if ( '' === $header ) {
+			return 0;
+		}
+		if ( 1 === preg_match( '/^\d+$/', $header ) ) {
+			return min( DAY_IN_SECONDS, max( 0, (int) $header ) );
+		}
+		if ( 1 !== preg_match( '/^[A-Z][a-z]{2}, \d{2} [A-Z][a-z]{2} \d{4} \d{2}:\d{2}:\d{2} GMT$/D', $header ) ) {
+			return 0;
+		}
+		$date = strtotime( $header );
+		return false === $date ? 0 : min( DAY_IN_SECONDS, max( 0, $date - time() ) );
 	}
 
 	/**
