@@ -4,7 +4,7 @@
 > project. Then run the startup checklist in the next section. This is the
 > authoritative continuity handoff for the current project state.
 
-Last updated: 2026-11-10 (Asia/Kolkata)
+Last updated: 2026-11-17 (Asia/Kolkata)
 
 ## 1. Current Snapshot
 
@@ -14,13 +14,40 @@ Last updated: 2026-11-10 (Asia/Kolkata)
 - Main release branch: `stable`
 - Repository visibility: public, which permits unauthenticated WordPress update
   downloads. Moving it to private requires an authenticated update service.
-- Current theme version: `0.3.9`
-- Current known release: `auto-v0.3.9`
-- Current known code commit: `d2af20d` (`Require exact product families for reviewed vendor evidence`)
+- Current theme version: `0.3.10`
+- Current known release: `auto-v0.3.10`
+- Current known code commit: `724c71f` (`Fix CISA feed capacity and incident-based source recovery`)
 - WordPress was verified running version 7.1.4 at this checkpoint.
 - The live site is theme-first. The InfoSecNexus Toolkit features are bundled
   into the theme and the separate toolkit plugin is not required on this site.
-- Latest known verification on November 10: production is running `0.3.9`
+- Latest verification on November 17: production is running `0.3.10`; the
+  existing native automatic theme-update channel installed the checksum-verified
+  release after the November 16 backup/release. CISA's valid 5,560,692-byte RSS
+  response exceeded the old 5 MiB cap. The bounded reader now allows 12 MiB,
+  validates HTTP/XML and keeps TLS and a fixed HTTPS endpoint. CISA recovered
+  from 186 failed checks to zero; NVD also has zero failures at its latest saved
+  successful check. NVD has a 30-second timeout, pacing, provider retry pauses,
+  scheduled backoff and honest stale handling for incomplete severity results.
+  Unresolved source incidents notify once rather than every 12 hours.
+  All 239 installed files and 15 served assets match the official release, and
+  all 85 deployed PHP files pass syntax checks. New reliability fixtures pass
+  57 checks; existing evidence fixtures pass 93; preview passes 106 browser
+  checks. Production passes 101 with four preview-only skips; one initial
+  desktop footer timing failure passed three unchanged focused reruns. Additional
+  tablet/light/dark audits found existing review-only privacy-link accessibility
+  and tablet blog layout-shift findings; do not claim those were fixed.
+  Counts are 255 published posts, six pages, 159 retired, five superseded
+  (91 active). Private settings, theme mods, plugins and branding match the
+  pre-change checkpoint; all standalone/static bodies, dates and history match.
+  Only the scheduled rolling hub 1169 refreshed normally. No article rewrite,
+  historical migration, URL change, redesign or DNS/mail-provider change ran.
+  The owner's original GSC export and complete content/technical audit were
+  analyzed; private owner reports, five unpublished drafts and tested unapplied
+  editorial proposals are retained under ignored
+  `.tmp/deliverables/seo-audit-2026-11-16/`. Do not commit this private package.
+  Article publication requires review under the owner's newly supplied prompt.
+  Source release details: `docs/source-reliability-2026-11-16.md`.
+- Previous verification on November 10: production was running `0.3.9`
   through the native WordPress updater. The first traffic/SEO batch removes
   empty-category promotions, makes those archives noindex and excludes them
   from the category sitemap until useful content exists, improves mobile blog
@@ -149,6 +176,77 @@ Last updated: 2026-11-10 (Asia/Kolkata)
   linting passed, and 63 source-evidence regression checks plus editorial
   persistence fixtures passed. Lighthouse and Core Web Vitals remain targets,
   not permanent guarantees.
+
+### Source Recovery And Complete Owner Audit - November 16–17, 2026
+
+- The owner reported repeated CISA/NVD warnings again and supplied a detailed
+  audit-first SEO/content task. Preserve design, colors, layout, branding,
+  URLs and existing content. Prepare revised articles for review before
+  publishing; do not delete, merge, redirect or unpublish articles automatically.
+- Actual CISA HTTP200 RSS parsed 30 entries but measured 5,560,692 bytes,
+  proving the five-MiB rejection cause. The CISA-only limit is now 12 MiB plus
+  a one-byte sentinel, exact HTTPS/path allowlist, no redirects, TLS verification
+  and status/MIME checks. HTML/error/empty/oversize responses remain failures.
+- NVD uses a 30-second timeout, bounded response and conservative six-second
+  request-start pacing. Any failed severity partition retains the full previous
+  last-good set and reports stale. Source retry backoff is 15/30/60 minutes;
+  bounded Retry-After is respected even for forced requests. Skipped retries
+  preserve actual check times and do not increase failure counts. An outage
+  without last-good entries also marks overall data stale.
+- Critical-source notifications persist per incident. Accepted warnings are
+  not repeated during the same unresolved outage; rejected mail transport can
+  retry after an hour. Only a known-notified incident receives one verified
+  recovery attempt. Legacy notices migrate without pretending their mail
+  delivery result was recorded. New distinct outages can still alert.
+- Code `724c71faebcefb162223a5528928118569423760`, successful Actions
+  `43891942725`, release `auto-v0.3.10`; published theme SHA256
+  `fa281bdc06f777eeb42fd63c49d7b8c0bc34de4c4c414886884fb07f29204494`.
+  A restricted database export and valid complete 0.3.9 theme archive were
+  verified before the November 16 push. Exact paths/checksums remain only in
+  `.tmp/backups/records/source-reliability-backup-20261116.txt`. By the November
+  17 verification the native automatic updater had installed the release;
+  it was not reinstalled merely to repeat deployment.
+- Preview actual-source checks parsed 30 CISA entries and 135 NVD records;
+  NVD's exception existed only in that isolated CLI process. Normal preview
+  mail, HTTP, ads and publishing blockers remain installed. Final live saved
+  source checks show CISA seven recent entries and NVD 122, both with zero
+  failures. The full NVD collector took 23.447 seconds across both partitions;
+  that total is distinct from its 30-second per-request timeout. Later
+  external-provider failures remain possible and must not be described as
+  impossible or hidden by disabling monitoring.
+- Verification: 57 new transport/health fixtures, 93 existing source/vendor
+  fixtures, focused PHPStan, JS/CSS lint and all 85 deployed PHP syntax checks
+  passed. All 239 package entries match source with expected CI normalization;
+  all 239 live files match the official ZIP, and 15 served assets match it.
+  Preview passed all 106 browser checks. Production passed 101, skipped four
+  preview-only checks and had one desktop footer-geometry timing failure;
+  that unchanged test passed three focused reruns. No test was weakened.
+- The baseline audit covered all 255 published posts, including 159 staged and
+  five superseded, and six pages. The complete pagination crawl covered 302
+  public routes; all 106 sitemap URLs were successful/indexable/self-canonical
+  and all 91 active posts had inbound links. Initially apparent orphans vanished
+  after all pagination was crawled, so do not report the limited-graph result.
+  Actual GSC originals were found and reconciled. Detailed analytics, individual
+  editorial judgments, review drafts and source-identity/rating patch candidates
+  are private owner deliverables outside public Git. No fabricated traffic,
+  credentials, keyword volumes, laboratory results or external promotion was
+  introduced. Do not install analytics without a real property/measurement ID.
+- Current-state comparison preserves Toolkit options, theme mods, active-plugin
+  list, logo/icon and all standalone/static bodies, identities, dates and
+  editorial histories. Counts remain 255 posts, six pages, 159 retired and five
+  superseded. Only rolling hub 1169 updated through its existing scheduler.
+  Article rewrites, metadata changes, contextual links and editorial-policy copy
+  remain unpublished pending the owner's explicit review requirement.
+- After recording results, 202 local temporary files (approximately 66.8 MiB)
+  plus the cleanup helper, 11 remote helper files and three isolated fixture/cache
+  directories were removed. Preview processes and its SSH tunnel were stopped;
+  no top-level remote `isn-*` temporary files remain. Permanent preview databases,
+  quality tooling, tracked distribution archives, private rollback records, secure
+  connections, owner deliverables and unrelated `new_design/` were preserved.
+  Public home/live-brief checks still return HTTP200 after cleanup. The owner
+  package and ZIP remain in ignored `.tmp/deliverables/`, with relative links
+  and CSV inventory/reconciliation checks validated. No private GSC report or
+  unpublished article draft was added to public Git.
 
 ### Cinematic Redesign And Production Deployment - November 6, 2026
 

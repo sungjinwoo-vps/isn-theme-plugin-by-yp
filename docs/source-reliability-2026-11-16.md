@@ -55,7 +55,48 @@ when an unavailable source has no saved fallback entries.
 - A restricted database/theme rollback backup was verified before deployment.
   Exact backup paths and checksums remain in private deployment records.
 
-Production package verification, preservation checks and cleanup results are
-recorded below after rollout. A healthy check does not guarantee that an external
-provider will never fail again; later failures remain visible and use last-good
-data and incident-based alerts.
+## Production verification — November 17
+
+The existing native automatic theme-update channel installed 0.3.10 after the
+verified backup and November 16 release push. It was already present at the
+November 17 check and was not reinstalled just to repeat deployment. WordPress
+remains 7.1.4. Release code is `724c71faebcefb162223a5528928118569423760`,
+successful Actions run `43891942725`. Published theme ZIP SHA256:
+`fa281bdc06f777eeb42fd63c49d7b8c0bc34de4c4c414886884fb07f29204494`.
+
+All 239 installed files match the official ZIP; all 239 package entries match
+source after expected CI endpoint/newline normalization. All 15 served CSS/JS
+assets match the package and all 85 deployed PHP files pass syntax checks.
+Latest saved successful source checks show seven CISA entries and 122 NVD
+records, both with zero failures. The full NVD collector took 23.447 seconds
+across both partitions and pacing. That total does not establish the duration
+of either individual request; the 30-second per-request limit is verified by
+the transport fixtures.
+
+Private Toolkit options, theme mods, active plugins and branding match the
+pre-change checkpoint. Counts remain 255 posts, six pages, 159 staged and five
+superseded. All standalone/static bodies, identities, dates and history match;
+only the scheduled rolling hub 1169 refreshed through its normal automation.
+No article migration, manual editorial rewrite, design change or DNS/mail-provider
+change was performed.
+
+Production browser suite results: 101 passed, four preview-only checks skipped,
+one initial desktop footer-position timing failure. The same unchanged test then
+passed three focused reruns. Do not describe the initial suite as entirely green.
+Additional tablet and dark/light contexts preserve layout and have no horizontal
+overflow or JavaScript errors. Existing privacy-link accessibility and tablet blog
+layout-shift findings are documented as review proposals, rather than silently
+changing the owner's requested appearance.
+
+A healthy check does not guarantee that an external provider will never fail
+again. Later failures remain visible and use last-good data and incident-based
+alerts. Private analytics and unpublished editorial work remain owner
+deliverables outside the public repository.
+
+After recording results, temporary diagnostic captures/scripts/logs/test reports
+were removed locally and from the server: 202 local files plus the cleanup
+helper, 11 remote helper files and three fixture/cache directories. The isolated
+preview server/tunnel were stopped. Owner reports, actual rollback backups,
+secure connections, permanent quality tools/development databases and tracked
+distribution assets were preserved. No top-level remote `isn-*` helper file
+remains. Public home and live-brief checks still return HTTP200 after cleanup.
