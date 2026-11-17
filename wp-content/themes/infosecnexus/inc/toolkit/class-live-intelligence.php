@@ -269,6 +269,8 @@ final class Live_Intelligence {
 
 		$failures  = (int) ( $previous['failure_count'] ?? 0 ) + 1;
 		$message   = self::clean_text( $result->get_error_message(), 28 );
+		$last_good = get_option( self::SOURCE_LAST_GOOD_PREFIX . $key, array() );
+		$fallback  = is_array( $last_good ) && is_array( $last_good['items'] ?? null ) ? $last_good['items'] : array();
 		$error_data = $result->get_error_data();
 		$retry_after = is_array( $error_data ) ? max( 0, (int) ( $error_data['retry_after'] ?? 0 ) ) : 0;
 		$retry_delay = min( HOUR_IN_SECONDS, max( MINUTE_IN_SECONDS, (int) ( $source['ttl'] ?? self::GENERAL_SOURCE_TTL ) ) * ( 2 ** min( 3, $failures - 1 ) ) );
@@ -569,7 +571,12 @@ final class Live_Intelligence {
 			42,
 			'.'
 		);
-		$fingerprint = hash( 'sha256', self::CONTENT_SCHEMA_VERSION . '|rolling|' . $date . '|' . self::items_fingerprint( $selected ) );
+		$source_state = array();
+		foreach ( (array) ( $data['source_status'] ?? array() ) as $key => $status ) {
+			$source_state[ $key ] = array( ! empty( $status['ok'] ), ! empty( $status['stale'] ) );
+		}
+		ksort( $source_state );
+		$fingerprint = hash( 'sha256', self::CONTENT_SCHEMA_VERSION . '|rolling-2|' . $date . '|' . self::items_fingerprint( $selected ) . '|' . (string) wp_json_encode( $source_state ) . '|' . (string) wp_json_encode( self::brief_remediation_guides() ) );
 		$posts = array(
 			array(
 				'kind'        => 'rolling',
@@ -698,7 +705,9 @@ final class Live_Intelligence {
 			$add_item( $item );
 		}
 
-		return array_slice( array_values( $selected ), 0, 16 );
+		$selected = array_slice( array_values( $selected ), 0, 16 );
+		usort( $selected, static fn( array $left, array $right ): int => (int) ! empty( $right['active_exploitation'] ) <=> (int) ! empty( $left['active_exploitation'] ) );
+		return $selected;
 	}
 
 	/**
@@ -714,39 +723,69 @@ final class Live_Intelligence {
 		$checked = strtotime( (string) ( $data['checked_at'] ?? '' ) );
 		$as_of   = false !== $checked ? wp_date( 'F j, Y g:i a T', $checked ) : $date;
 
-		$content  = '<p class="isnx-live-deck">A continuously updated operational brief built from current government, vulnerability-database, open-source, and vendor security advisories.</p>';
-		$content .= '<p>As of <strong>' . esc_html( $as_of ) . '</strong>, this edition tracks ' . esc_html( (string) count( $items ) ) . ' prioritized developments, including ' . esc_html( (string) $counts['kev'] ) . ' known-exploited entries, ' . esc_html( (string) $counts['critical'] ) . ' critical records, and ' . esc_html( (string) $counts['high'] ) . ' high-severity records. Treat the list as a starting point: final urgency depends on deployed versions, exposure, privilege, and available compensating controls.</p>';
+		$content  = '<p class="isnx-live-deck">Known-exploited vulnerabilities first, followed by newly disclosed records and vendor advisories for security operations teams.</p>';
+		$content .= '<p><strong>Source snapshot: ' . esc_html( $as_of ) . '.</strong> This briefing covers ' . esc_html( (string) count( $items ) ) . ' developments. ' . esc_html( (string) $counts['kev'] ) . ' have reported exploitation; ' . esc_html( (string) $counts['critical'] ) . ' have Critical and ' . esc_html( (string) $counts['high'] ) . ' have High assessments. Exploitation and severity are separate, overlapping measures. Match each item to the products and versions you actually run.</p>';
 		$content .= '<!--more-->';
 		$content .= '<h2>Executive security snapshot</h2>';
-		$content .= '<p>The highest-value work is to connect each advisory to a real asset and an accountable owner. Known exploitation and direct vendor warnings move ahead of ordinary backlog scoring, while newly disclosed records still require version and reachability checks before a response team declares exposure.</p>';
-
-		$content .= '<h2>Top developments for ' . esc_html( $date ) . '</h2>';
-		foreach ( array_slice( $items, 0, 10 ) as $index => $item ) {
-			$categories = (array) ( $item['categories'] ?? array() );
-			$label      = self::category_label_for_item( $categories );
-			$insight    = self::item_insight( $item, $label, (int) $index );
-			$content   .= self::render_newsroom_item( $item, $insight );
+		$content .= '<p>Start with relevant known-exploited products. For the remaining queue, confirm affected versions and required configuration before scheduling remediation; a score alone does not establish an attack.</p>';
+		$content .= '<h2>Priority scan</h2><table><thead><tr><th scope="col">Issue or product</th><th scope="col">Assessment</th><th scope="col">Next decision</th></tr></thead><tbody>';
+		foreach ( $items as $index => $item ) {
+			$rating = self::brief_item_rating( $item );
+			$label = ! empty( $item['active_exploitation'] ) ? 'Known exploited' . ( '' !== $rating ? '; ' . $rating : '' ) : ( '' !== $rating ? $rating : 'Not rated in this source' );
+			$action = '' !== trim( (string) ( $item['action'] ?? '' ) ) ? self::clean_text( (string) $item['action'], 30 ) : 'Confirm the product, affected branch and vendor remediation.';
+			$content .= '<tr><td><a href="#brief-item-' . (int) $index . '">' . esc_html( self::clean_text( (string) $item['title'], 20 ) ) . '</a></td><td>' . esc_html( $label ) . '</td><td>' . esc_html( $action ) . '</td></tr>';
 		}
-
-		$content .= '<h2>Coverage by security desk</h2>';
-		$desks = array(
-			'critical-cves' => 'Exploited and critical vulnerabilities',
-			'linux-administration' => 'Linux and open-source operations',
-			'windows-security' => 'Windows and Microsoft security',
-			'network-security' => 'Network, VPN, firewall, and edge security',
-			'web-security' => 'Web applications, APIs, and WordPress',
-			'devops' => 'DevOps and software supply chain',
-			'artificial-intelligence' => 'AI and agent security',
-			'cloud-security' => 'Cloud and identity controls',
-		);
-		foreach ( $desks as $slug => $heading ) {
-			$desk_items = array_values( array_filter( $items, static fn( array $item ): bool => in_array( $slug, (array) ( $item['categories'] ?? array() ), true ) ) );
-			if ( empty( $desk_items ) ) {
-				continue;
+		$content .= '</tbody></table>';
+		$section = '';
+		foreach ( $items as $index => $item ) {
+			$next_section = ! empty( $item['active_exploitation'] ) ? 'Known-exploited priorities' : 'Other vulnerabilities and vendor advisories';
+			if ( $section !== $next_section ) {
+				$content .= '<h2>' . esc_html( $next_section ) . '</h2>';
+				$section = $next_section;
 			}
-			$content .= '<h3>' . esc_html( $heading ) . '</h3><ul>';
-			foreach ( array_slice( $desk_items, 0, 3 ) as $item ) {
-				$content .= '<li><a href="' . esc_url( (string) $item['url'] ) . '" rel="nofollow noopener" target="_blank">' . esc_html( (string) $item['title'] ) . '</a> - ' . esc_html( self::clean_text( (string) ( $item['description'] ?? '' ), 28 ) ) . '</li>';
+			$content .= '<h3 id="brief-item-' . (int) $index . '">' . esc_html( (string) $item['title'] ) . '</h3>';
+			$summary = (string) ( $item['description'] ?? '' );
+			$technical_summary = false;
+			if ( '' === trim( $summary ) ) {
+				$summary = (string) ( $item['technical_description'] ?? '' );
+				$technical_summary = true;
+			}
+			if ( '' !== trim( $summary ) ) {
+				$content .= '<p>' . esc_html( self::clean_text( $summary, 70 ) );
+				if ( $technical_summary && ! empty( $item['technical_url'] ) ) {
+					$content .= ' ' . self::source_link( (string) $item['technical_url'], (string) ( $item['technical_source'] ?? 'Technical record' ) );
+				}
+				$content .= '</p>';
+			}
+			$content .= '<p>' . self::source_link( (string) $item['url'], (string) ( $item['source'] ?? 'Official source' ) );
+			if ( '' !== trim( (string) ( $item['due_date'] ?? '' ) ) ) {
+				$content .= ' CISA due date: ' . esc_html( (string) $item['due_date'] ) . ' for covered US federal civilian agencies.';
+			}
+			$content .= '</p>';
+			$article_url = self::brief_article_url( $item );
+			if ( '' !== $article_url ) {
+				$content .= '<p>Continue with <a href="' . esc_url( $article_url ) . '">' . esc_html( (string) ( $item['cve'] ?? 'the detailed briefing' ) ) . ' exposure and remediation guidance</a> for version-specific checks.</p>';
+			}
+		}
+		$content .= '<h2>Source availability</h2>';
+		$statuses = (array) ( $data['source_status'] ?? array() );
+		$unavailable = array_filter( $statuses, static fn( array $status ): bool => empty( $status['ok'] ) || ! empty( $status['stale'] ) );
+		if ( empty( $statuses ) ) {
+			$content .= '<p>Source availability details were not recorded for this snapshot.</p>';
+		} elseif ( empty( $unavailable ) ) {
+			$content .= '<p>All reported source checks succeeded for this snapshot. Advisory revisions and deployed configurations still require product-specific verification.</p>';
+		} else {
+			$content .= '<p>Some source lookups were unavailable. Saved entries may be older than this snapshot:</p><ul>';
+			foreach ( $unavailable as $status ) {
+				$content .= '<li>' . esc_html( (string) ( $status['label'] ?? 'Source' ) ) . ': last successful check ' . esc_html( (string) ( $status['last_success'] ?? 'not recorded' ) ) . ' UTC.</li>';
+			}
+			$content .= '</ul>';
+		}
+		$guides = self::brief_remediation_guides();
+		if ( ! empty( $guides ) ) {
+			$content .= '<h2>Detailed remediation guides</h2><ul>';
+			foreach ( $guides as $guide ) {
+				$content .= '<li><a href="' . esc_url( $guide['url'] ) . '">' . esc_html( $guide['title'] ) . '</a></li>';
 			}
 			$content .= '</ul>';
 		}
@@ -760,6 +799,55 @@ final class Live_Intelligence {
 
 		$content .= self::render_references( $sources );
 		return $content;
+	}
+
+	/** Keep severity independent from the known-exploitation label. */
+	private static function brief_item_rating( array $item ): string {
+		$rating = strtoupper( (string) ( $item['severity'] ?? '' ) );
+		if ( in_array( $rating, array( 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFORMATIONAL' ), true ) ) {
+			return ucfirst( strtolower( $rating ) );
+		}
+		if ( ! isset( $item['score'] ) || ! is_numeric( $item['score'] ) || (float) $item['score'] < 0 || (float) $item['score'] > 10 ) {
+			return '';
+		}
+		$score = (float) $item['score'];
+		return $score >= 9 ? 'Critical' : ( $score >= 7 ? 'High' : ( $score >= 4 ? 'Medium' : ( $score > 0 ? 'Low' : 'None' ) ) );
+	}
+
+	/** Resolve only an active, exact-CVE standalone article without storing a URL. */
+	private static function brief_article_url( array $item ): string {
+		$cve = strtoupper( (string) ( $item['cve'] ?? '' ) );
+		if ( ! preg_match( '/^CVE-\d{4}-\d{4,}$/D', $cve ) || ! function_exists( 'get_posts' ) ) {
+			return '';
+		}
+		static $urls = array();
+		if ( ! array_key_exists( $cve, $urls ) ) {
+			$urls[ $cve ] = '';
+			$posts = get_posts( array( 'post_type' => 'post', 'post_status' => 'publish', 's' => $cve, 'posts_per_page' => 10, 'has_password' => false, 'no_found_rows' => true ) );
+			foreach ( $posts as $post ) {
+				if ( preg_match( '/\b' . preg_quote( $cve, '/' ) . '\b/i', $post->post_title ) && '' === (string) get_post_meta( $post->ID, '_infosecnexus_retirement_state', true )
+					&& (int) get_post_meta( $post->ID, '_infosecnexus_newsroom_superseded_by', true ) <= 0 && 'rolling' !== (string) get_post_meta( $post->ID, '_infosecnexus_newsroom_kind', true ) ) {
+					$urls[ $cve ] = get_permalink( $post );
+					break;
+				}
+			}
+		}
+		return $urls[ $cve ];
+	}
+
+	/** Return only explicitly selected current remediation articles. */
+	private static function brief_remediation_guides(): array {
+		if ( ! function_exists( 'get_posts' ) ) {
+			return array();
+		}
+		$posts = get_posts( array( 'post_type' => 'post', 'post_status' => 'publish', 'has_password' => false, 'posts_per_page' => 4, 'orderby' => 'modified', 'meta_key' => '_infosecnexus_brief_reference', 'meta_value' => '1', 'no_found_rows' => true ) );
+		$guides = array();
+		foreach ( $posts as $post ) {
+			if ( '' === (string) get_post_meta( $post->ID, '_infosecnexus_retirement_state', true ) && (int) get_post_meta( $post->ID, '_infosecnexus_newsroom_superseded_by', true ) <= 0 && 'rolling' !== (string) get_post_meta( $post->ID, '_infosecnexus_newsroom_kind', true ) ) {
+				$guides[] = array( 'title' => (string) $post->post_title, 'url' => get_permalink( $post ) );
+			}
+		}
+		return $guides;
 	}
 
 	/**
@@ -1501,7 +1589,7 @@ cat /etc/os-release</code></pre><p>These read-only commands report the running k
 			if ( preg_match( '/\bCVSS(?:\s*v?\d(?:\.\d)?)?(?:\s*(?:base\s*)?score)?\s*[:=-]?\s*(10(?:\.0)?|[0-9](?:\.\d))\b/i', $search_text, $score_match ) ) {
 				$score = (float) $score_match[1];
 			}
-			$severity = self::severity_from_text( $search_text, $score );
+			$severity = self::vendor_feed_severity( $source_key, $title, $technical_content, $search_text, $score );
 			$active   = self::has_confirmed_exploitation_language( $search_text );
 			$direct_vendor = in_array( $source_key, array( 'sonicwall_psirt', 'paloalto_psirt', 'cisco_psirt', 'wordpress_security', 'ubuntu' ), true );
 
@@ -1567,11 +1655,12 @@ cat /etc/os-release</code></pre><p>These read-only commands report the running k
 		);
 
 		// The fixed, allowlisted CISA URL is parsed locally and never written to disk.
+		$http_response_header = array();
 		$body = @file_get_contents( $url, false, $context, 0, self::CISA_MAXIMUM_BYTES + 1 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 		if ( false === $body ) {
 			return new \WP_Error( 'cisa_feed_unavailable', 'CISA returned no readable RSS content.' );
 		}
-		$validated = self::validate_cisa_feed_response( $body, $http_response_header ?? array() );
+		$validated = self::validate_cisa_feed_response( $body, $http_response_header );
 		if ( is_wp_error( $validated ) ) {
 			return $validated;
 		}
@@ -1825,6 +1914,10 @@ cat /etc/os-release</code></pre><p>These read-only commands report the running k
 	private static function merge_items( array $left, array $right ): array {
 		$primary   = self::item_quality( $right ) > self::item_quality( $left ) ? $right : $left;
 		$secondary = $primary === $right ? $left : $right;
+		$independent_vendor_ratings = 'vendor_advisory' === (string) ( $left['type'] ?? '' )
+			&& 'vendor_advisory' === (string) ( $right['type'] ?? '' )
+			&& ! empty( $left['source_key'] ) && ! empty( $right['source_key'] )
+			&& $left['source_key'] !== $right['source_key'];
 		$primary['references'] = array_values(
 			array_reduce(
 				array_merge( self::item_references( $left ), self::item_references( $right ) ),
@@ -1839,18 +1932,18 @@ cat /etc/os-release</code></pre><p>These read-only commands report the running k
 			)
 		);
 
-		$left_description_quality  = self::description_quality( $left );
-		$right_description_quality = self::description_quality( $right );
-		if (
-			$right_description_quality > $left_description_quality
-			|| ( $right_description_quality === $left_description_quality && strlen( (string) ( $right['description'] ?? '' ) ) > strlen( (string) ( $left['description'] ?? '' ) ) )
-		) {
-			$primary['description'] = $right['description'] ?? '';
-		} else {
-			$primary['description'] = $left['description'] ?? '';
+		if ( ! $independent_vendor_ratings ) {
+			$left_description_quality  = self::description_quality( $left );
+			$right_description_quality = self::description_quality( $right );
+			if ( $right_description_quality > $left_description_quality
+				|| ( $right_description_quality === $left_description_quality && strlen( (string) ( $right['description'] ?? '' ) ) > strlen( (string) ( $left['description'] ?? '' ) ) ) ) {
+				$primary['description'] = $right['description'] ?? '';
+			} else {
+				$primary['description'] = $left['description'] ?? '';
+			}
 		}
 		foreach ( array( 'cve', 'vendor', 'product', 'due_date', 'action' ) as $field ) {
-			if ( empty( $primary[ $field ] ) && ! empty( $secondary[ $field ] ) ) {
+			if ( ( ! $independent_vendor_ratings || 'cve' === $field ) && empty( $primary[ $field ] ) && ! empty( $secondary[ $field ] ) ) {
 				$primary[ $field ] = $secondary[ $field ];
 			}
 		}
@@ -1858,12 +1951,12 @@ cat /etc/os-release</code></pre><p>These read-only commands report the running k
 			$primary[ $field ] = 'weaknesses' === $field ? array_values( array_unique( array_merge( (array) ( $left[ $field ] ?? array() ), (array) ( $right[ $field ] ?? array() ) ) ) ) : self::unique_evidence( array_merge( (array) ( $left[ $field ] ?? array() ), (array) ( $right[ $field ] ?? array() ) ) );
 		}
 		foreach ( array( 'technical_description', 'technical_source', 'technical_url', 'solutions', 'workarounds', 'kev_added', 'kev_url', 'cve_published', 'modified' ) as $field ) {
-			if ( empty( $primary[ $field ] ) && ! empty( $secondary[ $field ] ) ) {
+			if ( ! $independent_vendor_ratings && empty( $primary[ $field ] ) && ! empty( $secondary[ $field ] ) ) {
 				$primary[ $field ] = $secondary[ $field ];
 			}
 		}
 		if (
-			self::is_generic_source_name( (string) ( $primary['vendor'] ?? '' ) )
+			! $independent_vendor_ratings && self::is_generic_source_name( (string) ( $primary['vendor'] ?? '' ) )
 			&& ! self::is_generic_source_name( (string) ( $secondary['vendor'] ?? '' ) )
 			&& '' !== trim( (string) ( $secondary['vendor'] ?? '' ) )
 		) {
@@ -1875,22 +1968,26 @@ cat /etc/os-release</code></pre><p>These read-only commands report the running k
 			&& false === stripos( (string) ( $primary['title'] ?? '' ), $cve )
 			&& false !== stripos( (string) ( $secondary['title'] ?? '' ), $cve )
 		) {
-			$primary['title'] = $secondary['title'];
+			$primary['title'] = self::clean_text( $cve . ': ' . (string) $primary['title'], 36 );
 		}
 
-		$left_score  = isset( $left['score'] ) && is_numeric( $left['score'] ) ? (float) $left['score'] : null;
-		$right_score = isset( $right['score'] ) && is_numeric( $right['score'] ) ? (float) $right['score'] : null;
-		if ( null !== $left_score || null !== $right_score ) {
-			$primary['score'] = max( (float) ( $left_score ?? 0 ), (float) ( $right_score ?? 0 ) );
+		// Distinct appliance vendors can assign different ratings to the same upstream CVE.
+		// Keep the selected vendor's scalar rating; attributed metric rows above retain evidence.
+		if ( ! $independent_vendor_ratings ) {
+			$left_score  = isset( $left['score'] ) && is_numeric( $left['score'] ) ? (float) $left['score'] : null;
+			$right_score = isset( $right['score'] ) && is_numeric( $right['score'] ) ? (float) $right['score'] : null;
+			if ( null !== $left_score || null !== $right_score ) {
+				$primary['score'] = max( (float) ( $left_score ?? 0 ), (float) ( $right_score ?? 0 ) );
+			}
+			$primary['severity'] = self::higher_severity( (string) ( $left['severity'] ?? '' ), (string) ( $right['severity'] ?? '' ) );
 		}
-		$primary['severity'] = self::higher_severity( (string) ( $left['severity'] ?? '' ), (string) ( $right['severity'] ?? '' ) );
 		$primary['active_exploitation'] = ! empty( $left['active_exploitation'] ) || ! empty( $right['active_exploitation'] ) || 'kev' === (string) ( $left['type'] ?? '' ) || 'kev' === (string) ( $right['type'] ?? '' );
 		$primary['type'] = $primary['active_exploitation'] ? 'kev' : (string) ( $primary['type'] ?? 'advisory' );
 		$primary['priority'] = max( (int) ( $left['priority'] ?? 0 ), (int) ( $right['priority'] ?? 0 ) ) + min( 8, count( $primary['references'] ) * 2 );
 
 		$left_time  = strtotime( (string) ( $left['published'] ?? '' ) );
 		$right_time = strtotime( (string) ( $right['published'] ?? '' ) );
-		if ( false !== $right_time && ( false === $left_time || $right_time > $left_time ) ) {
+		if ( ! $independent_vendor_ratings && false !== $right_time && ( false === $left_time || $right_time > $left_time ) ) {
 			$primary['published'] = $right['published'];
 		}
 
@@ -2061,6 +2158,35 @@ cat /etc/os-release</code></pre><p>These read-only commands report the running k
 		$left_key  = strtoupper( trim( $left ) );
 		$right_key = strtoupper( trim( $right ) );
 		return ( $ranks[ $right_key ] ?? 0 ) > ( $ranks[ $left_key ] ?? 0 ) ? $right : $left;
+	}
+
+	/**
+	 * Use explicit ratings from the two known vendor feed formats.
+	 * Structured CVSS evidence and scoring authorities remain separate fields.
+	 */
+	private static function vendor_feed_severity( string $source_key, string $title, string $technical_content, string $summary, ?float $score ): string {
+		if ( 'cisco_psirt' === $source_key ) {
+			preg_match_all( '/\bSecurity Impact Rating\s*(?:\(\s*SIR\s*\))?\s*(?::|of|is)?\s*(CRITICAL|HIGH|MEDIUM|LOW|INFORMATIONAL)\b/i', $technical_content, $matches, PREG_OFFSET_CAPTURE );
+			$ratings = array();
+			foreach ( (array) ( $matches[0] ?? array() ) as $index => $match ) {
+				$before = substr( $technical_content, max( 0, $match[1] - 40 ), min( 40, $match[1] ) );
+				$after = substr( $technical_content, $match[1] + strlen( $match[0] ), 45 );
+				if ( 1 === preg_match( '/\b(?:no|not|without)\s*$/i', $before ) || 1 === preg_match( '/^\s+(?:(?:is|was|has been)\s+)?(?:not|unconfirmed|unknown)\b/i', $after ) ) {
+					continue;
+				}
+				$ratings[] = strtoupper( $matches[1][ $index ][0] );
+			}
+			$ratings = array_values( array_unique( $ratings ) );
+			return 1 === count( $ratings ) ? $ratings[0] : '';
+		}
+		if ( 'paloalto_psirt' === $source_key ) {
+			if ( 1 !== preg_match( '/\(Severity:\s*(CRITICAL|HIGH|MEDIUM|LOW|INFORMATIONAL)\)\s*$/i', $title, $matches, PREG_OFFSET_CAPTURE ) ) {
+				return '';
+			}
+			$before = substr( $title, 0, $matches[0][1] );
+			return 1 === preg_match( '/\b(?:no|not|without)\s*$/i', $before ) ? '' : strtoupper( $matches[1][0] );
+		}
+		return self::severity_from_text( $summary, $score );
 	}
 
 	/**
@@ -3025,8 +3151,8 @@ cat /etc/os-release</code></pre><p>These read-only commands report the running k
 		);
 		foreach ( $items as $item ) {
 			$type     = (string) ( $item['type'] ?? '' );
-			$severity = strtoupper( (string) ( $item['severity'] ?? '' ) );
-			if ( 'kev' === $type ) {
+			$severity = strtoupper( self::brief_item_rating( $item ) );
+			if ( 'kev' === $type || ! empty( $item['active_exploitation'] ) ) {
 				++$counts['kev'];
 			}
 			if ( 'CRITICAL' === $severity ) {

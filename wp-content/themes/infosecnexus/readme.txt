@@ -3,7 +3,7 @@ Contributors: infosecnexus
 Requires at least: 6.5
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.3.10
+Stable tag: 0.3.11
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,6 +25,12 @@ InfoSecNexus WordPress Theme, Copyright 2026 InfoSecNexus.
 InfoSecNexus is distributed under the terms of the GNU GPL.
 
 == Changelog ==
+
+= 0.3.11 =
+* Restores saved-source fallback handling when a provider fails, correcting a failure-path regression in 0.3.10.
+* Keeps vendor headlines, product context and explicit severity assessments together when correlating advisories.
+* Makes the rolling brief easier to scan with exploitation-first priorities, one summary per item, source availability and current remediation guide links.
+* Supports reviewed article search titles and preserves reviewed descriptions across scheduled newsroom refreshes.
 
 = 0.3.10 =
 * Accepts the measured larger official CISA feed within a bounded 12 MiB reader, with validated HTTP/XML transport and no redirect fallback.

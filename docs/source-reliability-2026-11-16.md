@@ -40,6 +40,13 @@ when an unavailable source has no saved fallback entries.
 
 ## Validation before release
 
+Correction recorded November 17: these checks passed during development, but
+the exact final 0.3.10 failure handler was not rerun after a later edit removed
+the fallback variable. A provider error could then raise a TypeError while
+counting fallback entries and interrupt collection. Saved successful health
+records alone did not exercise that path. Release 0.3.11 restores the fallback;
+all 57 transport/health fixtures were rerun against the final corrected source.
+
 - 57 transport/source-health fixtures passed, including bounds, HTTP/MIME,
   allowlist/TLS, stale-data preservation, backoff, Retry-After, notification
   failure/retry, legacy migration and complete NVD partition handling.

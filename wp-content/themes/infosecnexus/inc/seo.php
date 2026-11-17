@@ -170,14 +170,30 @@ function category_sitemap_query( array $args, string $taxonomy ): array {
 /**
  * Give the homepage a descriptive search title without changing the visible brand.
  *
+ * Respect reviewed article titles while leaving active SEO plugins in control.
+ *
  * @param string $title Existing document title.
  */
 function document_title( string $title ): string {
-	if ( ! is_front_page() || seo_plugin_active() ) {
+	if ( seo_plugin_active() ) {
 		return $title;
 	}
 
-	return __( 'Cybersecurity News & Critical CVE Analysis | InfoSecNexus', 'infosecnexus' );
+	if ( is_front_page() ) {
+		return __( 'Cybersecurity News & Critical CVE Analysis | InfoSecNexus', 'infosecnexus' );
+	}
+	if ( is_singular( 'post' ) ) {
+		$post_id = (int) get_queried_object_id();
+		if ( post_password_required( $post_id ) || '' !== (string) get_post_meta( $post_id, '_infosecnexus_retirement_state', true )
+			|| (int) get_post_meta( $post_id, '_infosecnexus_newsroom_superseded_by', true ) > 0 ) {
+			return $title;
+		}
+		$reviewed_title = sanitize_text_field( (string) get_post_meta( $post_id, '_infosecnexus_seo_title', true ) );
+		if ( '' !== trim( $reviewed_title ) ) {
+			return $reviewed_title;
+		}
+	}
+	return $title;
 }
 
 /**

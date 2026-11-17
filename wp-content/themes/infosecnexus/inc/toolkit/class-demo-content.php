@@ -1030,6 +1030,7 @@ final class Demo_Content {
 
 			$published_date     = $existing ? (string) $existing->post_date : $post_date;
 			$published_date_gmt = $existing ? (string) $existing->post_date_gmt : get_gmt_from_date( $post_date );
+			$seo_description    = self::newsroom_description( $existing instanceof \WP_Post ? (int) $existing->ID : 0, (string) $post['excerpt'] );
 			$post_data = array(
 				'post_title'    => $post['title'],
 				'post_excerpt'  => $post['excerpt'],
@@ -1052,10 +1053,10 @@ final class Demo_Content {
 						'_infosecnexus_live_checked_at'   => (string) ( $live_data['checked_at'] ?? '' ),
 						'_infosecnexus_live_severity'     => sanitize_text_field( (string) ( $post['severity'] ?? '' ) ),
 						'_infosecnexus_live_score'        => isset( $post['score'] ) && is_numeric( $post['score'] ) ? (string) $post['score'] : '',
-						'_infosecnexus_seo_description'   => $post['excerpt'],
-						'_yoast_wpseo_metadesc'           => $post['excerpt'],
-						'rank_math_description'           => $post['excerpt'],
-						'_seopress_titles_desc'           => $post['excerpt'],
+						'_infosecnexus_seo_description'   => $seo_description,
+						'_yoast_wpseo_metadesc'           => $seo_description,
+						'rank_math_description'           => $seo_description,
+						'_seopress_titles_desc'           => $seo_description,
 					),
 					$keyword_meta
 				),
@@ -1090,6 +1091,19 @@ final class Demo_Content {
 		if ( $changed > 0 || $force ) {
 			self::purge_public_cache( $changed_ids );
 		}
+	}
+
+	/**
+	 * Keep an explicitly reviewed description across routine source refreshes.
+	 */
+	private static function newsroom_description( int $post_id, string $generated ): string {
+		if ( $post_id > 0 && '1' === (string) get_post_meta( $post_id, '_infosecnexus_seo_description_manual', true ) ) {
+			$reviewed = (string) get_post_meta( $post_id, '_infosecnexus_seo_description', true );
+			if ( '' !== trim( $reviewed ) ) {
+				return $reviewed;
+			}
+		}
+		return $generated;
 	}
 
 	/**
