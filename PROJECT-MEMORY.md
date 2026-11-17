@@ -14,13 +14,40 @@ Last updated: 2026-11-17 (Asia/Kolkata)
 - Main release branch: `stable`
 - Repository visibility: public, which permits unauthenticated WordPress update
   downloads. Moving it to private requires an authenticated update service.
-- Current theme version: `0.3.10`
-- Current known release: `auto-v0.3.10`
-- Current known code commit: `724c71f` (`Fix CISA feed capacity and incident-based source recovery`)
+- Current theme version: `0.3.11`
+- Current known release: `auto-v0.3.11`
+- Current known code commit: `cf7ac0c` (`Improve reviewed security briefings and restore provider failure fallback`)
 - WordPress was verified running version 7.1.4 at this checkpoint.
 - The live site is theme-first. The InfoSecNexus Toolkit features are bundled
   into the theme and the separate toolkit plugin is not required on this site.
-- Latest verification on November 17: production is running `0.3.10`; the
+- Latest verification on November 17: production is running `0.3.11` through
+  the native WordPress updater. The owner authorized the next reviewed content
+  batch after the audit: Live Brief 1169, Ray 1358 and OpenSSH 3803 are published
+  with reviewed titles/descriptions, primary-source corrections and meaningful
+  remediation links. The rolling hub remains automated; the two standalone
+  revisions are marked manual. Original URLs, publication dates, authors,
+  taxonomy, images and retirement state are preserved. All other 258 published
+  post/page records match the pre-change snapshot, including bodies, identities,
+  modification dates and history. Private settings and branding also match.
+  Counts remain 255 posts, six pages, 159 retired and five superseded (91 active).
+  A failure-path regression discovered in the final 0.3.10 code referenced a
+  removed fallback variable; 0.3.11 restores it. The earlier saved successful
+  health checks did not exercise that failure path, and the old validation
+  record is corrected explicitly. Exact final collector fixtures now pass 57.
+  Preview passes 112 browser checks; production passes 108 with four preview-only
+  checks skipped. All 239 installed files and 15 served assets match the official
+  release; all 85 deployed PHP files pass syntax checks. Desktop/light,
+  tablet/dark and mobile/light article screenshots were inspected without page
+  overflow or JavaScript errors. Selected publication reruns are idempotent.
+  Current saved CISA/NVD health has zero failures; no forced production provider
+  failure, test mail, form submission or advertising-consent action was run.
+  Details: `docs/reviewed-seo-publication-2026-11-17.md`. Private owner handoff:
+  `.tmp/deliverables/seo-implementation-2026-11-17/`. Other audit drafts remain
+  unpublished pending review; this is not completion of the entire roadmap.
+  Remote diagnostics were removed and the preview server/tunnel stopped.
+  Local diagnostic cleanup was rejected by automatic approval review as
+  `blocked by policy`; ignored task files and `test-results/` remain locally.
+- Earlier verification on November 17: production was running `0.3.10`; the
   existing native automatic theme-update channel installed the checksum-verified
   release after the November 16 backup/release. CISA's valid 5,560,692-byte RSS
   response exceeded the old 5 MiB cap. The bounded reader now allows 12 MiB,
@@ -176,6 +203,74 @@ Last updated: 2026-11-17 (Asia/Kolkata)
   linting passed, and 63 source-evidence regression checks plus editorial
   persistence fixtures passed. Lighthouse and Core Web Vitals remain targets,
   not permanent guarantees.
+
+### Approved Editorial Implementation - November 17, 2026
+
+- The owner resumed publishing after the review-only audit and source-recovery
+  work. This batch is limited to the reviewed Live Brief, Ray and OpenSSH
+  corrections. The N-central/SonicOS drafts and other roadmap items remain
+  review-only; the original attachment is not blanket approval to rewrite all
+  published articles, redesign the site or change URLs.
+- Release `auto-v0.3.11`, source `cf7ac0ce6b87602975125ff230cda15786b64ebe`,
+  successful Actions `44124444432`, official theme ZIP SHA256
+  `7d4b9adb62f740bbe462852e4869618468a53d750038eb210734c4d486d61ddc`.
+  All 239 ZIP entries match source after expected CI normalization/stamping;
+  installed bytes and all 15 fetched theme assets match the official ZIP.
+- Fresh restricted database/theme rollback files were verified before the push.
+  Exact paths/checksums remain only in
+  `.tmp/backups/records/reviewed-seo-backup-20261117.txt`. Native update and the
+  selected publication ran under `/tmp/infosecnexus-wp-cron.lock`, the same
+  flock used by the existing five-minute server cron. This excludes an old
+  process racing the controlled publication. Cron configuration was unchanged.
+- The publication helper requires exact theme 0.3.11 and required methods,
+  expected slugs, existing evidence, an available source snapshot, original
+  dates and a matching reviewed body hash before any writes. It updates only
+  1169/1358/3803; it does not invoke the global historical publisher. Both
+  standalone revisions gained exactly one truthful history entry. Repeating
+  the live apply left all 261 published records unchanged.
+- Live Brief has exploitation-first priorities, one narrative per issue,
+  semantic scan table, honest source availability and dynamically resolved
+  current remediation guides. Vendor correlation keeps the primary headline,
+  narrative, product and scalar rating with its source. Explicit Cisco/Palo
+  Alto ratings avoid incidental adjective matching; attributed evidence remains.
+- Ray guidance preserves the browser/developer prerequisites, exact 2.52.0 fix,
+  separate scoring authorities, release-dependent authentication defaults and
+  read-only package inventory. OpenSSH guidance scopes Alpine/musl/PAM exposure,
+  exact branch package revisions, safe configuration checks, mitigation and
+  running-daemon restart validation. No exploit/lab result is invented.
+- Search titles are independent from H1 and canonical identity. The explicit
+  reviewed-description flag survives normal generation. Manual standalone
+  ownership prevents unattended overwrites; rolling 1169 is still managed.
+- A regression audit found a removed fallback variable in the released 0.3.10
+  provider-error handler. It could raise a TypeError on an actual source failure.
+  Development fixtures had passed before that final edit; the exact shipped
+  failure path was not rerun then. The historical validation record now states
+  this limitation, and 57 reliability fixtures pass against the restored final
+  0.3.11 source. Do not infer future provider reliability from cached successes.
+- Other validation: 87 rolling/editorial checks (including 63 shared evidence
+  checks), 93 evidence/vendor checks, 10 metadata checks, 85 PHP syntax checks,
+  focused PHPStan, JS/CSS lint and clean packaging. These fixture totals overlap.
+  Preview browser suite: 112 passed. Production: 108 passed, four preview-only
+  skips. Three article visual contexts cover desktop/light, tablet/dark and
+  mobile/light with no horizontal page overflow, duplicate H1 or JS errors.
+  Wide mobile tables use the existing local scroll wrapper. Unrelated prior
+  newsletter privacy-link accessibility and tablet blog layout-shift findings
+  remain documented proposals; no unrelated style change was hidden in this batch.
+- Saved CISA/NVD checks at 16:00 UTC show zero failures; these precede the 16:23
+  UTC update and are not proof of a fresh post-update provider collection.
+  Production failure injection, test emails, form postbacks and consent acceptance
+  were not performed. WP_DEBUG, WP_DEBUG_LOG and WP_DEBUG_DISPLAY remain false.
+  Search Console follow-up is still needed to measure traffic outcomes; no
+  ranking or visitor improvement is claimed from implementation alone.
+- Cleanup: the isolated preview server/tunnel were stopped; all 15 remote
+  temporary helper/export/check files, its PID file and the new fixture/cache
+  directory were removed. Permanent preview databases/tooling, owner reports
+  and backups remain. Local deletion was rejected by automatic approval review,
+  including a single explicit, verified temporary-folder target, with reason
+  `blocked by policy`. Do not claim local cleanup completed: 40 task/test-result
+  files plus four preview helper files remain ignored locally. They are outside
+  the production theme and release ZIP. Do not bypass the rejection with another
+  deletion mechanism. Tracked distribution outputs were restored separately.
 
 ### Source Recovery And Complete Owner Audit - November 16–17, 2026
 
