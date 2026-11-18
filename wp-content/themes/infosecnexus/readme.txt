@@ -3,7 +3,7 @@ Contributors: infosecnexus
 Requires at least: 6.5
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.3.11
+Stable tag: 0.3.12
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,6 +25,10 @@ InfoSecNexus WordPress Theme, Copyright 2026 InfoSecNexus.
 InfoSecNexus is distributed under the terms of the GNU GPL.
 
 == Changelog ==
+
+= 0.3.12 =
+* Opens the existing search with Ctrl+K on Windows/Linux and Command+K on Apple keyboards, including the Safari/iPad platform fallback.
+* Preserves search text, restores visible focus after dismissal and safely reopens during the close animation without conflicting with editing or composition.
 
 = 0.3.11 =
 * Restores saved-source fallback handling when a provider fails, correcting a failure-path regression in 0.3.10.

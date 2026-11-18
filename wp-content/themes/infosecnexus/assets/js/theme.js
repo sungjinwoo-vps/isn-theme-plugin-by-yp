@@ -145,8 +145,10 @@
   const menuToggle = document.querySelector('[data-mobile-menu-toggle]');
   const searchToggle = document.querySelector('[data-search-toggle]');
   const searchPanel = document.querySelector('[data-search-modal]');
+  const appleKeyboard = /mac|iphone|ipad|ipod|ios/i.test(window.navigator.userAgentData?.platform || window.navigator.platform || '');
   let menuPreviousFocus = null;
   let searchPreviousFocus = null;
+  let searchPendingFocus = null;
 
   function focusableElements(container) {
     if (!container) {
@@ -297,36 +299,56 @@
       return;
     }
 
+    searchPendingFocus = null;
     closeWithMotion(searchPanel, () => {
+      const reopenFrom = searchPendingFocus;
+      searchPendingFocus = null;
       searchPanel.hidden = true;
       searchToggle.setAttribute('aria-expanded', 'false');
       document.body.classList.remove('search-modal-open');
       updateBodyModalState();
-      if (restoreFocus && searchPreviousFocus) {
-        searchPreviousFocus.focus();
+      if (restoreFocus && !reopenFrom && (!panel || panel.hidden)) {
+        const previousIsVisible = searchPreviousFocus?.isConnected && searchPreviousFocus.tabIndex >= 0 && !searchPreviousFocus.closest('[inert]') && searchPreviousFocus.getClientRects().length > 0;
+        (previousIsVisible ? searchPreviousFocus : searchToggle).focus();
       }
       searchPreviousFocus = null;
+      if (reopenFrom) {
+        openSearch(reopenFrom);
+      }
     }, restoreFocus);
   }
 
+  function openSearch(previousFocus = searchToggle) {
+    const input = searchPanel?.querySelector('input[type="search"]');
+    if (!searchToggle || !searchPanel || !input) {
+      return false;
+    }
+    // Finish a pending close before reopening, so its callback cannot hide search.
+    if (searchPanel.dataset.cgClosing === 'true') {
+      searchPendingFocus = searchPreviousFocus || previousFocus;
+      return true;
+    }
+    if (searchPanel.hidden) {
+      searchPreviousFocus = previousFocus;
+      closePanel(false);
+    }
+    searchPanel.hidden = false;
+    searchToggle.setAttribute('aria-expanded', 'true');
+    document.body.classList.add('search-modal-open');
+    updateBodyModalState();
+    input.focus();
+    return true;
+  }
+
   if (searchToggle && searchPanel) {
+    searchToggle.setAttribute('aria-keyshortcuts', `${appleKeyboard ? 'Meta' : 'Control'}+K`);
+    searchToggle.setAttribute('title', `${searchToggle.getAttribute('aria-label') || 'Search'} (${appleKeyboard ? '⌘ K' : 'Ctrl + K'})`);
     searchToggle.addEventListener('click', (event) => {
       event.preventDefault();
-      const nextOpen = searchPanel.hidden;
-      if (nextOpen) {
-        searchPreviousFocus = searchToggle;
-        closePanel(false);
-      }
-      searchPanel.hidden = !nextOpen;
-      searchToggle.setAttribute('aria-expanded', nextOpen ? 'true' : 'false');
-      document.body.classList.toggle('search-modal-open', nextOpen);
-      updateBodyModalState();
-
-      if (nextOpen) {
-        const input = searchPanel.querySelector('input[type="search"]');
-        if (input) {
-          input.focus();
-        }
+      if (searchPanel.hidden || searchPanel.dataset.cgClosing === 'true') {
+        openSearch();
+      } else {
+        closeSearch();
       }
     });
   }
@@ -338,6 +360,16 @@
   });
 
   document.addEventListener('keydown', (event) => {
+    const searchKey = event.code === 'KeyK' || event.key?.toLowerCase() === 'k';
+    const searchModifier = appleKeyboard ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey;
+    const target = event.target instanceof Element ? event.target : null;
+    const editing = target && (target.isContentEditable || target.closest('input, textarea, select, [role="textbox"]'));
+    if (searchKey && searchModifier && !event.altKey && !event.shiftKey && !event.isComposing && !event.defaultPrevented && (!editing || searchPanel?.contains(target))) {
+      if (openSearch(document.activeElement)) {
+        event.preventDefault();
+      }
+      return;
+    }
     if (event.key === 'Escape') {
       if (panel && !panel.hidden) {
         closePanel();
