@@ -4,7 +4,7 @@
 > project. Then run the startup checklist in the next section. This is the
 > authoritative continuity handoff for the current project state.
 
-Last updated: 2026-11-17 (Asia/Kolkata)
+Last updated: 2026-11-18 (Asia/Kolkata)
 
 ## 1. Current Snapshot
 
@@ -14,13 +14,30 @@ Last updated: 2026-11-17 (Asia/Kolkata)
 - Main release branch: `stable`
 - Repository visibility: public, which permits unauthenticated WordPress update
   downloads. Moving it to private requires an authenticated update service.
-- Current theme version: `0.3.11`
-- Current known release: `auto-v0.3.11`
-- Current known code commit: `cf7ac0c` (`Improve reviewed security briefings and restore provider failure fallback`)
+- Current theme version: `0.3.12`
+- Current known release: `auto-v0.3.12`
+- Current known code commit: `cc960dc` (`Add OS-aware search keyboard shortcut and preserve modal focus`)
 - WordPress was verified running version 7.1.4 at this checkpoint.
 - The live site is theme-first. The InfoSecNexus Toolkit features are bundled
   into the theme and the separate toolkit plugin is not required on this site.
-- Latest verification on November 17: production is running `0.3.11` through
+- Latest verification on November 18: production is running `0.3.12`. Ctrl+K
+  opens the existing search on Windows/Linux; Command+K opens it on Apple
+  keyboards, including Safari/iPad platform reporting. Repeated shortcuts retain
+  the query; Escape restores visible focus. Typing/editing, IME and other
+  modifier combinations remain unaffected. Animated reopening and rapid
+  search-to-menu handoff preserve modal focus. Search trigger tooltips and
+  aria-keyshortcuts report the appropriate keys. No dependency or layout change.
+  All 262 published post/page records match the fresh pre-update snapshot,
+  including bodies, identities, original and modified dates, history and URLs.
+  Private settings, theme mods, plugins and branding also match. Counts are
+  256 posts, six pages, 159 retired and five superseded (92 active posts); the
+  additional post already existed before this keyboard change. Production
+  browser checks: 124 passed, four preview-only mail/consent cases skipped.
+  Sixteen dedicated cases include Chromium/WebKit with platform simulation.
+  All 239 installed files and 15 served assets match verified release/source
+  bytes; 85 PHP syntax checks,
+  JS lint and clean packaging pass. Details: `docs/search-shortcuts.md`.
+- Previous verification on November 17: production was running `0.3.11` through
   the native WordPress updater. The owner authorized the next reviewed content
   batch after the audit: Live Brief 1169, Ray 1358 and OpenSSH 3803 are published
   with reviewed titles/descriptions, primary-source corrections and meaningful
@@ -203,6 +220,48 @@ Last updated: 2026-11-17 (Asia/Kolkata)
   linting passed, and 63 source-evidence regression checks plus editorial
   persistence fixtures passed. Lighthouse and Core Web Vitals remain targets,
   not permanent guarantees.
+
+### Search Keyboard Shortcut - November 18, 2026
+
+- The owner requested an OS-appropriate shortcut for the existing search.
+  Release `auto-v0.3.12`, source `cc960dca7258e15b1c50741882e9268f852bf814`,
+  successful Actions `44294442852`, official ZIP SHA256
+  `64965006272f81528c19e751745821ab0d8501fac6745a7b85d3bf01852f83b5`.
+  It is installed through the native updater. Both the custom manifest and
+  core update caches needed refresh before the new version became available;
+  the normal update endpoint/settings were preserved.
+- `assets/js/theme.js` shares `openSearch()` between clicks and Ctrl/Command+K,
+  preserves original focus and query, handles a shortcut during animated closing
+  and prevents stale callbacks stealing focus from a replacement mobile menu.
+  Apple Control+K, editable fields, IME, Shift/Alt combinations and already
+  handled events remain with their existing owner. The header exposes the
+  matching shortcut tooltip and `aria-keyshortcuts`. No new dependency or layout.
+- Fresh restricted database/theme backups were verified before pushing.
+  Private records are `.tmp/backups/records/search-shortcut-backup-20261118.txt`
+  and `search-shortcut-{before,after,release}-20261118.json` in that directory.
+  Native update used the existing server cron lock. All 262 published records,
+  private Toolkit options, theme mods, plugins and branding match before/after.
+  Counts are 256 posts and six pages; the additional post predates this change.
+- Sixteen dedicated desktop/mobile scenarios pass, including Windows/Linux,
+  macOS/iPad platform simulation, WebKit fallback, preserved typed forms,
+  repeated shortcuts, actual published-post search, tablet/mobile dark geometry,
+  queued reopening and rapid Escape-to-menu focus. Independent QA reproduced
+  the last focus race and confirmed the final guard fixed it.
+- An initial broad preview suite passed 128. The final guard's broad repeat
+  passed 124 and failed four existing form/search checks after overlapping runs;
+  resetting only two isolated preview rate counters and rerunning those four
+  unchanged cases passed all four. The full production run passed 124 with four
+  preview-only mail/consent skips. No production form postback, test mail or
+  advertising-consent acceptance ran. JS lint, 85 deployed PHP syntax checks,
+  clean 239-file packaging, exact installed ZIP bytes and 15 fetched assets pass.
+- Remote temporary helpers were removed and the verified preview server/tunnel
+  stopped. No new local task/debug directory or downloaded release ZIP was
+  created; package verification used memory. Existing ignored preview files and
+  test results remain under the prior automatic local-deletion rejection
+  (`blocked by policy`); it was not bypassed or retried through another mechanism.
+  Actual backup/verification records, permanent tests/tools, owner reports,
+  preview databases and unrelated `new_design/` remain preserved. Tracked `dist/`
+  outputs were restored after packaging. Details: `docs/search-shortcuts.md`.
 
 ### Approved Editorial Implementation - November 17, 2026
 

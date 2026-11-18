@@ -34,3 +34,10 @@ focus guard, the repeat passed 124 with four form/search failures. Resetting onl
 the isolated preview rate counters and rerunning those four unchanged tests
 passed all four. Production verification and exact release/backup records are
 recorded in PROJECT-MEMORY.md. Prior local deletion rejections must not be bypassed.
+
+Production verification passed 124 cases with four preview-only mail/consent
+cases skipped. All 262 published post/page records and private settings match
+the fresh pre-update snapshot. All 239 installed theme files match the official
+ZIP and all 85 deployed PHP files pass syntax checks. The native update needed
+both the theme manifest cache and WordPress update cache refreshed; the normal
+update endpoint and enabled setting were preserved.
