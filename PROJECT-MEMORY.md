@@ -14,13 +14,25 @@ Last updated: 2026-11-20 (Asia/Kolkata)
 - Main release branch: `stable`
 - Repository visibility: public, which permits unauthenticated WordPress update
   downloads. Moving it to private requires an authenticated update service.
-- Current theme version: `0.3.14`
-- Current known release: `auto-v0.3.14`
-- Current known code commit: `ec660db` (`Integrate the search shortcut inside one rounded header control`)
+- Current theme version: `0.3.15`
+- Current known release: `auto-v0.3.15`
+- Current known code commit: `7d01660` (`Style Daily Cyber Brief email to match InfoSecNexus`)
 - WordPress was verified running version 7.1.4 at this checkpoint.
 - The live site is theme-first. The InfoSecNexus Toolkit features are bundled
   into the theme and the separate toolkit plugin is not required on this site.
-- Latest verification later on November 20: production is running `0.3.14`.
+- Latest verification on November 20: production is running `0.3.15`. The Daily
+  Cyber Brief uses an ivory and orange HTML email with the existing wordmark,
+  linked article cards, a Live Brief button and the signed unsubscribe link.
+  Zoho remains active. The next scheduled digest is November 21 at 7:15 AM IST.
+  The schedule and recipient checks are unchanged. The isolated digest path
+  captured HTML, intact article and unsubscribe links, and accepted-date
+  bookkeeping. Other mail still uses the plain-text code path. Desktop and
+  360px mobile previews were checked, including blocked images. Actual inbox
+  delivery awaits the scheduled run. All 265 published records and settings
+  match before and after. All 240 deployed files match the release and 86 PHP
+  syntax checks pass. Focused browser checks passed six in preview and four in
+  production, with two mail-blocked preview scenarios skipped on production.
+- Earlier verification on November 20: production was running `0.3.14`.
   The owner requested a single integrated search control. The magnifying glass
   and Ctrl K / Command K label now sit inside one rounded 104x44px search link,
   sharing click, hover and focus states. A 42px icon cell keeps the glyph aligned;
@@ -1377,9 +1389,25 @@ the current server-side controls.
 - Newsletter signups use confirmation/double opt-in.
 - Admin location: Tools > Newsletter Subscriptions.
 - Confirmation, digest, and unsubscribe flows are built into the theme.
+- The daily digest uses `inc/toolkit/class-newsletter-digest-template.php` and
+  `Mailer::send_html()` as of release `0.3.15`. The template uses presentation
+  tables and inline styling. Article headlines, the canonical Live Brief CTA,
+  and the recipient's signed unsubscribe link are readable without images.
+  Zoho Mail 1.6.3 takes `Content-Type: text/html` from this message and uses an
+  HTML API payload. Keep Content-Type last in its headers. The other theme
+  mail flows still call `Mailer::send()` with plain text.
 - The visible signup must show success/error feedback and mail should use the
   configured Zoho sender.
 - Never silently subscribe an address without confirmation.
+
+On November 20, release `auto-v0.3.15` was installed through the native updater
+after verified database and theme backups. Source is `7d01660f921e8b0305354e58b96a16e0c9bac647`,
+Actions `44765884658`, ZIP SHA256
+`c508511943d64bdaa8407a3d2e1e117f669c7b22ad047c3ee4adff5510b8ffdd`.
+The backup, before/after and release records are in ignored `.tmp/backups/records/`
+under the `newsletter-design` prefix. No digest was manually triggered in
+production. Preview mail was captured using a synthetic subscriber. Remote and
+local temporary outputs from this task were cleaned after verification.
 
 ## 10. AdSense
 
