@@ -9,8 +9,7 @@ Version 0.3.13 also displays a visible keyboard badge beside the header's unchan
 44px search circle at widths of 768px and above. The search dialog shows the same
 OS-specific hint and Escape guidance on every screen. Narrow headers keep their
 existing controls and spacing. Both hints remain hidden without a working
-JavaScript search dialog. Styling uses the existing light/dark ivory tokens;
-GTA-inspired image previews were canceled and no redesign was implemented.
+JavaScript search dialog. Styling uses the existing light/dark ivory tokens.
 
 The shortcut focuses the search field. Repeating it preserves the query and
 refocuses the open dialog. Escape restores the original visible focus, with the

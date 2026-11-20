@@ -4,7 +4,7 @@
 > project. Then run the startup checklist in the next section. This is the
 > authoritative continuity handoff for the current project state.
 
-Last updated: 2026-11-18 (Asia/Kolkata)
+Last updated: 2026-11-20 (Asia/Kolkata)
 
 ## 1. Current Snapshot
 
@@ -14,13 +14,30 @@ Last updated: 2026-11-18 (Asia/Kolkata)
 - Main release branch: `stable`
 - Repository visibility: public, which permits unauthenticated WordPress update
   downloads. Moving it to private requires an authenticated update service.
-- Current theme version: `0.3.12`
-- Current known release: `auto-v0.3.12`
-- Current known code commit: `cc960dc` (`Add OS-aware search keyboard shortcut and preserve modal focus`)
+- Current theme version: `0.3.13`
+- Current known release: `auto-v0.3.13`
+- Current known code commit: `a56ca0b` (`Show search shortcut hints and remove redundant brief introduction`)
 - WordPress was verified running version 7.1.4 at this checkpoint.
 - The live site is theme-first. The InfoSecNexus Toolkit features are bundled
   into the theme and the separate toolkit plugin is not required on this site.
-- Latest verification on November 18: production is running `0.3.12`. Ctrl+K
+- Latest verification on November 20: production is running `0.3.13`. The owner
+  canceled GTA-inspired image previews and requested only two changes. A visible
+  Ctrl K / Command K keyboard badge now sits beside the unchanged circular search
+  icon on desktop/tablet at widths >=768px. The search dialog shows the OS-specific
+  hint and Escape guidance on every screen; narrow headers retain their spacing.
+  Live Brief 1169 no longer contains the Executive security snapshot heading or
+  following generic paragraph. Its guide now starts with Priority scan, and the
+  generator's rolling-3 revision preserves the removal on later refreshes.
+  Only those two exact HTML blocks were removed from the stored article; source
+  evidence, original dates, slug, author, terms, imagery and SEO metadata match.
+  The rolling article remains managed and gained one truthful history entry.
+  A repeat removal is a no-op. All other 264 published post/page records and
+  private settings/branding match. Counts are 259 posts, six pages, 159 retired
+  and five superseded (95 active posts); additional posts predate this task.
+  Preview passed 130 browser cases; production passed 126 with four preview-only
+  skips. Ninety rolling/evidence checks, 85 PHP syntax checks, JS/CSS lint,
+  clean packaging, all 239 installed file hashes and 15 served assets pass.
+- Previous verification on November 18: production was running `0.3.12`. Ctrl+K
   opens the existing search on Windows/Linux; Command+K opens it on Apple
   keyboards, including Safari/iPad platform reporting. Repeated shortcuts retain
   the query; Escape restores visible focus. Typing/editing, IME and other
@@ -220,6 +237,52 @@ Last updated: 2026-11-18 (Asia/Kolkata)
   linting passed, and 63 source-evidence regression checks plus editorial
   persistence fixtures passed. Lighthouse and Core Web Vitals remain targets,
   not permanent guarantees.
+
+### Visible Shortcut Hint And Brief Introduction Removal - November 20, 2026
+
+- Scope is limited to a visible shortcut hint and removal of the exact redundant
+  Live Brief section. GTA VI-inspired previews were canceled; no redesign ran.
+  Existing ivory colors, logo, Site Icon, article URLs and settings are retained.
+- Release `auto-v0.3.13`, source `a56ca0b8c68b9fc58f1c2ecb85ff56869026b933`,
+  successful Actions `44749182339`, official theme ZIP SHA256
+  `2bded838f3c555eb28ff291d973522258ba32fef924f655c1ca3ecc4cc98fc8f`.
+  It is installed through the native updater after both update caches were
+  refreshed. All 239 installed files match the official ZIP. All 15 fetched
+  assets match verified release/source bytes; 85 PHP syntax checks pass.
+- The search anchor stays a centered 44px circle inside a flex wrapper. Its
+  adjacent keyboard badge is visible from 768px, and the dialog repeats the
+  OS-specific hint at all widths. A 641px preview overflow led to the 768px
+  breakpoint, preserving compact controls without shrinking the icon or logo.
+  Hints stay hidden without a functioning JavaScript modal/input. Existing
+  key handling, focus restoration, editing guards and no-JavaScript link remain.
+- The renderer removes the exact Executive security snapshot h2 and paragraph,
+  and bumps only the rolling fingerprint from rolling-2 to rolling-3. The
+  historical ownership-recognition list and global editorial schema stay intact.
+  Under the server cron lock, a CLI-only version/identity/ownership-checked
+  operation removed just those two HTML strings from post 1169. Before/after
+  comparison proves the exact two-block deletion and unchanged source evidence.
+  Original publication time remains 2026-08-10 12:00:02 UTC. History grew from 549 to 550
+  with an accurate removal summary; repeating the operation made no changes.
+  The manual flag remains empty and can_update() remains true for normal refresh.
+- All 264 other published records match completely, including bodies, identities,
+  modification dates and history. Toolkit options, theme mods, plugins, logo and
+  Site Icon match. Post/page totals are 259/6, retired 159 and superseded 5.
+  Fresh database/theme rollback files were checksum-verified before the push.
+  Exact private paths/checksums and before/after/release/removal records are in
+  `.tmp/backups/records/` with search-hint-brief/brief-section-removal prefixes.
+- Verification: 130 final preview browser cases passed and production passed 126
+  with four preview-only mail/consent cases skipped. Ninety source/rolling checks
+  include three new removal assertions; JS/CSS lint, syntax and clean packaging
+  pass. Early focused runs found the 641px overflow (fixed) and one load-timing
+  search assertion failure; the final full suites passed without weakening it.
+  Desktop article/header and dark mobile-search screenshots were inspected in
+  memory; no screenshot files or local diagnostic directory were created.
+  Geometry coverage includes 320, 390, 640, 641, 768, 1081, 1180 and 1366px in light/dark.
+- Remote preview helpers and isolated fixture files are cleaned after verification
+  and the verified server/tunnel stopped. Existing local preview files/test results
+  remain under the prior automatic deletion rejection; it was not bypassed.
+  Backups, owner deliverables, permanent tooling/databases and `new_design/` stay
+  preserved. Tracked `dist/` outputs are restored after packaging.
 
 ### Search Keyboard Shortcut - November 18, 2026
 
