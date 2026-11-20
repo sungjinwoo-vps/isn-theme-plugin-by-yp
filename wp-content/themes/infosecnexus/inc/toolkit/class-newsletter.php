@@ -12,6 +12,8 @@ namespace InfoSecNexus\Theme\Toolkit;
 use WP_REST_Request;
 use WP_REST_Response;
 
+require_once __DIR__ . '/class-newsletter-digest-template.php';
+
 /**
  * Newsletter module.
  */
@@ -386,6 +388,25 @@ final class Newsletter {
 			return;
 		}
 
+		$entries = array();
+		foreach ( $posts as $post ) {
+			$url = get_permalink( $post );
+			if ( $url ) {
+				$entries[] = array( 'title' => get_the_title( $post ), 'url' => $url );
+			}
+		}
+		if ( empty( $entries ) ) {
+			return;
+		}
+
+		$brief     = \InfoSecNexus\Theme\Template_Tags\rolling_brief_post();
+		$brief_url = $brief ? get_permalink( $brief ) : false;
+		$date      = wp_date( 'F j, Y' );
+		$subject   = sprintf(
+			/* translators: %s: Date. */
+			__( 'Daily Cyber Brief - %s', 'infosecnexus' ),
+			$date
+		);
 		$subscriptions = get_posts(
 			array(
 				'post_type'      => self::POST_TYPE,
@@ -411,26 +432,13 @@ final class Newsletter {
 				continue;
 			}
 
-			$lines = array(
-				sprintf( 'InfoSecNexus Daily Cyber Brief - %s', wp_date( 'F j, Y' ) ),
-				'',
+			$message = Newsletter_Digest_Template::render(
+				$date,
+				$entries,
+				$brief_url ?: '',
+				self::unsubscribe_url( $subscription_id, $email )
 			);
-			foreach ( $posts as $post ) {
-				$lines[] = '- ' . get_the_title( $post );
-				$lines[] = '  ' . get_permalink( $post );
-			}
-			$lines[] = '';
-			$lines[] = 'Unsubscribe: ' . self::unsubscribe_url( $subscription_id, $email );
-
-			$sent = Mailer::send(
-				$email,
-				sprintf(
-					/* translators: %s: Date. */
-					__( 'Daily Cyber Brief - %s', 'infosecnexus' ),
-					wp_date( 'F j, Y' )
-				),
-				implode( "\n", $lines )
-			);
+			$sent = Mailer::send_html( $email, $subject, $message );
 			if ( $sent ) {
 				update_post_meta( $subscription_id, '_isnx_last_digest_date', $today );
 				update_post_meta( $subscription_id, '_isnx_last_digest_status', 'accepted' );

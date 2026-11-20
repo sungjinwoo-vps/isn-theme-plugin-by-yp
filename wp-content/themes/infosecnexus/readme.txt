@@ -3,7 +3,7 @@ Contributors: infosecnexus
 Requires at least: 6.5
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.3.14
+Stable tag: 0.3.15
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,6 +25,10 @@ InfoSecNexus WordPress Theme, Copyright 2026 InfoSecNexus.
 InfoSecNexus is distributed under the terms of the GNU GPL.
 
 == Changelog ==
+
+= 0.3.15 =
+* Restyles the Daily Cyber Brief email with InfoSecNexus branding, ivory article cards, an orange Live Brief button and a clear unsubscribe link.
+* Sends only the digest as HTML through the configured mail transport, preserving the schedule and subscriber checks.
 
 = 0.3.14 =
 * Integrates the search icon and OS-specific shortcut inside one rounded header button, with a single hover, focus and click target.

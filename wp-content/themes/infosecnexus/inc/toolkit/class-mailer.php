@@ -41,12 +41,21 @@ final class Mailer {
 	 * @param string|string[] $headers Extra headers.
 	 */
 	public static function send( string $to, string $subject, string $message, $headers = array() ): bool {
+		return self::deliver( $to, $subject, $message, 'text/plain', (array) $headers );
+	}
+
+	/** Send an HTML message through the configured WordPress mail transport. */
+	public static function send_html( string $to, string $subject, string $message ): bool {
+		return self::deliver( $to, $subject, $message, 'text/html', array() );
+	}
+
+	/** Apply the format to this message only and keep delivery reporting shared. */
+	private static function deliver( string $to, string $subject, string $message, string $content_type, array $headers ): bool {
 		if ( ! is_email( $to ) ) {
 			return false;
 		}
 
-		$headers   = is_array( $headers ) ? $headers : array( $headers );
-		$headers[] = 'Content-Type: text/plain; charset=UTF-8';
+		$headers[] = 'Content-Type: ' . $content_type . '; charset=UTF-8';
 
 		$sent = wp_mail(
 			$to,
