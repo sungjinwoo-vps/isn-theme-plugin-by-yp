@@ -18,12 +18,19 @@ for (const platform of platforms) {
   test(`${platform.name} search shortcut opens, refocuses and restores its origin`, async ({ page }) => {
     await usePlatform(page, platform);
     await page.goto(baseURL);
+    const label = platform.aria === 'Meta+K' ? '\u2318 K' : 'Ctrl K';
+    const headerHint = page.locator('.header-search-control [data-search-shortcut-hint]');
+    await expect(headerHint).toHaveText(label);
+    if (page.viewportSize().width > 767) await expect(headerHint).toBeVisible();
+    else await expect(headerHint).toBeHidden();
     const origin = page.locator('.header-color-mode-toggle');
     await origin.focus();
     await page.keyboard.press(platform.shortcut);
     const panel = page.locator('[data-search-modal]');
     const input = panel.locator('input[name=s]');
     await expect(input).toBeFocused();
+    await expect(panel.locator('[data-search-shortcut-help]')).toBeVisible();
+    await expect(panel.locator('[data-search-shortcut-hint]')).toHaveText(label);
     await expect(page.locator('[data-search-toggle]')).toHaveAttribute('aria-keyshortcuts', platform.aria);
     await input.fill('OpenSSH');
     await panel.locator('.search-modal__close').focus();
@@ -35,6 +42,36 @@ for (const platform of platforms) {
     await expect(origin).toBeFocused();
   });
 }
+
+test('visible shortcut hint preserves header spacing across widths and color modes', async ({ page }, testInfo) => {
+  await usePlatform(page, platforms[0]);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto(baseURL);
+  await page.evaluate(() => document.fonts.ready);
+  const widths = testInfo.project.name === 'mobile' ? [320, 390, 640, 768] : [641, 768, 1081, 1180, 1366];
+  for (const mode of ['light', 'dark']) {
+    if (await page.locator('html').getAttribute('data-color-mode') !== mode) await page.locator('.header-color-mode-toggle').click();
+    for (const width of widths) {
+      await page.setViewportSize({ width, height: 900 });
+      const hint = page.locator('.header-search-control [data-search-shortcut-hint]');
+      if (width > 767) await expect(hint).toBeVisible();
+      else await expect(hint).toBeHidden();
+      const boxes = await page.locator('.site-header .site-brand, .site-header__actions > :visible').evaluateAll(nodes => nodes.map(node => {
+        const { left, right, top, bottom } = node.getBoundingClientRect(); return { left, right, top, bottom };
+      }));
+      for (let i = 0; i < boxes.length; i++) {
+        expect(boxes[i].left).toBeGreaterThanOrEqual(0);
+        expect(boxes[i].right).toBeLessThanOrEqual(width);
+        for (let j = i + 1; j < boxes.length; j++) {
+          const overlapX = Math.min(boxes[i].right, boxes[j].right) - Math.max(boxes[i].left, boxes[j].left);
+          const overlapY = Math.min(boxes[i].bottom, boxes[j].bottom) - Math.max(boxes[i].top, boxes[j].top);
+          expect(overlapX > 1 && overlapY > 1).toBeFalsy();
+        }
+      }
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+    }
+  }
+});
 
 test('shortcut respects editing, IME, extra modifiers and previously handled events', async ({ page }) => {
   await usePlatform(page, platforms[0]);

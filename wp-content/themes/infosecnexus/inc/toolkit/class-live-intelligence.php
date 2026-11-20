@@ -576,7 +576,7 @@ final class Live_Intelligence {
 			$source_state[ $key ] = array( ! empty( $status['ok'] ), ! empty( $status['stale'] ) );
 		}
 		ksort( $source_state );
-		$fingerprint = hash( 'sha256', self::CONTENT_SCHEMA_VERSION . '|rolling-2|' . $date . '|' . self::items_fingerprint( $selected ) . '|' . (string) wp_json_encode( $source_state ) . '|' . (string) wp_json_encode( self::brief_remediation_guides() ) );
+		$fingerprint = hash( 'sha256', self::CONTENT_SCHEMA_VERSION . '|rolling-3|' . $date . '|' . self::items_fingerprint( $selected ) . '|' . (string) wp_json_encode( $source_state ) . '|' . (string) wp_json_encode( self::brief_remediation_guides() ) );
 		$posts = array(
 			array(
 				'kind'        => 'rolling',
@@ -726,8 +726,6 @@ final class Live_Intelligence {
 		$content  = '<p class="isnx-live-deck">Known-exploited vulnerabilities first, followed by newly disclosed records and vendor advisories for security operations teams.</p>';
 		$content .= '<p><strong>Source snapshot: ' . esc_html( $as_of ) . '.</strong> This briefing covers ' . esc_html( (string) count( $items ) ) . ' developments. ' . esc_html( (string) $counts['kev'] ) . ' have reported exploitation; ' . esc_html( (string) $counts['critical'] ) . ' have Critical and ' . esc_html( (string) $counts['high'] ) . ' have High assessments. Exploitation and severity are separate, overlapping measures. Match each item to the products and versions you actually run.</p>';
 		$content .= '<!--more-->';
-		$content .= '<h2>Executive security snapshot</h2>';
-		$content .= '<p>Start with relevant known-exploited products. For the remaining queue, confirm affected versions and required configuration before scheduling remediation; a score alone does not establish an attack.</p>';
 		$content .= '<h2>Priority scan</h2><table><thead><tr><th scope="col">Issue or product</th><th scope="col">Assessment</th><th scope="col">Next decision</th></tr></thead><tbody>';
 		foreach ( $items as $index => $item ) {
 			$rating = self::brief_item_rating( $item );

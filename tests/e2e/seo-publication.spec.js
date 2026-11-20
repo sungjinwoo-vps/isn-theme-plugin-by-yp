@@ -51,6 +51,10 @@ test('rolling brief keeps a stable search title and resolves current remediation
   await expect(page.getByRole('heading', { name: 'Priority scan', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Source availability', exact: true })).toBeVisible();
   const body = page.locator('.single-entry .entry-content');
+  await expect(body.getByRole('heading', { name: 'Executive security snapshot', exact: true })).toHaveCount(0);
+  await expect(body).not.toContainText('Start with relevant known-exploited products.');
+  await expect(body.locator('h2').first()).toHaveText('Priority scan');
+  await expect(page.getByRole('link', { name: 'Executive security snapshot', exact: true })).toHaveCount(0);
   expect(await body.locator('table tbody tr').count()).toBeGreaterThan(0);
   for (const article of articles) await expect(body.locator(`a[href="${baseURL}${article.path}"]`).last()).toBeVisible();
   const schema = await page.locator('script[type="application/ld+json"]').evaluateAll(scripts => scripts.map(s => JSON.parse(s.textContent)).find(s => s['@type'] === 'NewsArticle'));

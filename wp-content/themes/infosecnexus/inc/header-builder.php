@@ -38,9 +38,12 @@ function render(): void {
 						<span class="color-mode-toggle__icon color-mode-toggle__icon--moon"><?php icon( 'moon' ); ?></span>
 						<span class="color-mode-toggle__icon color-mode-toggle__icon--sun"><?php icon( 'sun' ); ?></span>
 					</button>
-					<a class="icon-button header-search-toggle" href="<?php echo esc_url( add_query_arg( 's', '', home_url( '/' ) ) ); ?>" data-search-toggle aria-controls="infosecnexus-search-modal" aria-expanded="false" aria-label="<?php esc_attr_e( 'Open search', 'infosecnexus' ); ?>">
-						<?php icon( 'search' ); ?>
-					</a>
+					<span class="header-search-control">
+						<a class="icon-button header-search-toggle" href="<?php echo esc_url( add_query_arg( 's', '', home_url( '/' ) ) ); ?>" data-search-toggle aria-controls="infosecnexus-search-modal" aria-expanded="false" aria-label="<?php esc_attr_e( 'Open search', 'infosecnexus' ); ?>">
+							<?php icon( 'search' ); ?>
+						</a>
+						<kbd data-search-shortcut-hint hidden aria-hidden="true"></kbd>
+					</span>
 					<a class="button header-brief-button" href="<?php echo esc_url( $brief_url ); ?>" aria-label="<?php esc_attr_e( 'Daily Brief', 'infosecnexus' ); ?>"><span class="header-brief-full"><?php esc_html_e( 'Daily Brief', 'infosecnexus' ); ?></span><span class="header-brief-compact" aria-hidden="true"><?php esc_html_e( 'Brief', 'infosecnexus' ); ?></span><span class="button-arrow" aria-hidden="true"><?php icon( 'arrow-right' ); ?></span></a>
 					<button class="icon-button mobile-menu-toggle" type="button" data-mobile-menu-toggle aria-controls="infosecnexus-mobile-panel" aria-expanded="false" aria-label="<?php esc_attr_e( 'Open menu', 'infosecnexus' ); ?>">
 						<?php icon( 'menu' ); ?>
@@ -278,6 +281,11 @@ function render_search_modal(): void {
 					<h2 id="infosecnexus-search-title"><?php esc_html_e( 'Find actionable security intelligence', 'infosecnexus' ); ?></h2>
 					<p><?php esc_html_e( 'Search published blog posts, CVE notes, guides, and live briefings.', 'infosecnexus' ); ?></p>
 					<?php get_search_form(); ?>
+					<p class="search-modal__shortcut" data-search-shortcut-help hidden>
+						<span><?php esc_html_e( 'Keyboard shortcut', 'infosecnexus' ); ?></span>
+						<kbd data-search-shortcut-hint hidden></kbd>
+						<span><?php esc_html_e( 'Esc to close', 'infosecnexus' ); ?></span>
+					</p>
 					<div class="search-modal__quick">
 						<span><?php esc_html_e( 'Explore:', 'infosecnexus' ); ?></span>
 						<?php foreach ( $quick_links as $label => $url ) : ?>

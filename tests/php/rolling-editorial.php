@@ -44,6 +44,10 @@ $publication_posts=array((object)array('ID'=>500,'post_title'=>'CVE-2026-111497:
 $publication_meta[500]=array('_infosecnexus_brief_reference'=>'1');
 $data=array('checked_at'=>'2026-11-17 12:00:00','source_status'=>array('cisa'=>array('label'=>'CISA fixture','ok'=>false,'stale'=>true,'last_success'=>'2026-11-16 12:00:00')));
 $body=call_private('render_rolling_article','November 17, 2026',array($kev),$data);
+check(!str_contains($body,'Executive security snapshot'),'The removed Executive security snapshot heading must not be regenerated.');
+check(!str_contains($body,'Start with relevant known-exploited products.'),'The removed generic executive introduction must not be regenerated.');
+preg_match('/<h2\b[^>]*>(.*?)<\/h2>/s',$body,$first_heading);
+check('Priority scan'===($first_heading[1]??''),'Priority scan must be the first article-guide section after the source introduction.');
 check(str_contains($body,'<table>')&&str_contains($body,'Priority scan'),'The rolling brief needs an actual semantic priority table.');
 check(1===substr_count($body,trim($primary['description'])),'An item narrative must appear once, without security-desk duplication.');
 check(str_contains($body,'last successful check')&&str_contains($body,'2026-11-16 12:00:00'),'Unavailable sources must retain real last-good provenance.');

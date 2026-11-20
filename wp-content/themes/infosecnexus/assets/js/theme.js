@@ -341,8 +341,17 @@
   }
 
   if (searchToggle && searchPanel) {
+    const shortcutLabel = appleKeyboard ? '\u2318 K' : 'Ctrl K';
     searchToggle.setAttribute('aria-keyshortcuts', `${appleKeyboard ? 'Meta' : 'Control'}+K`);
-    searchToggle.setAttribute('title', `${searchToggle.getAttribute('aria-label') || 'Search'} (${appleKeyboard ? '⌘ K' : 'Ctrl + K'})`);
+    searchToggle.setAttribute('title', `${searchToggle.getAttribute('aria-label') || 'Search'} (${shortcutLabel})`);
+    if (searchPanel.querySelector('input[type="search"]')) {
+      document.querySelectorAll('[data-search-shortcut-hint]').forEach((hint) => {
+        hint.textContent = shortcutLabel;
+        hint.hidden = false;
+      });
+      const help = searchPanel.querySelector('[data-search-shortcut-help]');
+      if (help) help.hidden = false;
+    }
     searchToggle.addEventListener('click', (event) => {
       event.preventDefault();
       if (searchPanel.hidden || searchPanel.dataset.cgClosing === 'true') {
