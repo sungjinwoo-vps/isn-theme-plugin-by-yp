@@ -14,13 +14,23 @@ Last updated: 2026-11-20 (Asia/Kolkata)
 - Main release branch: `stable`
 - Repository visibility: public, which permits unauthenticated WordPress update
   downloads. Moving it to private requires an authenticated update service.
-- Current theme version: `0.3.13`
-- Current known release: `auto-v0.3.13`
-- Current known code commit: `a56ca0b` (`Show search shortcut hints and remove redundant brief introduction`)
+- Current theme version: `0.3.14`
+- Current known release: `auto-v0.3.14`
+- Current known code commit: `ec660db` (`Integrate the search shortcut inside one rounded header control`)
 - WordPress was verified running version 7.1.4 at this checkpoint.
 - The live site is theme-first. The InfoSecNexus Toolkit features are bundled
   into the theme and the separate toolkit plugin is not required on this site.
-- Latest verification on November 20: production is running `0.3.13`. The owner
+- Latest verification later on November 20: production is running `0.3.14`.
+  The owner requested a single integrated search control. The magnifying glass
+  and Ctrl K / Command K label now sit inside one rounded 104x44px search link,
+  sharing click, hover and focus states. A 42px icon cell keeps the glyph aligned;
+  the inline 13px label uses the existing UI typeface. Narrow screens retain the
+  44px icon-only control and dialog shortcut hint. All 265 published records,
+  settings and branding match before/after. The prior Live Brief removal remains
+  verified. Forty focused preview cases pass; production passes 38 with two
+  preview-only consent cases skipped. All 239 installed files match the official
+  release, 15 served assets match verified bytes, and 85 PHP syntax checks pass.
+- Previous verification on November 20: production was running `0.3.13`. The owner
   canceled GTA-inspired image previews and requested only two changes. A visible
   Ctrl K / Command K keyboard badge now sits beside the unchanged circular search
   icon on desktop/tablet at widths >=768px. The search dialog shows the OS-specific
@@ -237,6 +247,38 @@ Last updated: 2026-11-20 (Asia/Kolkata)
   linting passed, and 63 source-evidence regression checks plus editorial
   persistence fixtures passed. Lighthouse and Core Web Vitals remain targets,
   not permanent guarantees.
+
+### Integrated Search Control - November 20, 2026
+
+- The owner rejected the separate keyboard badge and requested the shortcut
+  inside a proper search control. The header now renders one rounded link
+  containing a centered icon cell and clean inline OS-specific label. Clicking
+  either opens the same dialog; the entire control has one hover/focus target.
+  No article or keyboard-handling implementation changed in this refinement.
+- Release `auto-v0.3.14`, source `ec660db38b136c019eae057ab732f67219707971`,
+  successful Actions `44752813754`, official ZIP SHA256
+  `6e1e98fea1a77b325f323f43f4d88198028a2ce8a93062e1b5ae0018f575d9d3`.
+  The checksum/source-verified 239-file release is installed through the native
+  updater under the existing cron lock after fresh database/theme backups.
+  Private backup/before/after/release records use the search-pill prefix under
+  `.tmp/backups/records/`.
+- All 265 published records match completely, including article bodies, original
+  and modified dates, history, URLs and SEO metadata. Toolkit options, theme mods,
+  plugins, logo and Site Icon also match. Live Brief's prior section removal is
+  covered by the unchanged publication tests; no editorial operation ran.
+- Forty focused Chromium/WebKit preview scenarios pass; production passes 38
+  with two preview-only consent acceptance skips. Tests cover label-click opening,
+  OS hints, focus/Escape, mobile menus, narrow headers, responsive geometry and
+  the prior reviewed article metadata. Search SVG alignment is measured against
+  its icon cell; round menu/other controls retain whole-button centering checks.
+  JS/CSS lint, clean packaging, all 85 deployed PHP syntax checks, exact installed
+  hashes and 15 served asset comparisons pass. Staging and live header screenshots
+  were reviewed in memory, with no screenshot file created.
+- Preview processes and remote helpers are stopped/cleaned after verification.
+  Existing local preview files/test results remain under the prior automatic
+  deletion rejection, which was not bypassed. Backups, owner deliverables,
+  permanent preview databases/tooling and `new_design/` remain preserved.
+  Generated tracked `dist/` outputs are restored after packaging.
 
 ### Visible Shortcut Hint And Brief Introduction Removal - November 20, 2026
 
