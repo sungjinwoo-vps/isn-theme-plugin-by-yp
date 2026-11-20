@@ -3,7 +3,7 @@ const baseURL = (process.env.WP_BASE_URL || 'http://localhost:8890').replace(/\/
 
 async function expectCentered(control) {
   const offset = await control.evaluate((element) => {
-    const parent = element.getBoundingClientRect();
+    const parent = (element.querySelector('[data-search-icon]') || element).getBoundingClientRect();
     const icon = element.querySelector('svg').getBoundingClientRect();
     return { x: Math.abs(icon.x + icon.width / 2 - parent.x - parent.width / 2), y: Math.abs(icon.y + icon.height / 2 - parent.y - parent.height / 2) };
   });

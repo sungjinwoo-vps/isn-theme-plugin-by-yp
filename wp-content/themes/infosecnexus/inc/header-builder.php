@@ -38,12 +38,12 @@ function render(): void {
 						<span class="color-mode-toggle__icon color-mode-toggle__icon--moon"><?php icon( 'moon' ); ?></span>
 						<span class="color-mode-toggle__icon color-mode-toggle__icon--sun"><?php icon( 'sun' ); ?></span>
 					</button>
-					<span class="header-search-control">
-						<a class="icon-button header-search-toggle" href="<?php echo esc_url( add_query_arg( 's', '', home_url( '/' ) ) ); ?>" data-search-toggle aria-controls="infosecnexus-search-modal" aria-expanded="false" aria-label="<?php esc_attr_e( 'Open search', 'infosecnexus' ); ?>">
+					<a class="icon-button header-search-toggle header-search-control" href="<?php echo esc_url( add_query_arg( 's', '', home_url( '/' ) ) ); ?>" data-search-toggle aria-controls="infosecnexus-search-modal" aria-expanded="false" aria-label="<?php esc_attr_e( 'Open search', 'infosecnexus' ); ?>">
+						<span class="header-search-icon" data-search-icon aria-hidden="true">
 							<?php icon( 'search' ); ?>
-						</a>
+						</span>
 						<kbd data-search-shortcut-hint hidden aria-hidden="true"></kbd>
-					</span>
+					</a>
 					<a class="button header-brief-button" href="<?php echo esc_url( $brief_url ); ?>" aria-label="<?php esc_attr_e( 'Daily Brief', 'infosecnexus' ); ?>"><span class="header-brief-full"><?php esc_html_e( 'Daily Brief', 'infosecnexus' ); ?></span><span class="header-brief-compact" aria-hidden="true"><?php esc_html_e( 'Brief', 'infosecnexus' ); ?></span><span class="button-arrow" aria-hidden="true"><?php icon( 'arrow-right' ); ?></span></a>
 					<button class="icon-button mobile-menu-toggle" type="button" data-mobile-menu-toggle aria-controls="infosecnexus-mobile-panel" aria-expanded="false" aria-label="<?php esc_attr_e( 'Open menu', 'infosecnexus' ); ?>">
 						<?php icon( 'menu' ); ?>

@@ -20,6 +20,7 @@ for (const platform of platforms) {
     await page.goto(baseURL);
     const label = platform.aria === 'Meta+K' ? '\u2318 K' : 'Ctrl K';
     const headerHint = page.locator('.header-search-control [data-search-shortcut-hint]');
+    await expect(page.locator('[data-search-toggle] [data-search-shortcut-hint]')).toHaveCount(1);
     await expect(headerHint).toHaveText(label);
     if (page.viewportSize().width > 767) await expect(headerHint).toBeVisible();
     else await expect(headerHint).toBeHidden();
@@ -40,6 +41,13 @@ for (const platform of platforms) {
     await page.keyboard.press('Escape');
     await expect(panel).toBeHidden();
     await expect(origin).toBeFocused();
+    if (page.viewportSize().width > 767) {
+      await headerHint.click();
+      await expect(input).toBeFocused();
+      await page.keyboard.press('Escape');
+      await expect(panel).toBeHidden();
+      await expect(page.locator('[data-search-toggle]')).toBeFocused();
+    }
   });
 }
 
